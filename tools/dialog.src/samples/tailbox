@@ -1,0 +1,18 @@
+#!/bin/sh
+# $Id: tailbox,v 1.1 2006/06/28 13:53:39 geggo Exp $
+: ${DIALOG=dialog}
+
+./killall listing
+./listing >listing.out &
+
+$DIALOG --title "TAIL BOX" \
+        --tailbox listing.out 24 70
+
+case $? in
+  0)
+    echo "OK";;
+  255)
+    echo "ESC pressed.";;
+esac
+
+./killall listing

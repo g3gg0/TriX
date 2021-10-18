@@ -1,0 +1,73 @@
+#title "DisARM/ARMulate test"
+#author "g3gg0"
+#plugin "trix_armulate"
+#plugin "trix_disarm"
+
+#include trix
+#include stdio
+#include trix_armulate
+#include trix_disarm
+
+int print_opcode ()
+{
+	char buffer[256];
+
+	__disarm_address ( trix_workspace, (char*)&buffer, __armulate_get_pc (), __armulate_is_thumb () );
+
+	printf ( buffer );
+	printf ( "\n" );
+}
+
+int print_regs ()
+{
+	int i = 0;
+	
+	for (i=0; i<4; i++ )
+		printf ( "R%i:  0x%08X  ", i, __armulate_get_reg ( i ) );
+
+	printf ( "\n" );
+
+	for (i=4; i<8; i++ )
+		printf ( "R%i:  0x%08X  ", i, __armulate_get_reg ( i ) );
+
+	printf ( "\n" );
+
+	printf ( "SP:  0x%08X  ", __armulate_get_reg ( 13 ) );
+	printf ( "LR:  0x%08X  ", __armulate_get_reg ( 14 ) );
+	printf ( "PC:  0x%08X  ", __armulate_get_pc () );
+	printf ( "\n" );
+	printf ( "\n" );
+	
+	return E_OK;
+
+}
+int main ()
+{
+	int breakpoints[] = {
+		0x00000006,
+		0x0000000E,
+		0xFFFFFFFF
+		};
+	int reason = 0;
+
+	/* create an empty workspace with 0x20's (MOV R0, 0x20) */		
+	trix_workspace = WorkspaceCreateFileFromBuffer ( "                                                    ", 0x20 );
+
+	/* initialize ARM emulator and set entry address to 0x00000000 in THUMB mode */	
+	__armulate_setup ( trix_workspace, 0x00000001 );
+
+	print_regs ();
+
+	/* initialize ARM breakpoint table */	
+	__armulate_set_bps ( breakpoints );
+
+	/* run until 0x00000020 */	
+	reason = __armulate_run_until ( 0x00000020 );
+	
+	printf ( "\nStopped, Reason: [%s]\n\n", __armulate_reason (reason) );
+	print_opcode ();
+	print_regs ();
+
+	return E_OK;
+
+}

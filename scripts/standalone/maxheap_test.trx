@@ -1,0 +1,12 @@
+#title "max_heap option test"
+#author "krisha"
+
+#include trix
+
+int main ()
+{
+	int i = 0;
+	
+	while ( malloc ( 1024 ) && i++ < 1024 * 300 );
+	return E_OK;
+}

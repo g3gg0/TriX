@@ -1,0 +1,14 @@
+#!/bin/sh
+# $Id: calendar2-stdout,v 1.1 2006/06/28 13:53:39 geggo Exp $
+: ${DIALOG=dialog}
+
+USERDATE=`$DIALOG --stdout --title "CALENDAR" --calendar "Please choose a date..." 0 0`
+
+case $? in
+  0)
+    echo "Date entered: $USERDATE.";;
+  1)
+    echo "Cancel pressed.";;
+  255)
+    echo "Box closed.";;
+esac

@@ -1,0 +1,68 @@
+/*
+char *func_test_1[20] =
+	{
+		"new_function",
+		".text",    "function body", "10",
+		".data",    "data block", "8",
+		".bss",     "", "20",
+		"!SYM_CALL", ".text+0x10", ".text+0x20",
+		"!SYM_PTR",  ".text+0x18", ".data+0x00",
+		"!SYM_PTR",  ".data+0x04", ".bss+0x00",
+		NULL
+	};
+
+	char *func_test_2[] =
+	{
+		"new_function",
+		".text",    "function body", "10",
+		".data",    "data block", "8",
+		".bss",     "", "20",
+		"!SYM_CALL", ".text+0x10", ".text+0x20",
+		"!SYM_PTR",  ".text+0x18", ".data+0x00",
+		"!SYM_PTR",  ".data+0x04", ".bss+0x00",
+		NULL
+	};
+
+*/
+int g_test_seer_dump ( char **func_test )
+{
+	int pos = 0;
+
+	printf ( "# <%s>\n", func_test[pos++] );
+
+	while ( func_test[pos] )
+	{
+		printf ( "-> <%s>", func_test[pos++] );
+		printf ( " <%s>", func_test[pos++] );
+		printf ( " <%s>\n", func_test[pos++] );
+	}
+
+	return 0;
+}
+
+int g_test_seer (  )
+{
+//	int test[2] = { 0, 0 };
+//	char *test[1] = {"ajj"};
+
+	int val = '@';
+	char *good = "abcd fghi";
+	char *baad = "abcd\x00fghi";
+
+	printf ( "test\n" );
+	printf ( "%s\n", good );
+	printf ( "%s\n", baad );
+	printf ( "%s\n", &baad[5] );
+
+	printf ( "-> %i %i\n", val, '@' );
+
+/*
+	g_test_seer_dump ( func_test_1 );
+	printf ( "\nsizeof: %i\n", sizeof ( func_test_1 ) );
+	*/
+/*
+	g_test_seer_dump ( func_test_2 );
+	printf ( "\nsizeof: %i\n", sizeof ( func_test_2 ) );
+*/
+	return 0;
+}

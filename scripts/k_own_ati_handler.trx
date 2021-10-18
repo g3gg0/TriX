@@ -1,0 +1,50 @@
+object ati_handler_ptr[] =
+{
+    "name", "ati_handler_ptr", "",
+    ".text", "\x00\x00\x00\x00", "4",
+    "!SYM_PTR", "ati_print_handler", "0",
+    NULL
+};
+
+int k_own_ati_handler ()
+{
+
+	object *own_ati_handler = NULL;
+	int bytes_used = 0;
+	unsigned int freespace = nokia_known_funcs();
+	
+	//drawxref ( 0x130E310, 3 );
+	//return 0;
+	
+	mark_modded ( 0x1353530 );
+
+	//SymbolAdd ( "cool", SYM_PTR, "0x1340000" );
+	own_ati_handler = __arm_create_object_from_makefile ( "scripts/k_compile_arm_c_files", "k_own_ati_handler.o" );
+	//__util_dump_object ( own_ati_handler );
+	//return 0;
+	if ( own_ati_handler )
+	{
+		//create own handler
+		bytes_used = NokiaCreateFunc ( own_ati_handler, freespace );
+		if ( bytes_used == E_FAIL )
+		{
+			say ( "Could NOT create function!\n" );
+			return -1;
+		}
+		printf ( "patched bytes: 0x%X\n", bytes_used  );
+		//freespace += bytes_used;
+		__util_free_object ( own_ati_handler );
+		
+		//set new pointer
+		__symbols_dump(NULL);
+		SetWord ( 0x14572BC, SymbolGetInt( "ati_print_handler" )+1 );
+		printf ( "old BL: 0x%08X\n", ARMGet ( 0x129C14C ) );
+		ARMSet ( BL, 0x129C14C, SymbolGetInt ( "irq_main_handler_hook" ) );
+		printf ( "new BL: 0x%08X\n", ARMGet ( 0x129C14C ) );
+		
+		drawbytes ( SymbolGetInt ( "irq_main_handler_hook" ), 0x10, 0x20 );
+		//printf ( "%08X", SymbolGetInt( "ati_print_handler" ) );
+		//printf ( "patched bytes: 0x%X\n", NokiaCreateFunc ( ati_handler_ptr, 
+	}
+
+}

@@ -1,0 +1,25 @@
+
+int k_term_test ()
+{
+	char *rbuf = NULL;
+	
+	SetDebugLevel ( DEBUG_UNKNOWN );
+	SetErrorLevel ( DEBUG_UNKNOWN );
+	__term_open ( 1 );
+	__term_open ( 100 );
+	__term_set_control ( 115200, 8, 1, 0, 0 );
+	
+	//__term_send ( "\x55\x55\x55\x55\x55\x55\x55\x55\x55\x55\x55\x1E\x00\x10\xD7\x00\x08\x00\x00\x05\x12\x04\x00\x01\x60\x0E\xAD", 27 );
+	
+	rbuf = (char*) calloc ( 1000, sizeof (char) );
+	__term_receive ( rbuf, 500 );
+	
+	printf ( "got: %s\n", rbuf );
+	
+	__term_close();
+	SetDebugLevel ( 0 );
+
+
+
+	return 0;
+}

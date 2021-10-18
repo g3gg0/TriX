@@ -1,0 +1,93 @@
+
+
+
+
+
+int k_testnokia()
+{
+	int addr_found = 10;
+	t_locator NokiaString =
+	{
+		"find Nokia String",
+		"nokia",
+		"\xff\xff\xff\xff\xff",
+		5,
+		0
+	};
+	
+/*	t_function_block blocks[2];
+	
+	// some problems with t_function!
+	t_function firstfunc =
+	{
+		"first func",
+		/*".text", "haha destroyed flash :)", 23,
+		NULL, NULL, 0,
+		0x00, SYM_PTR, "0x110011",
+		0, 0, NULL* /
+	};
+*/
+	t_function ff;
+	t_function_block block[2];
+	t_function_relative_data symbol[2];
+	block[0].name = str (".text");
+	block[0].data = str ("test1234");
+	block[0].length = 8;
+	block[1].name = NULL;
+	block[1].data = NULL;
+	block[1].length = 0;
+	
+	symbol[0].offset = 8;
+	symbol[0].type = SYM_CALL;
+	symbol[0].dest = str ( "0x1100000" );
+	symbol[1].offset = 0;
+	symbol[1].type = 0;
+	symbol[1].dest = NULL;
+	
+	ff.name = str("test func");
+	ff.blocks = block;
+	ff.rel_data = symbol;
+	
+
+	addr_found = SimpleFindPattern ( "test1234", NULL, 8, 0 );
+	if ( addr_found != E_FAIL )
+	{
+		printf ( "-------------------------------------------------------------------\n" );
+		printf ( "found 'test1234' at:    0x%08X\n", addr_found );
+		printf ( "That means, you loaded an already patched file :)\n" );
+		printf ( "-------------------------------------------------------------------\n" );
+		printf ( "\n" );
+		printf ( "\n" );
+	}
+	printf ( "------\n" );
+	printf ( "First BL at:            0x%08x\n", ARMFind ( BL, MEM_AUTO, MEM_AUTO, LOC_FORWARD ) );
+	addr_found = FindPattern( &NokiaString, MEM_AUTO, MEM_AUTO, LOC_FORWARD );
+	printf ( "found NokiaString at:   0x%08X : '%s'\n", addr_found, GetStr ( addr_found ) );
+
+	addr_found = SimpleFindPattern ( "(c) NMP", NULL, 7, 0 );
+	printf ( "found '(c) NMP' at:     0x%08X : '%s'\n", addr_found, GetStr ( addr_found ) );
+
+	addr_found = SimpleFindPattern ( "crap", NULL, 4, 0 );
+	printf ( "found 'crap' at:        0x%08X : '%s'\n", addr_found, GetStr ( addr_found ) );
+	printf ( "\n" );
+	printf ( "\n" );
+	
+
+	printf ( "create a function and search for it:\n" );
+	printf ( "\n" );
+	
+	printf ( "created at:             0x%08X\n", __nokia_create_func ( GetWorkspace(), &ff, 0x1200000 ) );
+	
+	printf ( "found 'test1234' at:    0x%08X\n", SimpleFindPattern ( "test1234", NULL, 8, 0 ) );
+	
+	printf ( "found BL @0x1100000 at: 0x%08X\n", ARMFindSrcOfDest ( BL, 0x1100000, MEM_AUTO, MEM_AUTO, LOC_FORWARD ) );
+	
+	printf ( "ARMGet:                 0x%08X\n", ARMGet ( 0x1200008 ) );
+	printf ( "\n" );
+	
+	printf ( "GetWord + 0: 0x%08X\nGetWord + 4: 0x%08X\n", GetWord ( 0x1200000 ), GetWord( 0x1200004 ) );
+	
+	printf ( "-end-\n" );
+
+	return 0;
+}

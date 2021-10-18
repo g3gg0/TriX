@@ -1,0 +1,6 @@
+	t_project *(*load) ( char *file);
+	t_project_files *(*get_file) ( t_project * p, unsigned int pos);
+	unsigned int (*add_file) ( t_project * p, char *file);
+	unsigned int (*del_file) ( t_project * p, unsigned int pos);
+	unsigned int (*init) ( );
+	unsigned int (*save) ( t_project * p, char *file);

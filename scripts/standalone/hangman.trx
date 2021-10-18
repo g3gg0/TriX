@@ -1,0 +1,164 @@
+#author "krisha"
+#title "hangman"
+
+#include trix
+#include stdio
+
+int tries_beginn = 9;
+
+OPT_BEGIN
+	OPTION( OPT_INT, "set the tries", "tries", &tries_beginn )
+OPT_FINISH
+
+char * strchr ( char *str, int ch )
+{
+	if ( str == NULL )
+		return NULL;
+	
+	while ( *str != ch && *str )
+		str++;
+	
+	if ( *str )
+		return str;
+	
+	return NULL;
+}
+
+int is_char ( char ch )
+{
+	if ( ch >= 'a' && ch <= 'z' )
+		return 1;
+	
+	if ( ch >= 'A' && ch <= 'Z' )
+		return 1;
+		
+	return 0;
+}
+
+char to_upper_case ( char ch )
+{
+	if ( !is_char ( ch ) )
+		return 0;
+	
+	if ( ch >= 'a' && ch <= 'z' )
+		ch = ch - 'a' + 'A';
+	
+	return ch;
+}
+	
+int main ()
+{
+	//only use upper case words. others can't be solved :)
+	char *words[] = { "GSM", "CPU", "HANGMAN", "NOTEPAD", "KEYBOARD", "LIFE", "TREE",
+		"GRANDPARENTS", "THREAD", "CAMERA", "STANDBY", "TREASURE", "UNIVERSITY",
+		"IDEA" };
+	//update word count also when adding new words!
+	int wordcount = 14;
+	char *tried_letters = NULL;
+	char *word_to_solve = NULL;
+	char *input = NULL;
+	char *tmp = NULL;
+	int tries = tries_beginn;
+	int chosenword = 0;
+	int i = 0;
+	int prepare_new_word = 0;
+	
+	tried_letters = (char*)malloc ( 1 );
+	tried_letters[0] = 0;
+	
+	chosenword = rand() % wordcount;
+	
+	word_to_solve = (char*)malloc ( strlen ( words[chosenword] ) + 1 );
+	for ( i = 0; i < strlen ( words[chosenword] ); i++ )
+		word_to_solve[i] = '_';
+	
+	word_to_solve[i] = 0;
+	
+	say ( "TriX hangman script\n\n" );
+	say ( "enter 0 to quit\n\n" );
+	
+	while ( 1 )
+	{
+		printf ( "\nalready tried chars: %s\n", tried_letters );
+		printf ( "tries remaining: %d\n", tries );
+		
+		printf ( "%s\n", word_to_solve );
+		
+		do
+		{
+			while ( UiDlgString ( "enter a char", &input ) == E_FAIL || input == NULL || strlen ( input ) == 0 );
+		
+			if ( input[0] == '0' )
+			{
+				printf ( "quitting...\n" );
+				free ( tried_letters );
+				free ( word_to_solve );
+				return E_OK;
+			}
+		} while ( !is_char ( input[0] ) );
+		
+		input[0] = to_upper_case ( input[0] );
+		
+		if ( strchr ( tried_letters, input[0] ) != NULL )
+			printf ( "already tried that char\n" );
+		else
+		{
+			tried_letters = (char)realloc ( tried_letters, strlen ( tried_letters ) + 2 );
+			tried_letters[strlen ( tried_letters ) + 1] = 0;
+			tried_letters[strlen ( tried_letters )] = input[0];
+			
+			tmp = words[chosenword];
+			i = 0;
+			while ( tmp = strchr ( tmp, input[0] ) )
+			{
+				// seer workaround
+				i = (int)tmp;
+				int jx = (int)words[chosenword];
+				
+				word_to_solve[i-jx] = tmp[0];
+				tmp++;
+			}
+			
+			if ( !i )
+			{
+				say ( "this letter is not in the word :-)\n" );
+				tries--;
+			}
+		}
+		
+		if ( strchr ( word_to_solve, '_' ) == NULL )
+		{
+			say ( "congratulations - you solved it!\n\"%s\" is the correct word.\na new word is chosen.\n\n", word_to_solve );
+			prepare_new_word = 1;
+		}
+		
+		if ( !tries )
+		{
+			say ( "sorry, you couldn't find the word...\ngive it a new try with a new word.\n\n" );
+			prepare_new_word = 1;
+		}
+		
+		if ( prepare_new_word )
+		{
+			prepare_new_word = 0;
+			
+			chosenword = rand() % wordcount;
+			
+			tries = tries_beginn;
+			tried_letters[0] = 0;
+			
+			word_to_solve = (char*)malloc ( strlen ( words[chosenword] ) + 1 );
+			for ( i = 0; i < strlen ( words[chosenword] ); i++ )
+				word_to_solve[i] = '_';
+			
+			word_to_solve[i] = 0;
+		}
+
+	}
+	
+	free ( tried_letters );
+	free ( word_to_solve );
+	
+
+	return E_OK;
+}

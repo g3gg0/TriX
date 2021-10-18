@@ -1,0 +1,94 @@
+
+t_function2 objecthook_dump_io[] =
+{
+    "name", "objecthook", "",
+    ".text", "\x46\x6A\x46\xc0\xF0\x00\xF8\x00\x46\xC0\x46\xC0\x46\xC0\x46\xC0", "16",
+    "!SYM_CALL", "dump_io", "4",
+    NULL
+};
+
+object hook_sec_init_bl[] =
+{
+	"name", "hook_sec_init_bl", "",
+	".text", "1234", "4",
+	"!SYM_CALL", "hook_sec_init", ".text",
+	NULL
+};
+
+object hook_fchk_bl[] =
+{
+	"name", "hook_fchk_bl", "",
+	".text", "1234", "4",
+	"!SYM_CALL", "hook_fchk", ".text",
+	NULL
+};
+
+object saveregs[] =
+{
+    "name", "saveregs", "",
+    ".text", "\xB5\xFF\xB4\x02\x49\x14\x60\x08\xBC\x02\x48\x13\x60\x41\x21\x08\x50\x42\x31\x04\x50\x43\x31\x04\x50\x44\x31\x04\x50\x45\x31\x04\x50\x46\x31\x04\x50\x47\x31\x04\x46\x42\x50\x42\x31\x04\x46\x4A\x50\x42\x31\x04\x46\x52\x46\x5B\x46\x64\x46\x6D\x46\x76\x46\x7F\x50\x42\x31\x04\x50\x43\x31\x04\x50\x44\x31\x04\x50\x45\x31\x04\x50\x46\x31\x04\x50\x47\xBD\xFF\x00\x05\xF6\x5C", "92",
+    NULL
+};
+
+
+void k_dump_io ()
+{
+	
+	object *dump_o = NULL;
+	int i;
+	//char tmp_data[16];
+	
+	SetDebugLevel ( DEBUG_NOKIA );
+	
+	int at_print = SimpleFindPattern ( "\x1C\x01\x48\x03\xB5\x80\x68\x00\x78\x80\xF0\x02\xF8\x7D\xBD\x80", NULL, 16, 0 );
+	int ati_handler = SimpleFindPattern ( "\xB5\x80\x68\x00\x30\x40\x8B\x40\x28\x05\xD2\x04\x06\x00\x0E\x00\xF0\x02\xFD\xD3\xE0\x12\x28\x09",
+										  "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xf0\x00\xf8\x00\x00\xff\xff\xff",
+										  24, 0 );
+	int object_get_method_ptr = SimpleFindPattern ( "\xB5\x70\x1C\x06\x1C\x0D\x28\x00\xD1\x05\x22\xFF\x32\x20\xA1\x44\xA0\x45\xF0\x00\xF9\xCC\x68\x34",
+								"\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\x00\x00\xa0\x00\xa0\x00\xf0\x00\xf8\x00\xff\x34",
+								24, 0 );
+
+										  
+	__symbols_add ( NULL, "at_printf", SYM_PTR, "0x13459E0" );
+	__symbols_add ( NULL, "at_send_success", SYM_PTR, "0x1061220" );
+	__symbols_add ( NULL, "disable_int", SYM_PTR, "0x129C1B4" );
+	__symbols_add ( NULL, "enable_int", SYM_PTR, "0x129C1C2" );
+	__symbols_add ( NULL, "enable_access", SYM_PTR, "0x13528D0" );
+	__symbols_add ( NULL, "disable_access", SYM_PTR, "0x13528FC" );
+	__symbols_add ( NULL, "malloc", SYM_PTR, "0x13679A4" );
+	__symbols_add ( NULL, "free", SYM_PTR, "0x13681E8" );
+	__symbols_add ( NULL, "sec_init", SYM_PTR, "0x1353658" );
+	__symbols_add ( NULL, "branch_to_r1", SYM_PTR, "0x13083C6" );
+	__symbols_add ( NULL, "get_uem", SYM_PTR, "0x129DA6C" );
+	
+	
+	printf ( "ati_handler found: 0x%08X\n", ati_handler );
+	printf ( "object_get_method_ptr found: 0x%08X\n", object_get_method_ptr );
+	//mark_modded ( ati_handler+26 );
+	//mark_modded ( 0x12A0005 );
+	//mark_modded ( 0x1350005 );
+
+	
+	dump_o = __arm_create_object_from_makefile ( "scripts/k_compile_arm_c_files", "dump_io.o" );
+	if ( dump_o )
+	{
+		printf ( "patched bytes: %d\n", NokiaCreateFunc ( saveregs, 0x12A11D4-100 ) );
+		printf ( "patched bytes: %d\n", NokiaCreateFunc ( dump_o, 0x12A11D4 ) );
+		printf ( "patched bytes: %d\n", NokiaCreateFunc ( objecthook_dump_io, object_get_method_ptr+6 ) );
+		printf ( "patched bytes: %d\n", NokiaCreateFunc ( hook_fchk_bl, 0x13536F4 ) );
+		printf ( "objecthook: push r7 on stack too, not used here\n" );
+		SetHalf ( 0x12AA2F8, 0xB5F0 );
+		SetHalf ( 0x12AA346, 0xBDF0 );
+		SetHalf ( 0x12AA358, 0xBDF0 );
+		__util_free_object ( dump_o );
+		drawbytes ( 0x012A1276, 0x10, 20 );
+	}
+	//modify bit in 1. MB
+	//SetByte ( ati_handler+26, 1 );
+	printf ( "util_symbols dump:\n" );
+	__symbols_dump(NULL);
+	
+	printf ("flash it!\n" );
+	
+	
+}

@@ -1,0 +1,14 @@
+#!/bin/sh
+# $Id: fselect2-stdout,v 1.1 2006/06/28 13:53:39 geggo Exp $
+: ${DIALOG=dialog}
+
+FILE=`$DIALOG --stdout --title "Please choose a file" --fselect $HOME/ 0 0`
+
+case $? in
+	0)
+		echo "\"$FILE\" chosen";;
+	1)
+		echo "Cancel pressed.";;
+	255)
+		echo "Box closed.";;
+esac

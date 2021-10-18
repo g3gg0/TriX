@@ -1,0 +1,164 @@
+
+
+int k_test_arm()
+{
+
+    const unsigned char my_BL = 0;
+    const unsigned char my_FORWARD = 0;
+    int offset = 0, i;
+	t_workspace *ws = NULL;
+	t_fileinfo *fi = NULL;
+
+	ws = GetWorkspace();
+	fi = GetWorkspace()->fileinfo;
+
+//	printf ( "dump it:\n" );
+//    __stage_dump ( fi->stages );
+
+    printf ( "arm_set: %d\n", ARMSet ( BLE, 0, 2 ) );
+
+    printf ( "ARMFind (BL, -1, MEM_AUTO, LOC_FORWARD ): %x\n", offset = ARMFind (BL, -1, MEM_AUTO, LOC_FORWARD ) );
+
+
+
+
+    offset = -2;
+    printf ( "setting offset to: 0x%08x. now let's get the next 20 BL's:\n", offset+1 );
+
+    for ( i = 0; i < 20 && offset != -1; i++ )
+    {
+        offset = ARMFind (BL, ++offset, MEM_AUTO, LOC_FORWARD );
+        if ( offset == -1 )
+            printf ( "we got a negative offset (%d) back -> E_FAIL\n", offset );
+            //break; //break not supported ?
+        else
+            printf ( "%d. BL: 0x%08x -> 0x%08x\n", i+1, offset, ARMGet(offset) );
+    }
+    printf ( "should be Okay ;)\n" );
+
+
+
+    printf ( "\nnow count all BLs in that file...\n" );
+
+    i = -1;
+    offset = 0x1000000;
+    do
+    {
+        offset = ARMFind (BL, offset+1, MEM_AUTO, LOC_FORWARD );
+        i++;
+        if ( !( i % 500 ) )
+        {
+            printf ( "." );
+            if ( !( i % 4000 ) )
+                printf ( "%x", offset );
+        }
+    } while ( offset != -1 );
+
+    printf ( "\nwe found %d BLs in that file\n\n", i );
+
+
+
+
+    printf ( "searching 200s BNE and trying to get destination\n" );
+
+    i = 0;
+    offset = -2;
+    do
+    {
+        offset = ARMFind (BNE, offset+1, MEM_AUTO, LOC_FORWARD );
+        i++;
+    } while ( offset != -1 && i != 200 );
+
+    printf ( "200. BNE at 0x%x, destination: 0x%x\n\n", offset, ARMGet ( offset ) );
+
+
+
+
+    printf ( "searching next BNE that jumps backwards and trying to get destination\n" );
+    do
+    {
+        offset = ARMFind (BNE, offset+1, MEM_AUTO, LOC_FORWARD );
+    } while ( offset != -1  &&  ARMGet ( offset ) > offset );
+    printf ( "BNE that jump backwards at 0x%x, destination: 0x%x\n\n", offset, ARMGet ( offset ) );
+
+
+
+    printf ( "searching 200s B and trying to get destination\n" );
+    i = 0;
+    offset = -2;
+    do
+    {
+        offset = ARMFind (B, offset+1, MEM_AUTO, LOC_FORWARD );
+        i++;
+    } while ( offset != -1 && i != 200 );
+
+    printf ( "200. B at 0x%x, destination: 0x%x\n\n", offset, ARMGet (  offset ) );
+
+
+
+    printf ( "searching next B that jumps backwards and trying to get destination\n" );
+    do
+    {
+        offset = ARMFind (B, offset+1, MEM_AUTO, LOC_FORWARD );
+    } while ( offset != -1 && ARMGet ( offset ) > offset );
+    printf ( "BNE that jump backwards at 0x%x, destination: 0x%x\n\n", offset, ARMGet ( offset ) );
+
+
+    //printf ( "\n\n%x\n\n", __arm_get ( fi->stages, 0x327c ) );
+
+    /*anti cpu usage
+
+    printf ( "get 20 BL's at 0x80000\n" );
+
+    i = 0;
+    offset = 0x7FFFF;
+    do
+    {
+        offset = __arm_find ( fi->stages, BL, FORWARD, offset+1 );
+        i++;
+        printf ( "%02d. BL at %05x branches to %x.\n", i, offset, __arm_get ( fi->stages, offset ) );
+    } while ( offset != -1 && i < 21 );
+
+    offset = -1;
+    i = 0;
+    do
+    {
+        offset = __arm_find ( fi->stages, BL, FORWARD, offset+1 );
+        if ( offset != -1 && offset < fi->stages->length - 4 )
+            if ( __arm_get ( fi->stages, offset ) == 0x367f98 )
+                i++;
+    } while ( offset != -1 );
+
+    printf ( "\nroutine 0x367f98 is called %d times :-) either winarm or i'm lying\n\n", i );
+
+    int cur_routine = __arm_get ( fi->stages, __arm_find ( fi->stages, BL, FORWARD, 0x300000 ));
+    int j;
+    for ( j = 1; j < 21; j++ )
+    {
+        offset = -1;
+        i = 0;
+        do
+        {
+            offset = __arm_find ( fi->stages, BL, FORWARD, offset+1 );
+            if ( offset != -1 && offset < fi->stages->length - 4 )
+                if ( __arm_get ( fi->stages, offset ) == cur_routine )
+                    i++;
+        } while ( offset != -1 );
+
+        printf ( "%02d. routine 0x%08x is called %04d times :-)\n", j, cur_routine, i );
+
+        cur_routine = __arm_get ( fi->stages, __arm_find ( fi->stages, BL, FORWARD, cur_routine+1 ) );
+    }
+
+
+    */
+
+    //__arm_set ( fi->stages, B, 0x20d9b2, 0x20d9a6 );
+    //offset = __arm_find ( fi->stages, B, FORWARD
+
+    ARMSet ( BL, 0x20d99a, 0x36835c );
+
+    printf ("\nend...\n" );
+
+    return 0;
+}

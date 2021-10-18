@@ -1,0 +1,4 @@
+	char *(*get) ( char *url);
+	t_fileinfo *(*open) ( const char *url);
+	unsigned int (*check) ( char *url);
+	unsigned int (*execute) ( char *url);

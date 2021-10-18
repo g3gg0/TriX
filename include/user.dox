@@ -1,0 +1,35 @@
+/*! \file user.dox
+ * \brief The TriX user documentation
+ *
+ * All functions in this documentation can be accessed in TriX scripts.\n
+ * It's recommended using only these functions although many TriX internal functions can be accessed by just putting a double underscore __ in front of it.
+ */
+ 
+/*! \fn int NokiaCreateFunc ( object *obj, int offset )
+ * Creates one or more functions in the MCU. Segments with the same name (e.g. .text and .text) are NOT supported!
+ * \param obj an object, with one or more functions. Could also include relocatable data. See object for an example.
+ * \param offset address where the function(s) should be created. Could be MEM_AUTO. Use !SYM_EXP if you want to export more than one Symbol.
+ * \return E_FAIL or number of modified bytes
+ */
+int NokiaCreateFunc ( object *obj, int offset );
+ 
+/*! \fn void SetDebugLevel ( int debuglevel )
+ * Sets debug level output
+ * \param debuglevel Or'ed values of these: DEBUG_FMT, DEBUG_SEER, DEBUG_ARM, DEBUG_NOKIA, DEBUG_LIST or DEBUG_UNKNOWN
+ */
+void SetDebugLevel ( int debuglevel );
+
+/*! \fn int SymbolAdd ( const char *name, const int type, const char *data )
+ * Adds a symbol to the pool
+ * \param name name of symbol, in most cases fucntion name
+ * \param type type of the symbol, in most cases SYM_PTR
+ * \param data string with dezimal or hexadecimal number ... or something else
+ */
+int SymbolAdd ( const char *name, const int type, const char *data );
+
+/*! \fn int SymbolGetInt ( const char *name )
+ * Get int of a symbol
+ * \param name symbol name
+ * \return int or E_FAIL
+ */
+int SymbolGetInt ( const char *name );

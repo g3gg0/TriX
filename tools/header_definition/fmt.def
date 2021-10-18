@@ -1,0 +1,10 @@
+	t_fmt_handler *(*get_handler) ( char *name);
+	unsigned int (*add_seer) ( t_fmt_handler * h, char **i);
+	unsigned int (*add_seer_entry) ( char *n, void *f, char **i, int p);
+	unsigned int (*decode) ( t_stage * s, char *type);
+	unsigned int (*encode) ( t_stage * s, t_stage * d);
+	unsigned int (*encode_diff) ( t_stage * s1, t_stage * s2, t_stage * d);
+	unsigned int (*free_priv) ( t_stage * s);
+	unsigned int (*init) ( );
+	unsigned int (*register_handler) ( t_fmt_handler * handler);
+	unsigned int (*update) ( );

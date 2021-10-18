@@ -1,0 +1,3 @@
+LIBRARY	"TriX_FATe"
+EXPORTS
+	trix_plugin_info @1

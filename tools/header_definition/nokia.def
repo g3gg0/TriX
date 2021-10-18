@@ -1,0 +1,11 @@
+	unsigned int (*create_func) ( t_workspace * ws, t_function * func, unsigned int offset);
+	unsigned int (*create_func2) ( t_workspace * ws, object * func, unsigned int offset, unsigned int base);
+	unsigned int (*export_segments) ( t_workspace * ws, object * func);
+	unsigned int (*fill_section_data) ( t_workspace * ws, object * func, unsigned int offset, unsigned int base);
+	unsigned int (*get_section_dest) ( t_workspace * ws, unsigned char *name);
+	unsigned int (*init) ( );
+	unsigned int (*is_section_name_relative) ( unsigned char *name);
+	unsigned int (*release_eeprom) ( unsigned int id);
+	unsigned int (*release_ram) ( unsigned int id);
+	unsigned int (*reserve_eeprom) ( unsigned int size);
+	unsigned int (*reserve_ram) ( unsigned int size);

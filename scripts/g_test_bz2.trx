@@ -1,0 +1,155 @@
+
+
+	unsigned char *bz2_data = "425a68393141592653593a2b133800000657800010400002600c0020300e0020003100d001099326f5093ecacea5040716f4df8bb9229c28481d15899c00";
+	unsigned char *bz2_test = "THIS is just a TEST";
+
+
+int g_test_bz2()
+{
+	t_fileinfo *fi = NULL;
+	t_stage *stage_1 = NULL;
+	t_stage *stage_2 = NULL;
+	
+	say ( "\n\n\n" );
+    say ( "------------------------------------------------------\n" );
+    say ( "--------------  test bz2 decompression  --------------\n" );
+    say ( "------------------------------------------------------\n" );
+	say ( "\n" );
+
+	say ( "Building stage_1:                   " );
+	stage_1 = __stage_create ();
+	stage_2 = __stage_create ();
+	if ( !stage_1 || !stage_2 )
+	{
+		pf();
+		say ( "ERROR!  Could not create stage\n" );
+		return 1;
+	}
+	stage_1->segments = __segment_create ();
+	if ( !stage_1->segments )
+	{
+		pf();
+		say ( "ERROR!  Could not create segment\n" );
+		return 1;
+	}
+	stage_1->length = strlen ( bz2_data )/2;
+    stage_1->name = str ("RAW");
+    stage_1->type = str ("RAW");
+    stage_1->parser = str ("TEST");
+    stage_1->flags = 0;
+    stage_1->segments->name = str ("DATA");
+    stage_1->segments->start = 0;
+    stage_1->segments->end = stage_1->length;
+    stage_1->segments->length = stage_1->length;
+    stage_1->segments->data = __util_hexunpack ( bz2_data );
+
+    pd();
+
+	say ( "Decompressing stage_1->stage_2:     " );
+	if ( __fmt_bz2_decode ( stage_1, stage_2 ) != E_OK )
+	{
+		pf();
+		say ( "ERROR!  Could not decode BZ2 stage\n" );
+		return 1;
+	}
+	pd();
+	
+	say ( "Checking Result                     " );
+	if ( !stage_2->segments	|| !stage_2->segments->data	)
+	{
+		pf();
+		say ( "ERROR!  Invalid stage_2 although decompression succeeded\n" );
+		return 1;
+	}
+	if ( strncmp ( bz2_test, stage_2->segments->data, strlen(bz2_test))	)
+	{
+		pf();
+		say ( "ERROR!  Invalid stage_2 although decompression succeeded\n" );
+		return 1;
+	}
+	pd();
+
+
+
+	printf ( "\n\n\n" );
+    printf ( "------------------------------------------------------\n" );
+    printf ( "--------------   test bz2 compression   --------------\n" );
+    printf ( "------------------------------------------------------\n" );
+	printf ( "\n" );
+
+
+	stage_1 = __stage_create ();
+	say ( "Compressing stage_2->stage_1:       " );
+	if ( __fmt_bz2_encode ( stage_2, stage_1 ) != E_OK )
+	{
+		pf();
+		say ( "ERROR!  Could not compress BZ2 stage\n" );
+		return 1;
+	}
+	pd();
+	
+	say ( "Checking Result                     " );
+	if ( !stage_1->segments	|| !stage_1->segments->data	)
+	{
+		pf();
+		say ( "ERROR!  Invalid stage_2 although decompression succeeded\n" );
+		return 1;
+	}
+	else if ( stage_1->length != strlen(bz2_data)/2 )
+	{
+		pw();
+		say ( "WARNING!  packed sizes differ (new:%i orig:%i) (its not a must)\n", stage_1->length, strlen(bz2_data)/2 );
+	}
+	else if ( memcmp ( __util_hexunpack ( bz2_data ), stage_1->segments->data, strlen(bz2_data)/2 )	)
+	{
+		pw();
+		say ( "WARNING!  packed data does not match (its not a must)\n" );
+	}
+	else
+		pd();
+
+	say ( "\n\n\n" );
+    say ( "------------------------------------------------------\n" );
+    say ( "--------------  test bz2 decompression  --------------\n" );
+    say ( "------------------------------------------------------\n" );
+	say ( "\n" );
+
+	say ( "Decompressing stage_1->stage_2:     " );
+	if ( __fmt_bz2_decode ( stage_1, stage_2 ) != E_OK )
+	{
+		pf();
+		say ( "ERROR!  Could not decode BZ2 stage\n" );
+		return 1;
+	}
+	pd();
+	
+	say ( "Checking Result                     " );
+	if ( !stage_2->segments	|| !stage_2->segments->data	)
+	{
+		pf();
+		say ( "ERROR!  Invalid stage_2 although decompression succeeded\n" );
+		return 1;
+	}
+	if ( strncmp ( "THIS is just a TEST", stage_2->segments->data, 19 )	)
+	{
+		pf();
+		say ( "ERROR!  Invalid stage_2 although decompression succeeded\n" );
+		return 1;
+	}
+	pd();
+
+
+
+	
+	say ( "\n" );
+	say ( "\n" );
+	
+	say ( "All tests successful!\n" );
+	
+//	say ( "%s\n", stage_1->name );
+//	say ( "dump it:\n" );
+//  __stage_dump ( fi->stages );
+
+    return 0;
+}
+

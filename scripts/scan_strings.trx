@@ -1,0 +1,56 @@
+#title "scan strings"
+#author "g3gg0"
+
+#include trix
+#include stdio
+
+int scan_strings()
+{
+	int start = MEM_AUTO;
+	int pos = 0;
+	int xref = 0;
+
+
+//	xref = ARMFindSrcOfDest ( ADDRESS, 0x01102911, MEM_AUTO, MEM_AUTO, LOC_FORWARD );
+//	printf ( "found at 0x%08X\n", xref );
+
+	while ( start != E_FAIL )
+	{
+		start = QuickFindPattern ( ".c\x00", NULL, 3, start, MEM_AUTO, 0 );
+//		start = QuickFindPattern ( "key", NULL, 3, start, MEM_MAX, 0 );
+		if ( start != E_FAIL )
+		{
+//			printf ( "A found at 0x%08X : '%s'\n", start, GetStr ( start ) );
+			pos = start;
+			xref = E_FAIL;
+			while ( (
+					(GetByte(pos) >= 97 && GetByte(pos) <= 122) || 
+					(GetByte(pos) >= 48 && GetByte(pos) <= 57) || 
+					 GetByte(pos) == 45 || 
+					 GetByte(pos) == 46 || 
+					 GetByte(pos) == 95) && 
+					 xref == E_FAIL
+					 )
+			{
+				xref = ARMFindSrcOfDest ( ADDRESS, pos, MEM_AUTO, MEM_AUTO, LOC_FORWARD );
+				if ( xref == E_FAIL )
+					pos--;
+			}
+			if ( xref == E_FAIL )
+				pos++;
+
+			printf ( "found at 0x%08X : '%s'  XRef: 0x%08X\n", pos, GetStr ( pos ), xref );
+			start++;
+		}
+	}
+	printf ( "nothing more....\n" );
+
+//	getchar();*/
+	return 0;
+}
+
+int main ()
+{
+	return scan_strings();
+}
+

@@ -1,0 +1,90 @@
+#title "DisARM/ARMulate test for DCT-4 files"
+#author "g3gg0"
+#plugin "trix_armulate"
+#plugin "trix_disarm"
+
+#include trix
+#include stdio
+#include trix_armulate
+#include trix_disarm
+
+int print_opcode ()
+{
+	char buffer[256];
+
+	__disarm_address ( trix_workspace, (char*)buffer, __armulate_get_pc (), __armulate_is_thumb () );
+
+	printf ( buffer );
+	printf ( "\n" );
+}
+
+
+int print_regs ()
+{
+	int i = 0;
+	
+	for (i=0; i<4; i++ )
+		printf ( "R%i:  0x%08X  ", i, __armulate_get_reg ( i ) );
+
+	printf ( "\n" );
+
+	for (i=4; i<8; i++ )
+		printf ( "R%i:  0x%08X  ", i, __armulate_get_reg ( i ) );
+
+	printf ( "\n" );
+
+	printf ( "SP:  0x%08X  ", __armulate_get_reg ( 13 ) );
+	printf ( "LR:  0x%08X  ", __armulate_get_reg ( 14 ) );
+	printf ( "PC:  0x%08X  ", __armulate_get_pc () );
+	printf ( "\n" );
+	
+	return E_OK;
+
+}
+
+int exec_step ()
+{
+	char buffer[256];
+	int state = 0;
+
+	state = __armulate_exec_step ();
+
+
+	__disarm_address ( trix_workspace, (char*)buffer, __armulate_get_pc (), __armulate_is_thumb () );
+	printf ( buffer );
+	if ( state != ARMULATE_EXECUTED )
+		printf ( "\t[%s]", __armulate_reason (state)  );
+	printf ( "\n" );
+
+}
+
+int main ()
+{
+	int breakpoints[] = {
+		0xFFFFFFFF
+	};
+	int reason = 0;
+	int i = 0;
+
+	/* dont break when accessing invalid memory areas */
+	__options_set_bool ( "plugins.ARMulate.pedantic", 0 );
+
+	/* initialize ARM emulator and set entry address to 0x01000100 in ARM mode */	
+	__armulate_setup ( trix_workspace, 0x01000100 );
+
+	/* initialize ARM breakpoint table */	
+	__armulate_set_bps ( breakpoints );
+
+	print_regs ();
+	printf ( "\n" );
+   print_opcode ();
+	printf ( "\n" );
+
+	printf ( "Running 8 steps at the last position:\n\n" );
+
+	for (i=0;i<100;i++)
+		exec_step();
+
+	return E_OK;
+
+}

@@ -1,0 +1,203 @@
+#title "load known functions"
+#author "krisha & g3gg0"
+
+
+// known functions for 3100 RH19 5.91
+// adds them to symbols
+// returns addr of "free space"
+unsigned int _3100_591_funcs()
+{
+	SymbolAdd ( "pll_set", SYM_PTR, "0x13534AC" );
+	SymbolAdd ( "fchk_call", SYM_PTR, "0x13536F4" );
+	SymbolAdd ( "at_printf", SYM_PTR, "0x13459E0" );
+	SymbolAdd ( "strchr", SYM_PTR, "0x13094A4" );
+	SymbolAdd ( "register_irq", SYM_PTR, "0x0129C1D6" );
+	SymbolAdd ( "at_send_success", SYM_PTR, "0x1061220" );
+	SymbolAdd ( "disable_int", SYM_PTR, "0x129C1B4" );
+	SymbolAdd ( "enable_int", SYM_PTR, "0x129C1C2" );
+	SymbolAdd ( "enable_access", SYM_PTR, "0x13528D0" );
+	SymbolAdd ( "disable_access", SYM_PTR, "0x13528FC" );
+	SymbolAdd ( "malloc", SYM_PTR, "0x13679A4" );
+	SymbolAdd ( "free", SYM_PTR, "0x13681E8" );
+	SymbolAdd ( "sec_init", SYM_PTR, "0x1353658" );
+	SymbolAdd ( "bx_r0", SYM_PTR, "0x13083C4" );
+	SymbolAdd ( "bx_r1", SYM_PTR, "0x13083C6" );
+	SymbolAdd ( "bx_r2", SYM_PTR, "0x13083C8" );
+	SymbolAdd ( "bx_r4", SYM_PTR, "0x13083CC" );
+	SymbolAdd ( "get_uem", SYM_PTR, "0x129DA6C" );
+	
+	SymbolAdd ( "decrypt", SYM_PTR, "0x01353530" );
+	
+	SymbolAdd ( "hw_io_get_pin", SYM_PTR, "0x1352F74" );
+	SymbolAdd ( "hw_light_set_ratio", SYM_PTR, "0x13533E0" );
+	SymbolAdd ( "hw_light_set_pwm", SYM_PTR, "0x1353340" );
+	SymbolAdd ( "hw_set_pin", SYM_PTR, "0x1352FB4" );
+	SymbolAdd ( "hw_set_pinstate", SYM_PTR, "0x1352E44" );
+	SymbolAdd ( "spi_send_cmd", SYM_PTR, "0x13530A8" );
+	SymbolAdd ( "spi_send_data", SYM_PTR, "0x1353148" );
+	
+	SymbolAdd ( "wdt_reset", SYM_PTR, "0x0129DE08" );
+	
+	SymbolAdd ( "sprintf", SYM_PTR, "0x1308334" );
+	SymbolAdd ( "strlen", SYM_PTR, "0x13095E0" );
+
+	SymbolAdd ( "get_string", SYM_PTR, "0x1191DAA" );
+	
+	SymbolAdd ( "call_method_0p", SYM_PTR, "0x12AA3C2" );		// ( object, method )
+	SymbolAdd ( "call_method_1p", SYM_PTR, "0x12AA3A2" );		// ( object, method, param1 )
+	SymbolAdd ( "call_method_2p", SYM_PTR, "0x12AA37E" );		// ( object, method, param1, param2 )
+	SymbolAdd ( "call_method_3p", SYM_PTR, "0x12AA35A" );		// ( object, method, param1, param2, param3 )
+	SymbolAdd ( "call_super_method_4p", SYM_PTR, "12AA3E0" );	// ...
+
+	SymbolAdd ( "register_irq_b", SYM_PTR, "0x136C1E8" );
+	SymbolAdd ( "hw_arm_cpsr_get", SYM_PTR, "0x130DA00" );
+	SymbolAdd ( "hw_arm_cpsr_set", SYM_PTR, "0x0130DA0C" );
+	SymbolAdd ( "set_irqfiq_SP", SYM_PTR, "0x136B478" ); 
+		
+	SymbolAdd ( "register_irq_c_and_d", SYM_PTR, "0x012A1806" );
+	SymbolAdd ( "enable_int_CPSR", SYM_PTR, "0x130D9D0" ); 
+	SymbolAdd ( "_1352D94", SYM_PTR, "0x1352D94" );
+	SymbolAdd ( "_129C1AC", SYM_PTR, "0x129C1AC" );
+
+	return 0x01465050;
+	
+}
+
+unsigned int _6610_565_funcs()
+{
+	SymbolAdd ( "fchk_call", SYM_PTR, "0x01330704" );
+	SymbolAdd ( "register_irq", SYM_PTR, "0x0126B9EE" );
+	SymbolAdd ( "register_fiq", SYM_PTR, "0x0132F9A8" );
+	SymbolAdd ( "hw_set_pin", SYM_PTR, "0x0132FBC0" );
+	SymbolAdd ( "hw_set_pinstate", SYM_PTR, "0x0132FA4C" );
+	SymbolAdd ( "hw_light_set_ratio", SYM_PTR, "0x0133029C" );
+	SymbolAdd ( "hw_light_set_pwm", SYM_PTR, "0x01330254" );
+	SymbolAdd ( "spi_send_cmd", SYM_PTR, "0x0132FFBC" );
+	SymbolAdd ( "spi_send_data", SYM_PTR, "0x0133005C" );
+	SymbolAdd ( "bx_r0", SYM_PTR, "0x012DF4E4" );
+	SymbolAdd ( "bx_r1", SYM_PTR, "0x012DF4E6" );
+	SymbolAdd ( "bx_r4", SYM_PTR, "0x012DF4EC" );
+	SymbolAdd ( "sprintf", SYM_PTR, "0x012DF454" );
+	SymbolAdd ( "decrypt", SYM_PTR, "0x01330540" );
+	SymbolAdd ( "encrypt", SYM_PTR, "0x01330598" );
+	SymbolAdd ( "set_irqfiq_SP", SYM_PTR, "0x01343FA8" ); 
+	SymbolAdd ( "enable_int_CPSR", SYM_PTR, "0x012E4CB0" ); 
+	SymbolAdd ( "enable_int", SYM_PTR, "0x0126B9DA" );
+	SymbolAdd ( "disable_int", SYM_PTR, "0x0126B9CC" );
+	SymbolAdd ( "hw_arm_cpsr_get", SYM_PTR, "0x012E4CE0" );
+	SymbolAdd ( "hw_arm_cpsr_set", SYM_PTR, "0x012E4CEC" );
+	SymbolAdd ( "pll_set", SYM_PTR, "0x013304BC" );
+	SymbolAdd ( "malloc", SYM_PTR, "0x01340EAC" );
+	SymbolAdd ( "get_uem", SYM_PTR, "0x0126CCEC" );
+	SymbolAdd ( "set_uem", SYM_PTR, "0x0126CD48" );
+
+
+	SymbolAdd ( "hw_abort_prepare", SYM_PTR, "0x0132F874" );
+	SymbolAdd ( "hw_abort_finish_1", SYM_PTR, "0x0132F030" );
+	SymbolAdd ( "hw_abort_finish_2", SYM_PTR, "0x0132F8CC" );
+
+	// fake values
+	SymbolAdd ( "hw_io_get_pin", SYM_PTR, "0x0132FBC0" );
+	SymbolAdd ( "strlen", SYM_PTR, "0x0133029C" );
+	SymbolAdd ( "system_get_type_freq", SYM_PTR, "0x0133029C" );
+	
+	return 0x014493E0;
+	
+}
+
+char *
+get_version ( )
+{
+    char *buf = malloc ( 512 );
+    char *tmp_buf = malloc ( 10 );
+    int type = 0;
+    int version = 0;
+    int tmp = 0;
+    int copyright = SimpleFindPattern (  "V x.xx\x0axx-", "\xff\xff\x00\xff\x00\x00\xff\x00\x00\xff", 9, 0 );
+    
+    if ( copyright == E_FAIL )
+	copyright = SimpleFindPattern (  "V xx.xx     \x0axx-", "\xff\xff\x00\x00\xff\x00\x00\xff\xff\xff\xff\xff\xff\x00\x00\xff", 16, 0 );
+
+    if ( copyright == E_FAIL )
+	copyright = SimpleFindPattern (  "V xx.xx\x0axx-", "\xff\xff\x00\x00\xff\x00\x00\xff\x00\x00\xff", 10, 0 );
+
+    if ( copyright == E_FAIL )
+	copyright = SimpleFindPattern (  "V xx.xx", "\xff\xff\x00\x00\xff\x00\x00", 7, 0 );
+
+    if ( copyright == E_FAIL )
+	copyright = SimpleFindPattern (  "V x.xx", "\xff\xff\x00\xff\x00\x00", 6, 0 );
+
+    if ( copyright == E_FAIL )
+    {
+		sprintf ( buf, "ERR" );
+		return buf;
+    }
+
+    sprintf ( buf, "" );
+
+    while ( GetByte (copyright) >= 0x20 && GetByte (copyright) <= 0x7F  )
+    {
+		sprintf ( tmp_buf, "%c", GetByte (copyright) );
+		if ( GetByte ( copyright ) != 0x20 )
+			strcat ( buf, tmp_buf );
+		copyright++;
+    }
+    copyright++;
+
+    while ( GetByte (copyright) != 0x0A )
+	copyright++;
+	
+    copyright++;
+    strcat ( buf, "," );
+    while ( GetByte (copyright) >= 0x20 && GetByte (copyright) <= 0x7F  )
+    {
+		if ( GetByte ( copyright ) == 0x20 )
+			sprintf ( tmp_buf, "%c", '_' );
+		else
+			sprintf ( tmp_buf, "%c", GetByte (copyright) );
+		strcat ( buf, tmp_buf );
+		copyright++;
+    }
+	
+    return buf;
+}
+
+void nokia_known_patterns()
+{
+	
+	return;
+}
+
+unsigned int nokia_known_funcs()
+{
+	char *tmp;
+	unsigned int freespace = 0;
+	char freespaceStr[11];
+	
+	if ( Valid ( 0x01000000) && !Valid ( 0x00FFFFFF ) )
+	{
+		nokia_known_patterns ();
+		tmp = get_version ();
+		if ( !strcmp ( tmp, "V05.91,RH-19" ) )
+			freespace = _3100_591_funcs();
+		if ( !strcmp ( tmp, "V5.65,NHL-4" ) )
+			freespace = _6610_565_funcs();
+			
+		//extend here for other models as well
+			
+		if ( freespace == 0 )
+			printf ( "No known functions for %s !\nadd some in nokia_dct4_function_def.trx\n", tmp );
+		else
+			printf ( "added known symbols for %s\n", tmp );
+		
+		free ( tmp );
+		sprintf ( freespaceStr, "0x%08X", freespace );
+		SymbolAdd ( "freespace", SYM_PTR, freespaceStr );
+		return freespace;
+			
+	}
+	
+	say ( "not a valid flash file for nokia_known_funcs() ?!\n" );
+	return 0;
+}
+

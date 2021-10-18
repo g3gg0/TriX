@@ -1,0 +1,191 @@
+#title "Dump ASSERT strings"
+#author "g3gg0"
+
+
+#include trix
+
+
+
+int dump_assert_strings ( int ida_out, int type_8310 );
+
+int main ()
+{
+	trix_workspace->fileinfo->stages->segments->start = 0x0FF00000;
+	trix_workspace->fileinfo->stages->segments->end = trix_workspace->fileinfo->stages->segments->start + trix_workspace->fileinfo->stages->segments->length;
+	WorkspaceUpdateMemmap ( trix_workspace );
+	
+	trix_workspace->flags = FLAGS_ENDIANESS_LE;
+	dump_assert_strings ( 1, 0 );
+}
+
+int dump_assert_strings ( int ida_out, int type_8310 )
+{
+	int pos[16];
+	int i = 0;
+	int scanback = 500;
+	unsigned int registers[32];
+	unsigned char reg = 0;
+	int relative = 0;
+	int offset = 0;
+	unsigned char *buffer = NULL;
+	unsigned int start_address = 0;
+	int function = SimpleFindPattern (  "\xB5\x70\x1C\x0C\x1C\x11\x1C\x06\x1C\x15\x1C\x20\xF7\x77\xFC\xE3\x1C\x33", 
+										"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xF8\x00\xF8\x00\xFF\xFF", 18, 0 );
+
+	unsigned char byte_1 = 0;
+	unsigned char byte_2 = 0;
+	int correction_offset = 0xE0000000;
+	buffer = malloc ( 8192 );
+
+	if ( type_8310 )
+		function = 0x012F4758;
+
+
+	if ( function == E_FAIL )
+		function = 0x01107418;  // nokia 2651 RH-54
+//	if ( function == E_FAIL )
+//		function = 0x010D92A0;  // nokia 1100 RH-18
+
+	function = 0x1035411A;
+
+	if ( function == E_FAIL )
+	{
+		say ( "Error finding function\n" );
+		return 0;
+	}
+	if ( ida_out )
+	{
+		printf ( "\n\n" );
+		printf ( "IDA Script output:\n" );
+		printf ( "-------------------------------------\n" );
+		printf ( "#include <idc.idc>\n" );
+ 		printf ( "static main()\n" );
+ 		printf ( "{\n" );
+	}
+	offset = MEM_AUTO;
+	while ( offset != E_FAIL )
+	{
+		offset = ARMFindSrcOfDest ( BL, function, offset, MEM_AUTO, LOC_FORWARD );
+		if ( offset != E_FAIL )
+		{
+			for ( reg = 0; reg < 8; reg++ )
+			{
+				
+				pos[reg] = 1;
+				registers[reg] = 0xFFFFFFFF;
+
+				while ( pos[reg] <= scanback && registers[reg] == 0xFFFFFFFF )
+				{
+					byte_1 = GetHalf ( offset - pos[reg]*2 ) >> 8;
+					byte_2 = GetHalf ( offset - pos[reg]*2 ) & 0xFF;
+					
+					if ( byte_1 == 0xB5 )
+					{
+						if ( ida_out && (start_address !=  offset - pos[reg]*2) )
+						{
+							printf ( "    MakeFunction ( 0x%08X, BADADDR );\n", correction_offset + offset - pos[reg]*2 );
+							start_address = offset - pos[reg]*2;
+						}
+
+						pos[reg] = scanback;
+					}
+					if ( byte_1 == (0x20|reg) )
+						registers[reg] = byte_2;
+						
+					if ( byte_1 == (0x48|reg) )
+					{
+						relative = byte_2;
+						registers[reg] = GetWord ( ((offset - pos[reg]*2)&0xFFFFFFFC)+4+4*relative );
+					}
+					
+					if ( byte_1 == (0xA0|reg) )
+					{
+						relative = byte_2;
+						registers[reg] = correction_offset + ((offset - pos[reg]*2)&0xFFFFFFFC)+4+4*relative;
+					}
+					pos[reg]++;
+				}
+//				printf ( "\n I  R%i = %08X  pos = %i", reg, registers[reg], pos[reg] );
+			}
+
+			for ( reg = 0; reg < 8; reg++ )
+			{
+				
+				while ( pos[reg] )
+				{
+					byte_1 = GetHalf ( offset - pos[reg]*2 ) >> 8;
+					byte_2 = GetHalf ( offset - pos[reg]*2 ) & 0xFF;
+					
+					if ( byte_1 == 0x1C && (byte_2 & 0x07) == reg )
+					{
+						relative = (byte_2>>3) & 0x07;
+						if ( pos[reg] < pos[relative] )
+							registers[reg] = registers[relative];
+					}
+					
+					if ( byte_1 == (0x30|reg) )
+						registers[reg] += byte_2;
+						
+					if ( byte_1 == (0x38|reg) )
+						registers[reg] -= byte_2;
+						
+					pos[reg]--;
+				}
+//				printf ( "\n II R%i = %08X  pos = %i", reg, registers[reg], pos[reg] );
+			}
+
+			if ( ida_out )
+			{
+				printf ( "    MakeStr ( 0x%08X,  BADADDR );\n", registers[0] );
+				printf ( "    MakeStr ( 0x%08X,  BADADDR );\n", registers[1] );
+				if ( type_8310 )
+				{
+					sprintf ( buffer, "%s",  GetStr ( registers[0] - correction_offset ) );
+				}
+				else
+				{
+					sprintf ( buffer, "%s - ",  GetStr ( registers[1] - correction_offset ) );
+					strcat ( buffer, GetStr ( registers[0] - correction_offset ) );
+				}
+
+				for ( i = 0; i < strlen ( buffer ); i++ )
+				{
+					if ( buffer[i] == '"' )
+						buffer[i] = '\'';
+					if ( buffer[i] == '\n' )
+						buffer[i] = ' ';
+					if ( buffer[i] == '\r' )
+						buffer[i] = ' ';
+					if ( buffer[i] < ' ' )
+						buffer[i] = ' ';
+				}
+				printf ( "    MakeRptCmt ( 0x%08X, \"%s\" );\n",  correction_offset + offset, buffer );
+			}
+			else
+			{
+				printf ( "0x%08X: ", offset );
+				if ( registers[1] )
+					printf ( "ASSERT ( \"%s\", ", GetStr ( registers[1] - correction_offset ));
+				else
+					printf ( "ASSERT ( unknown, " );
+
+				if ( registers[0] )
+					printf ( "\"%s\" );", GetStr ( registers[0] - correction_offset ));
+				else
+					printf ( "unknown );" );
+
+				printf ( "\n" );
+			}
+			offset += 2;
+		}
+	}
+
+	if ( ida_out )
+		printf ( "}\n" );
+
+	free ( buffer );
+
+	return 0;
+
+}
+

@@ -1,0 +1,12 @@
+#include trix
+
+#plugin trix_xml
+#include trix_xml
+
+int main ( )
+{
+	say ( "ok\n" );
+	__xml_bla ();
+	__xml_connector_create( NULL );
+	return E_OK;
+}

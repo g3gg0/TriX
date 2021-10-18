@@ -1,0 +1,63 @@
+just to remember (and if needed, to change) it ;-)
+
+v0.01: deadline 14.02.2006
+v0.01a "file-io": be able to read and write a file into the correct structure and be able to dump that structures
+v0.01b "parser": execute a script, using not more than one executable and the script file
+
+v0.02: deadline 21.02.2006
+v0.02a "format": parse the read dct4-file and place it correctly in the sequences (segmentation is kept)
+v0.02b "parser": allow -some- system calls to be made (selectively)
+
+v0.03: deadline 28.02.2006
+v0.03a "format": wintesla/phoenix parser must be able to rebuild the file EXACTLY from sequence[1]
+v0.03b "parser": add DLL/SO support (normally needs .h-files) with integrated(!) headers (so no external .h's needed)
+v0.03c "core": general script handling and routines for script option parsers (just dump options)
+v0.03d "decoder": add the decoder layer for encrypted dct-4 flashfiles (will add sequence[3])
+
+v0.04: deadline 07.03.2006
+v0.04a "format": review and stress tests (read 100 files with 1MB and write them back correctly)
+v0.04b "codec": review and stress tests (read 100 dct4-files with 1MB and write them back correctly)
+v0.04c "parser": review and stress tests (execute 100 scripts correctly)
+v0.04d "core": review and stress tests (read 100 scripts and execute them correctly)
+v0.04e "file": this new layer will provide file io using "file_io" and "format" module layers, automatically trying all "format" modules (will not fail if not able to parse)
+
+v0.05: deadline 14.03.2006
+v0.05a "patcher": combine the file-io, format, codec and parser modules, allowing the script to dump contents of the fileinfo struct
+v0.05b "core": each file reading (scripts, ...) will use the "file" layer
+v0.05c "format": add support for BZIP2 decompression
+v0.05d "file": this layer must know how to interprete fileinfo[]->sequences[] and call the correct "format" and "codec" handlers when writing the file back
+
+v0.06: deadline 21.03.2006
+v0.06a "patcher": review and stress tests (execute 100 scripts correctly, each run writes the read file back)
+v0.06b "format": also be able to read dct3 flashfiles
+v0.06c "core": add stubs for the upcoming UI (for now just printf out the dialogs)
+
+v0.07: deadline 28.03.2006
+v0.07a "patcher": this test stage should combine all features above.
+
+v0.08: deadline 07.04.2006
+v0.08a "patcher": every possbile problem due to NULL pointers, memory leaks and unchecked variables should be eliminated
+
+v0.08: deadline 08.04.2006
+v0.08 "patcher": first stable alpha release of the patcher (without any patching functions ^^)
+
+v0.09: deadline 14.04.2006
+v0.09a "utils": some basic "addressing the correct segments"-ps_set() and ps_get() routines to read bytes from script
+v0.09b "format": also add support for ZIP files containing one script file
+v0.09c "gui": first (native?) win32 gui with basic features (adding many scripts to a list and execute)
+
+v0.10: deadline 21.04.2006
+v0.10a "utils": add general pattern finding, space finder, code injection (this is hopefully not nokia specific) routines
+v0.10b "arch": ARM: routines that will insert BL's, find THUMB routines (using pattern finder) and some other ARM-specific routines
+v0.10c "core": #ifdef compiled for win32, call the gui_win32 functions
+v0.10d "gui": provide dialog routines and the options page for each script
+
+v0.11: deadline 28.04.2006
+v0.11a "dctx": parse and store PPM file chunk-wise in one of the "void *private[10]" elements of the fileinfo[] struct-array
+
+v0.12: deadline 07.05.2006
+v0.12a "dctx": can decompress TEXT chunks of dct3/4 phones and represent it in the struct in private[]
+
+v0.13: deadline 07.05.2006
+v0.13a "dctx": can compress TEXT chunks of dct3/4 phones and write it into the sequence[5] of the fileinfo[]
+v0.11b "gui": be fully usable

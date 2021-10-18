@@ -1,0 +1,11 @@
+	char *(*check_integrity) ( char **in_data, int length, t_crypt_key * keys);
+	char *(*generate_cert) ( char *data, int length, char *signature, t_crypt_key * key);
+	char *(*get_keyname) ( unsigned char key_id, t_crypt_key * keys);
+	char *(*get_signee) ( char *signature);
+	char *(*get_signer) ( char *signature);
+	char *(*get_signkey) ( char *signature);
+	char *(*get_signopt) ( char *signature);
+	t_crypt_key *(*get_key) ( unsigned char key_id, t_crypt_key * keys);
+	unsigned char *(*decrypt_buffer) ( unsigned char *in_buffer, int *length, t_crypt_key * key);
+	unsigned char *(*encrypt_buffer) ( unsigned char *in_buffer, int *length, t_crypt_key * key);
+	unsigned int (*generate_key) ( int nbits, t_crypt_key * priv_key, t_crypt_key * pub_key);

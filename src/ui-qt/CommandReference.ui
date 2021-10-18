@@ -1,0 +1,157 @@
+<ui version="4.0" >
+ <author></author>
+ <comment></comment>
+ <exportmacro></exportmacro>
+ <class>dlgCommandReference</class>
+ <widget class="QDialog" name="dlgCommandReference" >
+  <property name="geometry" >
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>830</width>
+    <height>589</height>
+   </rect>
+  </property>
+  <property name="contextMenuPolicy" >
+   <enum>Qt::NoContextMenu</enum>
+  </property>
+  <property name="windowTitle" >
+   <string>Command Reference</string>
+  </property>
+  <property name="windowIcon" >
+   <iconset resource="ui_resource.qrc" >:/icons/icons/22x22-gartoon/ghostview.png</iconset>
+  </property>
+  <property name="modal" >
+   <bool>false</bool>
+  </property>
+  <widget class="QGroupBox" name="groupBox_2" >
+   <property name="geometry" >
+    <rect>
+     <x>150</x>
+     <y>10</y>
+     <width>671</width>
+     <height>531</height>
+    </rect>
+   </property>
+   <property name="title" >
+    <string>Headers</string>
+   </property>
+   <widget class="QTextBrowser" name="textBrowser" >
+    <property name="geometry" >
+     <rect>
+      <x>10</x>
+      <y>20</y>
+      <width>651</width>
+      <height>501</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QTextEdit" name="textEdit" >
+    <property name="enabled" >
+     <bool>true</bool>
+    </property>
+    <property name="geometry" >
+     <rect>
+      <x>10</x>
+      <y>20</y>
+      <width>651</width>
+      <height>501</height>
+     </rect>
+    </property>
+    <property name="sizePolicy" >
+     <sizepolicy>
+      <hsizetype>7</hsizetype>
+      <vsizetype>7</vsizetype>
+      <horstretch>0</horstretch>
+      <verstretch>0</verstretch>
+     </sizepolicy>
+    </property>
+    <property name="autoFillBackground" >
+     <bool>true</bool>
+    </property>
+    <property name="lineWrapMode" >
+     <enum>QTextEdit::NoWrap</enum>
+    </property>
+   </widget>
+  </widget>
+  <widget class="QWidget" name="layoutWidget" >
+   <property name="geometry" >
+    <rect>
+     <x>0</x>
+     <y>550</y>
+     <width>821</width>
+     <height>33</height>
+    </rect>
+   </property>
+   <layout class="QHBoxLayout" >
+    <property name="margin" >
+     <number>0</number>
+    </property>
+    <property name="spacing" >
+     <number>6</number>
+    </property>
+    <item>
+     <spacer>
+      <property name="orientation" >
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="sizeHint" >
+       <size>
+        <width>131</width>
+        <height>31</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item>
+     <widget class="QPushButton" name="okButton" >
+      <property name="text" >
+       <string>OK</string>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QGroupBox" name="groupBox" >
+   <property name="geometry" >
+    <rect>
+     <x>10</x>
+     <y>10</y>
+     <width>141</width>
+     <height>531</height>
+    </rect>
+   </property>
+   <property name="title" >
+    <string>Engine</string>
+   </property>
+   <widget class="QTreeWidget" name="treeWidget" >
+    <property name="geometry" >
+     <rect>
+      <x>10</x>
+      <y>19</y>
+      <width>120</width>
+      <height>471</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="chkPlain" >
+    <property name="geometry" >
+     <rect>
+      <x>10</x>
+      <y>500</y>
+      <width>111</width>
+      <height>18</height>
+     </rect>
+    </property>
+    <property name="text" >
+     <string>PlainText Headers</string>
+    </property>
+   </widget>
+  </widget>
+ </widget>
+ <pixmapfunction></pixmapfunction>
+ <resources>
+  <include location="ui_resource.qrc" />
+ </resources>
+ <connections/>
+</ui>

@@ -1,0 +1,21 @@
+#title "ARMada test"
+#author "g3gg0"
+#plugin "trix_armada"
+
+#include trix
+#include stdio
+#include trix_armada
+
+
+
+int main ()
+{
+	int num = 0x01000000;
+
+	while ( 1 )
+	{
+		printf ( "%02X", GetByte (num++) );
+		if ( num % 0x10 == 0 )
+			printf ( "\n" );
+	}
+}

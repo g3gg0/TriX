@@ -1,0 +1,50 @@
+
+#include trix
+#include "scripts/nokia_dct4_function_def.trx"
+
+
+int main ()
+{
+
+	object *own_ati_handler = NULL;
+	int bytes_used = 0;
+	unsigned int freespace = nokia_known_funcs();
+	
+	if ( !freespace )
+		return E_FAIL;
+
+	say ( "\nCompiling...\n" );
+	
+	own_ati_handler = __arm_create_object_from_makefile ( "scripts/k_compile_arm_c_files", "k_own_ati_handler.o" );
+
+	say ( "\nDumping...\n" );
+	__util_dump_object ( own_ati_handler );
+
+	if ( own_ati_handler )
+	{
+		//create own handler
+		say ( "\nPatching...\n" );
+		bytes_used = NokiaCreateFunc ( own_ati_handler, freespace );
+		if ( bytes_used == E_FAIL )
+		{
+			say ( "Could NOT create function!\n" );
+			return -1;
+		}
+		say ( "patched bytes: 0x%X\n", bytes_used  );
+		
+		__util_free_object ( own_ati_handler );
+		
+		__symbols_dump(GetWorkStage(0));
+
+		SetWord ( 0x14572BC, SymbolGetInt( "ati_print_handler" )+1 );
+
+		say ( "old BL: 0x%08X\n", ARMGet ( 0x129C14C ) );
+		ARMSet ( BL, 0x129C14C, SymbolGetInt ( "irq_main_handler_hook" ) );
+		say ( "new BL: 0x%08X\n", ARMGet ( 0x129C14C ) );
+		
+		DrawBytes ( SymbolGetInt ( "irq_main_handler_hook" ), 0x10, 0x20 );
+		say ( "%08X", SymbolGetInt( "ati_print_handler" ) );
+	}
+
+	return E_OK;
+}

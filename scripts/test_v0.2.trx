@@ -1,0 +1,90 @@
+
+
+int test_v002_dct4()
+{
+	int segments = 0;
+	int size = 0;
+	int pos = 0;
+	t_stage *stage = NULL;
+	t_segment *segment = NULL;
+	t_fileinfo *fi = NULL;
+	char *filename = "test.fls";
+
+	say ( "\n\n\n" );
+    say ( "------------------------------------------------------\n" );
+    say ( "--------------    test script for TriX  --------------\n" );
+    say ( "------------------------------------------------------\n" );
+	say ( "\n" );
+
+	say ( " Testing DCT4 Reading\n" );
+	say ( "\n" );
+	
+	say ( " Opening '%s':                         ", filename );
+    fi = __file_open ( filename );
+    if ( !fi )
+    {
+		pf();
+		say ( " Could not open '%s' for reading\n", filename );
+		return E_FAIL;
+	}
+	if ( !fi->stages  )
+    {
+		pf();
+		say ( " Reading succeeded, but got no stage\n" );
+		return E_FAIL;
+	}
+	stage = __stage_get_last ( fi->stages );
+	if ( strcmp ( stage->parser, "PHOENIX" )  )
+    {
+		pf();
+		say ( " Reading succeeded, but that's no DCT4 file\n" );
+		return E_FAIL;
+	}
+	
+	segments = __segment_count ( stage->segments );
+	
+	if ( segments < 1 )
+    {
+		pf();
+		say ( " File doesnt have any segments\n" );
+		return E_FAIL;
+	}
+	pd ();
+	
+	
+	say ( " Checking the %i segments                     ", segments );
+	while ( pos < segments )
+	{
+		segment = __segment_find_by_num ( stage->segments, pos );
+		if ( !segment )
+		{
+			pf();
+			say ( " Error getting segment %i\n", pos );
+			return E_FAIL;
+		}
+		if ( !segment->length )
+		{
+			pf();
+			say ( " Error getting length of segment %i\n", pos );
+			return E_FAIL;
+		}
+		size += segment->length;
+		pos++;
+	}
+	pd ();
+	
+	say ( "\n" );
+	say ( "The segments together are %i bytes long\n", size );
+	say ( "\n" );
+	
+
+	say ( " Dumping stage\n" );
+	say ( "\n" );
+	__stage_dump ( stage );
+    return E_OK;
+}
+
+int test_v002()
+{
+	return test_v002_dct4();
+}

@@ -1,0 +1,197 @@
+#title "Dump ASSERT strings"
+#author "g3gg0"
+
+
+#include trix
+#include arm
+#include symbols
+#include nokia
+#include stdio
+#include stdlib
+
+int g_scan_iopins_setup ();
+
+char *GENIO[] = {
+	"0x00 - VEN of LP3985 VoltReg  ",
+	"0x01                          ",
+	"0x02 - Key 5 (3100)           ",
+	"0x03 - FM Radio Clock         ",
+	"0x04 - LCD Reset              ",
+	"0x05 - RF TXPower             ",
+	"0x06 - RF Reset               ",
+	"0x07 - RF TXA                 ",
+	"0x08 - RF TXL 1   &  FM Enable",
+	"0x09 - RF Mode                ",
+	"0x0A - RF EXTANT  &  IR SD Pin",
+	"0x0B - RF BANDSEL &  FM SClk  ",
+	"0x0C - RF AData   &  FM SData ",
+	"0x0D - RF RXGain              ",
+	"0x0E - Audio Router Enable    ",
+	"0x0F - Audio Router Clock     ",
+	"0x10 - Audio Router Data      ",
+	"0x11                          ",
+	"0x12                          ",
+	"0x13                          ",
+	"0x14                          ",
+	"0x15                          ",
+	"0x16                          ",
+	"0x17 - WP of flash            ",
+	"0x18                          ",
+	"0x19                          ",
+	"0x1A                          ",
+	"0x1B                          ",
+	"0x1C                          ",
+	"0x1D - SIMCLKI                ",
+	"0x1E - SIMIOCTRL              ",
+	"0x1F - SIMDATA                ",
+	"0x30                          "
+};
+
+
+int main ()
+{
+	g_scan_iopins_setup ();
+	return 0;
+}
+
+
+int g_scan_iopins_setup ()
+{
+	int offset = MEM_AUTO;
+	int pos = 0;
+	int scanback = 5;
+	int found_r0 = 0;
+	int found_r1 = 0;
+	int val_r0 = 0;
+	int val_r1 = 0;
+
+	/* find hw_io_setpinstate */
+	int function = 0x010F65A2; //SimpleFindPattern ( "\xB5\xFE\x1C\x0E\x1C\x05\x29\x3F\x4C\x45\xD3\x05", "\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x00\xFF\x00", 12, 0 );
+
+	if ( function == E_FAIL )
+	{
+		say ( "Error finding function\n" );
+		return 0;
+	}
+
+//	printf ( "0x%08X\n", function );
+
+	printf ( "    hw_io_set_pinstate\n" );
+	printf ( " --------------------------\n" );
+	printf ( "\n" );
+
+	offset = MEM_AUTO;
+	while ( offset != E_FAIL )
+	{
+		found_r0 = 0;
+		found_r1 = 0;
+        offset = ARMFindSrcOfDest ( BL, function, offset, MEM_AUTO, LOC_FORWARD );
+		if ( offset != E_FAIL )
+		{
+			printf ( "0x%08X  ", offset );
+			pos = 1;
+			while ( pos <= scanback )
+			{
+				if ( !found_r0 && GetByte ( offset - pos*2 ) == 0x20 )
+				{
+					found_r0 = 1;
+					val_r0 = GetByte ( offset - pos*2 + 1 );
+				}
+				if ( !found_r1 && GetByte ( offset - pos*2 ) == 0x21 )
+				{
+					found_r1 = 1;
+					val_r1 = GetByte ( offset - pos*2 + 1 );
+				}
+				pos++;
+			}
+			if ( found_r0 )
+				printf ( "%s", GENIO[val_r0] );
+			else
+				printf ( "                              " );
+
+			if ( found_r1 )
+				printf ( "     %s   %s   %s   %s  ", (val_r1&0x20)?"PullUp":"      ", (val_r1&0x4)?"RetOld":"      ",(val_r1&0x2)?"Output":"      ",(val_r1&0x1)?"Input ":"      " );
+			else
+				printf ( "                         " );
+
+//			printf ( "     assert:  <%s>", get_assert_str ( offset ));
+			printf ( "\n" );
+
+			offset++;
+		}
+	}
+
+	return 0;
+
+}
+
+int g_scan_iopins_state ()
+{
+	int offset = MEM_AUTO;
+	int pos = 0;
+	int scanback = 5;
+	int found_r0 = 0;
+	int found_r1 = 0;
+	int val_r0 = 0;
+	int val_r1 = 0;
+
+	/* find hw_io_set_pin */
+	int function = SimpleFindPattern ( "\xB5\x70\x1C\x0D\x1C\x04\x28\x2F\x4E\x0B\xD3\x05", "\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x00\xFF\x00", 12, 0 );
+
+	if ( function == E_FAIL )
+	{
+		say ( "Error finding function\n" );
+		return 0;
+	}
+
+	printf ( "    hw_io_set_pin\n" );
+	printf ( " --------------------\n" );
+	printf ( "\n" );
+
+	offset = MEM_AUTO;
+	while ( offset != E_FAIL )
+	{
+		found_r0 = 0;
+		found_r1 = 0;
+        offset = ARMFindSrcOfDest ( BL, function, offset, MEM_AUTO, LOC_FORWARD );
+		if ( offset != E_FAIL )
+		{
+			printf ( "0x%08X: ", offset );
+			pos = 1;
+			while ( pos <= scanback )
+			{
+				if ( !found_r0 && GetByte ( offset - pos*2 ) == 0x20 )
+				{
+					found_r0 = 1;
+					val_r0 = GetByte ( offset - pos*2 + 1 );
+				}
+				if ( !found_r1 && GetByte ( offset - pos*2 ) == 0x21 )
+				{
+					found_r1 = 1;
+					val_r1 = GetByte ( offset - pos*2 + 1 );
+				}
+				pos++;
+			}
+			if ( val_r0 > 0x20 )
+				printf ( "-- 0x%02X --                    ", val_r0 );
+			else
+			{
+				if ( found_r0 )
+					printf ( "%s", GENIO[val_r0] );
+				else
+					printf ( "                              " );
+			}
+			if ( found_r1 )
+				printf ( "     %s", val_r1?"HIGH":"LOW  " );
+
+//			printf ( "     assert:  <%s>", get_assert_str ( offset ));
+
+			printf ( "\n" );
+			offset++;
+		}
+	}
+
+	return 0;
+
+}
+

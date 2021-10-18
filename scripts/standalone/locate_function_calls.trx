@@ -1,0 +1,77 @@
+#title "Locate calls to a function"
+#author "g3gg0"
+
+
+#include trix
+#include stdio
+#include stdlib
+
+
+int locate_function_calls ( int function );
+
+int main ()
+{
+	locate_function_calls ( 0x013308D4 );
+}
+
+
+int
+locate_function_calls ( int function )
+{
+	int pos = 0;
+	int scanback = 0x1000;
+	int relative = 0;
+	int offset = 0;
+	unsigned int *start_address = NULL;
+	int start_addresses = 0;
+
+	start_address = malloc ( (start_addresses+1)*4 );
+
+	if ( function == E_FAIL )
+	{
+		say ( "Error finding function\n" );
+		return 0;
+	}
+
+	offset = MEM_AUTO;
+	while ( offset != E_FAIL )
+	{
+      offset = ARMFindSrcOfDest ( BL, function, offset, MEM_AUTO, LOC_FORWARD );
+		if ( offset != E_FAIL )
+		{
+			printf ( "." );
+			pos = 1;
+
+			while ( pos <= scanback )
+			{
+				if ( GetByte ( offset - pos*2 ) == 0xB5 )
+				{
+					if ( !start_addresses || start_address[start_addresses-1] !=  offset - pos*2 )
+					{
+						start_address[start_addresses++] =  offset - pos*2;
+						start_address = realloc ( start_address, (start_addresses+1)*4 );
+					}
+					pos = scanback;
+				}
+				pos++;
+			}
+			offset++;
+		}
+	}
+
+	printf ( "\n\n" );
+	printf ( "IDA Script output:\n" );
+	printf ( "-------------------------------------\n" );
+	printf ( "#include <idc.idc>\n" );
+ 	printf ( "static main()\n" );
+ 	printf ( "{\n" );
+	for ( pos = 0; pos < start_addresses; pos++ )
+		printf ( "    MakeFunction ( 0x%08X, BADADDR );\n", start_address[pos] );
+	printf ( "}\n" );
+	printf ( "-------------------------------------\n" );
+
+
+	return 0;
+
+}
+

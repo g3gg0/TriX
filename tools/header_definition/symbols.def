@@ -1,0 +1,7 @@
+	t_symbols *(*get) ( t_stage * stage, const char *name);
+	unsigned int (*add) ( t_stage * stage, const char *name, const int type, const char *data);
+	unsigned int (*count) ( t_stage * stage, const int type);
+	unsigned int (*free_all) ( t_stage * stage);
+	unsigned int (*get_address) ( t_stage * stage, const char *name);
+	unsigned int (*remove) ( t_stage * stage, const char *name);
+	void (*dump) ( t_stage * stage);

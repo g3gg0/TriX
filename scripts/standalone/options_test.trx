@@ -1,0 +1,21 @@
+
+#title "options test"
+#author "g3gg0"
+
+#include trix
+#include stdio
+#include stdlib
+
+unsigned char *teststring = "just a test?";
+int testbool = 0;
+
+
+OPT_BEGIN
+	OPTION( OPT_BOOL, "Bool Test Variable", "testbool", &testbool )
+	OPTION( OPT_STR,  "String Test Variable", "teststring", &teststring )
+OPT_FINISH
+
+int main ( )
+{
+	printf ( "jaja\n" );
+}

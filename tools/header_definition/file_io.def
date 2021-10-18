@@ -1,0 +1,5 @@
+	t_fileinfo *(*create_empty) ( );
+	t_fileinfo *(*open) ( const char *path, const char *filename);
+	unsigned int (*release) ( t_fileinfo * fi);
+	unsigned int (*release_all) ( t_fileinfo * fi);
+	unsigned int (*write) ( const char *filename, const t_fileinfo * fi);

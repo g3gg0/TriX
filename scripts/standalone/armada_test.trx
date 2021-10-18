@@ -1,0 +1,27 @@
+#title "ARMada test"
+#author "g3gg0"
+#plugin "trix_armada"
+
+#include trix
+#include stdio
+#include trix_armada
+
+
+int armada_inject_file ( char *file )
+{
+	unsigned char *arm_code = NULL;
+	t_workspace *arm_file = WorkspaceStartup ( file );
+
+	if ( !arm_file )
+		return E_FAIL;
+
+	arm_code = strdup ( __v_get_str ( arm_file, 0x00 ) );
+
+	return ARMada_compile ( arm_code, 1 );
+}
+
+int main ()
+{
+	armada_inject_file ( "test.arm" );
+
+}

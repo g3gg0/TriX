@@ -1,0 +1,102 @@
+/* AUTH: 01 A09119C5A44943A16CC4C8EC7F16BD88FD28F50E9530609E58F6E3962B04E0AB0BFA12CFFB0496925EBF4F19F2F39FF7538C92F8386A9F7E2E1B41DDB61E8D9E28DFA2A61DA3387B0C8F8586DF145B965CE8137FA1A6D0F01AD61BA40B922ECBD7419512383AAEF5414F25951FB1C49CA22F7484CBE0AEFF5E010663313633343D7074691E418EC58BCAD1942F67ACF511400F3FE544A46E07549E856231BC547FE1937F839084AB3B19D9C1FF62287FED68AC9BECDBE5C89224A1D7C2BDC94A755C1F4C4FEA7E8495C4382C9C59E5387E9932CABA7F810B2126B67FDD1A77D02FBEE2D0BCF99D0C3F2BBA832E2CF101AF70BBE20FD64DEDED72F9ACE1F58190 */
+#title "BL reference searcher"
+#author "krisha"
+
+#include trix
+#include stdio
+
+int main ()
+{
+
+	unsigned int i;
+	unsigned int offset;
+	unsigned int search;
+	char *csearch = NULL;
+	unsigned int err = 0;
+	
+	char pattern[4];
+
+	if ( !GetWorkspace() )
+	{
+		UiDlgMsg ( "no file loaded", 0 );
+		return E_FAIL;
+	}
+
+
+/* !!!!! iPhone !!!!! */
+	trix_workspace->fileinfo->stages->segments->start = 0x9FFFF65C;
+	trix_workspace->fileinfo->stages->segments->end = trix_workspace->fileinfo->stages->segments->start + trix_workspace->fileinfo->stages->segments->length;
+	WorkspaceUpdateMemmap ( trix_workspace );
+	trix_workspace->flags = FLAGS_ENDIANESS_LE;
+/* !!!!! iPhone !!!!! */
+
+
+	
+
+	UiDlgString ( "Which destination address should the branch/offset go to (hex)?", &csearch );
+	if ( !csearch )
+		return E_FAIL;
+		
+	search = __util_hex_get ( csearch, &err );
+	if ( err )
+		return E_FAIL;
+	
+	printf ( "searching for BL's\n" );
+	i = E_FAIL;
+	offset = MEM_AUTO;
+	while ( offset != E_FAIL )
+	{
+	        offset = ARMFind (BL, offset, MEM_AUTO, LOC_FORWARD );
+		if ( ARMGet ( offset ) == search )
+			printf ( "\n0x%08X: BL 0x%08X", offset, ARMGet ( offset ) );
+			
+	        if ( offset != E_FAIL )
+	        	offset++;
+	        i++;
+	}
+
+
+
+
+	
+	printf ( "\n\nsearching for address references\n" );
+
+	// searching offsets containing address
+	pattern[3] = search >> 24 & 0xFF;
+	pattern[2] = search >> 16 & 0xFF;
+	pattern[1] = search >> 8 & 0xFF;
+	pattern[1] = search & 0xFF;
+	
+	offset = __v_get_start ( GetWorkspace() );
+	do
+	{
+		offset = QuickFindPattern(pattern, "\xFF\xFF\xFF\xFF", 4, offset+1, MEM_AUTO, LOC_FORWARD );
+		if ( Valid ( offset ) )
+			printf ( "\n0x%08X: 0x%08X", offset, GetWord ( offset ) );
+	} while ( Valid ( offset ) );
+	
+	
+	
+	
+	
+	printf ( "\n\nsearching for thumb address references\n" );
+
+	// searching offsets containing address + 1 (thumb mode bx)
+	pattern[3] = search + 1 >> 24 & 0xFF;
+	pattern[2] = search + 1 >> 16 & 0xFF;
+	pattern[1] = search + 1 & 0xFF;
+	pattern[0] = search + 1 >> 8 & 0xFF;
+	
+	offset = __v_get_start ( GetWorkspace() );
+	do
+	{
+		offset = QuickFindPattern(pattern, "\xFF\xFF\xFF\xFF", 4, offset+1, MEM_AUTO, LOC_FORWARD );
+		if ( Valid ( offset ) )
+			printf ( "\n0x%08X: 0x%08X", offset, GetWord ( offset ) );
+	} while ( Valid ( offset ) );
+		
+	printf ( "\ntotally checked %d BL's\n\n", i );
+	
+	return 0;
+	
+}

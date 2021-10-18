@@ -1,0 +1,49 @@
+#title "Patch Netmonitor"
+#author "g3gg0"
+
+
+#include trix
+#include stdio
+#include stdlib
+
+
+int g_patch_netmon ();
+
+int main ()
+{
+	g_patch_netmon ();
+}
+
+int g_patch_netmon ()
+{
+	int patch = 0;
+	int netmon_table = 0;
+
+	netmon_table = SimpleFindPattern ( 
+		"\x01\x4A\x2A\x28\x01\x09\x08\xDC\x01\x01\x11\x00\x01\x4A\x2A\x94\x01\x09\x09\x10\x01\x02\x11\x00",
+		"\xFF\x00\x00\x00\xFF\x00\x00\x00\xff\xff\xff\xff\xFF\x00\x00\x00\xFF\x00\x00\x00\xff\xff\xff\xff",
+		24, 0 );
+
+	if ( netmon_table == E_FAIL )
+	{
+		say ( "no netmon table found\n" );
+		return 0;
+	}
+
+	printf ( "found netmon table at %08X\n", netmon_table );
+	while ( GetWord(netmon_table) != 0 )
+	{
+		say ( "----------------------------------------------\n" );
+		say ( "Page: %i-%i Flags: 0x%04X  %s %s %s %s\n", GetByte(netmon_table+8), GetByte(netmon_table+9), GetHalf(netmon_table+10), (GetHalf(netmon_table+10)&0x4000)?"Developer Mode":"Normal Mode", ((GetHalf(netmon_table+10)&0x0300)==0x0200)?"[interactive]":"", ((GetHalf(netmon_table+10)&0x0300)==0x0300)?"[accepts entry]":"", ((GetHalf(netmon_table+10)&0x0400)==0x0400)?"[some enhanced mode?]":"" );
+		say ( "%s\n", GetStr(GetWord(netmon_table+4)) );
+
+		if ( patch )
+		{
+			// if netmon page is for engineering mode, set it as normal page
+			if ( GetHalf(netmon_table+10) & 0x4000 )
+				SetHalf(netmon_table+10, GetHalf(netmon_table+10) & (~0x4000));
+		}
+		netmon_table += 12;
+	}
+	return 0;
+}

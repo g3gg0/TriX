@@ -1,0 +1,53 @@
+
+int g_test_trixcrypt ()
+{	
+	t_crypt_key dec_key;
+	t_crypt_key enc_key;
+/*	unsigned char *buffer = NULL;
+	int length = 0;
+*/
+	say ( "Creating key...\n" );
+	__crypto_generate_key ( 384, &enc_key, &dec_key );
+/*
+	say ( "Compiling test script...\n" );
+	buffer = scCompile_File ( "g_teradyne.trx", &length );
+*/
+	say ( "Creating File...\n" );
+	trix_workspace = __workspace_create_file_from_buffer ( strdup("Test File"), 10 );
+//	trix_workspace = __workspace_create_file_from_buffer ( buffer, length );
+
+	say ( "Writing File...\n" );
+	__file_write ( "test1.dat", trix_workspace->fileinfo );
+
+	say ( "Encrypting File...\n" );
+	__trixcrypt_set_cryptkeys ( &enc_key, &dec_key );
+	__file_format ( trix_workspace->fileinfo, "TRIXCRYPT" );
+	__workspace_update_memmap ( trix_workspace );
+
+	say ( "Writing File...\n" );
+	__file_write ( "test2.dat", trix_workspace->fileinfo );
+
+	say ( "Dumping Stage 0 of File...\n" );
+	SetWorkStage ( 0, 0 );	
+	drawbytes ( 0, 0x10, 0x80/*GetSize()*/ );
+
+	say ( "Dumping Stage %i of File...\n", GetStageCount (0)-1 );
+	SetWorkStage ( 0, GetStageCount(0)-1 );	
+	drawbytes ( 0, 0x10, 0x80/*GetSize()*/ );
+
+
+	printf ( "\n\n----------- file written --------------\n\n" );
+
+	say ( "Reading File...\n" );
+	trix_workspace = __workspace_startup ( "test2.dat" );
+
+	say ( "Dumping Stage 0 of File...\n" );
+	SetWorkStage ( 0, 0 );	
+	drawbytes ( 0, 0x10, 0x80/*GetSize()*/ );
+
+	say ( "Dumping Stage %i of File...\n", GetStageCount (0)-1 );
+	SetWorkStage ( 0, GetStageCount(0)-1 );	
+	drawbytes ( 0, 0x10, 0x80/*GetSize()*/ );
+
+	return 0;
+}

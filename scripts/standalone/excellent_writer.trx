@@ -1,0 +1,19 @@
+#include trix
+
+#plugin trix_excellent
+#include trix_excellent
+
+int main ( )
+{
+	t_workspace *ws = NULL;
+	char *buffer = __excellent_generate ( GetWorkspace(), 0, 1, 1024, 1024 );
+
+
+	if ( !buffer )
+		return 0;
+
+	ws = WorkspaceCreateFileFromBuffer ( buffer, strlen ( buffer ) );
+
+	__file_io_write ( "excelsheet.xml", ws->fileinfo );
+
+}

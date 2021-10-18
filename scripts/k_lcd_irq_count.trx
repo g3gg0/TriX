@@ -1,0 +1,112 @@
+#title "dct4 stepper"
+#author "g3gg0 & krisha"
+
+#include trix
+#include stdio
+
+#include "scripts/nokia_dct4_function_def.trx"
+
+
+int k_lcd_irq_count ()
+{
+
+	object *own_funcs = NULL;
+	int bytes = 0;
+	unsigned int freespace = nokia_known_funcs();
+	// the bx_r0 in irq_main_handler
+//	unsigned int bxr0_irq_main_handler = 0x0129C14C; // 3100
+	unsigned int bxr0_irq_main_handler = 0x0126B964; // 6610
+	unsigned int fchk_call = SymbolGetInt ( "fchk_call" );
+	
+//	mark_modded ( bxr0_irq_main_handler );
+//	SetDebugLevel ( DEBUG_NOKIA | 0x0080 );
+
+	__arm_run_makefile ( "scripts/k_compile_arm_c_files" );
+	
+	own_funcs = __arm_create_object ( "scripts/k_compile_arm_c_files", "fonts.o" );
+	if ( own_funcs )
+	{
+
+		bytes = NokiaCreateFunc ( own_funcs, freespace );
+		if ( bytes == E_FAIL )
+		{
+			printf ( "patching failed\n" );
+			getchar();
+			return -1;
+		}
+		printf ( "patched bytes: %d\n", bytes );
+		__util_free_object ( own_funcs );
+	}
+	else
+		say ( "ERROR\n" );
+
+	freespace += bytes;
+	
+	own_funcs = __arm_create_object ( "scripts/k_compile_arm_c_files", "lcd.o" );
+	if ( own_funcs )
+	{
+
+		bytes = NokiaCreateFunc ( own_funcs, freespace );
+		if ( bytes == E_FAIL )
+		{
+			printf ( "patching failed\n" );
+			getchar();
+			return -1;
+		}
+		printf ( "patched bytes: %d\n", bytes );
+		__util_free_object ( own_funcs );
+	}
+	else
+		say ( "ERROR\n" );
+
+	freespace += bytes;
+	
+	own_funcs = __arm_create_object ( "scripts/k_compile_arm_c_files", "k_lcd_irq_count.o" );
+	//__util_dump_object ( own_funcs );
+	if ( own_funcs )
+	{
+		bytes = NokiaCreateFunc ( own_funcs, freespace );
+		if ( bytes == E_FAIL )
+		{
+			say ( "Could NOT create function!\n" );
+			getchar();
+			return -1;
+		}
+		printf ( "patched bytes: 0x%X\n", bytes  );
+		__util_free_object ( own_funcs );
+		
+		//hook bx_r0 in main_irq_handler
+//		printf ( "old BL: 0x%08X\n", ARMGet ( bxr0_irq_main_handler ) );
+//		ARMSet ( BL, bxr0_irq_main_handler, SymbolGetInt ( "irq_main_handler_hook" ) );
+//		printf ( "new BL: 0x%08X\n", ARMGet ( bxr0_irq_main_handler ) );
+
+//		drawbytes ( SymbolGetInt ( "lcd_test" ), 0x80 );
+
+#ifdef INT_HANDLING
+		printf ( "Old IRQ Handler: 0x%08X\n", GetWord ( 0x014F14DC ) );
+		SetWord ( 0x014F14DC, SymbolGetInt ( "irq_handler_replacement" ) );
+		printf ( "New IRQ Handler: 0x%08X\n", GetWord ( 0x014F14DC ) );
+#endif
+
+//		SetWord ( 0x01330764, SymbolGetInt ( "pseudo_abort_handler" )+1 );
+
+		//hook fchk
+		ARMSet ( BL, SymbolGetInt ( "fchk_call" ), SymbolGetInt ( "fchk_hook" ) );
+
+	}
+	else
+		say ( "ERROR\n" );
+		
+	freespace += bytes;
+		
+	printf ( "patched 0x%X bytes at all\n", freespace - SymbolGetInt( "freespace" ) );
+		
+	//__symbols_dump();
+
+}
+
+int main ()
+{
+	return k_lcd_irq_count ();
+
+}

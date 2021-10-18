@@ -1,0 +1,68 @@
+
+
+int g_dump_data()
+{
+    unsigned int address = 0;
+	unsigned int i;
+	t_fileinfo *fi = NULL;
+	t_stage *s = NULL;
+	t_segment *segment = NULL;
+	int pos = 0;
+	int lines = 0;
+	int segments = 0;
+	t_workspace *ws = NULL;
+
+	fi = GetWorkspace()->fileinfo;
+	s = fi->stages;
+	if ( !s )
+		return 0;
+	printf ( "Okay\n" );
+
+	printf ( "\n" );
+
+	while ( s->next )
+	{
+		printf ( "Stage: <%s>\n", s->parser );
+		LIST_NEXT(s);
+	}
+	printf ( "Stage: <%s>\n", s->parser );
+
+	segments = __segment_count ( s->segments );
+	while ( pos < segments )
+	{
+		segment = __segment_find_by_num ( s->segments, pos );
+		if ( !segment )
+			return 0;
+		printf ( "\n" );
+		printf ( "\n" );
+		printf ( "Dumping segment %i, 0x%08X-0x%08X\n", pos+1, segment->start, segment->end );
+		printf ( "\n" );
+			
+		address = segment->start;
+		printf ( "0x%08X ", address );
+		i = address & 0x0F;
+		while ( i-- )
+			printf ( "   " );
+		i = (address & 0x0C)>>2;
+		while ( i-- )
+			printf ( "  " );
+		while ( address + 4 <= segment->end )
+		{
+			i = GetWord ( address );
+			printf ( "%02X %02X %02X %02X | ", (i>>24)&0xFF, (i>>16)&0xFF, (i>>8)&0xFF, i&0xFF );
+			address+=4;
+			if ( (address & 0x0F) == 0 )
+				printf ( "\n0x%08X ", address - 4 );
+
+			if ( (++lines)/4 > 20 )
+				return 0;
+		} 
+		pos++;
+	}	
+	printf ( "\n\n" );
+	
+
+    printf ("\nend...\n" );
+
+    return 0;
+}

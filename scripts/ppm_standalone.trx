@@ -1,0 +1,314 @@
+#title "PPModificationz"
+#author "krisha"
+
+#include trix
+#include stdio
+
+
+//this script is not ready yet
+//use trix ppm plugin instead
+
+typedef struct s_chunk
+{
+	char name[5];
+	unsigned int length;		//with header
+	unsigned int checksum;
+	int start;					//inside file
+	unsigned int data_length;	//w/o header
+	char *data;					//copy of data
+	void *next;
+} t_chunk;
+
+typedef struct s_lang
+{
+	char name[5];
+	unsigned int id;
+	unsigned int length;
+	unsigned int data_length;
+	unsigned int flags;
+	unsigned int encryption_table_length;
+	char *encryption_table;
+	unsigned int strlen_table_length;
+	char *strlen_table;
+	unsigned int strarea_length;
+	char *strarea;
+	void *next;
+} t_lang;
+
+//decompressed strings
+typedef struct s_dcmp_lang
+{
+	unsigned int id;
+	unsigned int length;
+	char *string
+	void *next;
+} t_dcmp_lang;
+
+int memcpy_test ()
+{
+	int error = 0;
+	int i;
+	char *src = (char*) malloc ( 100 );
+	char *dst = (char*) malloc ( 100 );
+	
+	for ( i = 0; i < 100; i++ )
+		*(src+i) = (char)i;
+		
+	memcpy ( dst, src, 100 );
+	
+	for ( i = 0; i < 100; i++ )
+		if ( *(dst+i) != (char)i )
+		{
+			printf ( "error\n" );
+			error = 1;
+		}
+
+	return error;
+}
+			
+unsigned int swap ( unsigned int src )
+{
+	unsigned int dst = 0;
+	dst = dst | (src & 0xFF) << 24;
+	dst = dst | (src & 0xFF00) << 8;
+	dst = dst | (src & 0xFF0000) >> 8;
+	dst = dst | (src & 0xFF000000) >> 24;
+	
+	return dst;
+}
+
+//bring strings into a structure
+t_dcmp_lang *langchunk_create ( )
+{
+
+	return NULL;
+}
+
+
+//structure text chunks and fill with data
+int lang_create ( t_chunk *chunk, t_lang *first_lang )
+{
+	int i = 1, j;
+	
+	int pos = 8;
+	unsigned int tmp;
+	unsigned char c;
+	t_lang *tmp_lang = first_lang;
+	
+	printf ( "TEXT unique id: %s\n", chunk->data );
+	
+	do
+	{	
+		printf ( "pos: %08X\n", pos );
+		memcpy ( tmp_lang->name, chunk->data + pos + 8, 4 );
+		tmp_lang->name[4] = 0;
+		
+		tmp = *(chunk->data + pos);
+		tmp_lang->id =  swap ( tmp );
+		tmp = *(chunk->data + pos + 4);
+		tmp_lang->length = swap ( tmp );
+
+		tmp_lang->length += tmp_lang->length % 4 ? 4 - tmp_lang->length % 4 : 0;
+		
+		tmp = *(chunk->data + pos + 12);
+		tmp_lang->flags = swap ( tmp );
+		
+		tmp_lang->encryption_table = NULL;
+		tmp_lang->strlen_table = NULL;
+		
+		
+		printf ( "%03d. lang: %s\n", i++, tmp_lang->name );
+		printf ( "\tid: 0x%08X\n", tmp_lang->id  );
+		printf ( "\tlength: 0x%08X (%d)\n", tmp_lang->length, tmp_lang->length );
+		printf ( "\tflags: 0x%08X\n", tmp_lang->flags );
+		//printf ( "\tfirst bytes: %s\n", GetStr ( chunk + 12 ) );
+		
+		//tmp_lang->data_length = tmp_lang->length - 12;
+		//tmp_lang->data = (char*) malloc ( tmp_lang->data_length );
+		//memcpy ( tmp_lang->data, chunk->data + pos + 12, tmp_lang->data_length );
+		//printf("k");
+		/*switch ( tmp_lang->flags )
+		{
+			case 0x80000000:
+				printf ( "\tplain text\n" );
+				break;
+			case 0x98000000:
+				printf ( "\tencryption (e.g. 3100)\n" );
+				break;
+			default:
+				printf ( "\tflags not supported\n" );
+				break;
+		}*/
+		
+		if ( tmp_lang->flags == 0x98000000 )
+		{
+			tmp_lang->encryption_table = malloc ( 0x200 );
+			memcpy ( tmp_lang->encryption_table, chunk->data + pos + 16, 0x200 );
+			tmp_lang->encryption_table_length = 0x200;
+			
+			tmp = 0;
+			do
+			{
+				c = *(chunk->data + pos + 0x210 + tmp);
+				
+				tmp++;
+				//printf ( "%02X", c );
+			} while ( c != 0xFF);
+			
+			printf ( "\tentries: 0x%08X (3100: 0xb9c)\n\n", tmp );
+			tmp_lang->strlen_table = malloc ( tmp ); //get correct value somehow until 0xFF
+			memcpy ( tmp_lang->strlen_table, chunk->data + pos + 0x210, tmp );
+			tmp_lang->strlen_table_length = tmp;
+		}
+		
+		if ( tmp_lang->flags == 0x80000000 )
+		{
+			//tmp_lang->encryption_table = malloc ( 0x200 );
+			//memcpy ( tmp_lang->encryption_table, chunk->data + pos + 16, 0x200 );
+			
+			tmp = 0;
+			do
+			{
+				c = *(chunk->data + pos + 0x10 + tmp);
+				
+				tmp++;
+				//printf ( "%02X", c );
+			} while ( c != 0xFF);
+			
+			printf ( "\tentries: 0x%08X (3100: 0xbb)\n\n", tmp );
+			tmp_lang->strlen_table = malloc ( tmp ); //get correct value somehow
+			memcpy ( tmp_lang->strlen_table, chunk->data + pos + 0x10, tmp );
+			tmp_lang->strlen_table_length = tmp;
+		}
+		
+		//printf("b");
+		pos += tmp_lang->length;
+		//say ("w");
+		
+		if ( pos < chunk->data_length )
+		{
+			//say("a");
+			tmp_lang->next = calloc ( 1, sizeof ( t_lang ) );
+			tmp_lang = tmp_lang->next;
+			//say ("t");
+			tmp_lang->next = NULL;
+		}
+	} while ( pos < chunk->data_length );
+	
+	return E_OK;
+}
+
+//structure chunks and fill with data
+int chunks_create ( int chunk, t_chunk *first_chunk )
+{
+	int i = 1;
+	int j;
+	t_chunk *tmp_chunk = first_chunk;
+	
+	do
+	{	
+		MemCpyGet ( tmp_chunk->name, chunk + 8, 4 );
+		tmp_chunk->name[4] = 0;
+		tmp_chunk->checksum = GetWord ( chunk );
+		tmp_chunk->length = GetWord ( chunk + 4 );
+		tmp_chunk->start = chunk + 12;
+		
+		printf ( "%03d. chunk: %s\n", i++, tmp_chunk->name );
+		printf ( "\tchksum: 0x%08X\n", tmp_chunk->checksum  );
+		printf ( "\tlength: 0x%08X (%d)\n", tmp_chunk->length, tmp_chunk->length );
+		printf ( "\tfirst bytes: %s\n", GetStr ( chunk + 12 ) );
+		
+		tmp_chunk->data_length = tmp_chunk->length - 12;
+		tmp_chunk->data = (char*) malloc ( tmp_chunk->data_length );
+		MemCpyGet ( tmp_chunk->data, chunk + 12, tmp_chunk->data_length );
+		//for ( j = 0; j < 12; j++ )
+//			printf ( "%02X", *(tmp_chunk->data + j ) );
+		
+		chunk += tmp_chunk->length;
+		
+		if ( Valid ( chunk ) && Valid ( chunk + 8 ) )
+		{
+			tmp_chunk->next = malloc ( sizeof ( t_chunk ) );
+			tmp_chunk = tmp_chunk->next;
+			tmp_chunk->next = NULL;
+		}
+		
+	} while ( Valid ( chunk ) && Valid ( chunk + 8 ) );
+	
+	return E_OK;
+}
+
+int chunks_free ( t_chunk *first_chunk )
+{
+	t_chunk *tmp;
+	
+	if ( !first_chunk )
+		return E_FAIL;
+	
+	do
+	{	
+		tmp = first_chunk->next;
+		free ( first_chunk->data );
+		free ( first_chunk );
+		first_chunk = tmp;
+	} while ( tmp );
+	
+	return E_OK;
+}
+
+t_chunk *chunks_get ( t_chunk *first_chunk, char *chunk_name )
+{
+	if ( !first_chunk || !chunk_name || strlen ( chunk_name ) != 4 )
+		return NULL;
+	
+	do
+	{
+		if ( !strncmp ( first_chunk->name, chunk_name, 4 ) )
+			return first_chunk;
+		else
+			first_chunk = first_chunk->next;
+	} while ( first_chunk );
+	
+	return NULL;
+
+}
+
+int main ()
+{
+	
+	if ( !trix_workspace || !trix_workspace->fileinfo || !trix_workspace->fileinfo->stages || !trix_workspace->fileinfo->stages->segments )
+		return E_FAIL;
+	
+	int ppm_start = QuickFindPattern("PPM", "\xFF\xFF\xFF", 3, MEM_AUTO, MEM_AUTO, 0);
+	int ppm_type = ppm_start + 4;
+	int ppm_lang = ppm_start + 0x28;
+	
+	int chunk = ppm_start + 0x2c;
+
+	t_chunk *first_chunk = malloc ( sizeof ( t_chunk ) );
+	t_chunk *text = NULL;
+	
+	t_lang *first_lang = malloc ( sizeof ( t_lang ) );
+	
+	printf ( "memcpy test: %d\n\n", memcpy_test() );
+	printf ( "swap test: %08X\n\n", swap ( 0x12345678 ) );
+	
+	printf ( "start of ppm: 0x%08X\n", ppm_start );
+	printf ( "version, date, modell: %s\n", GetStr ( ppm_type ) );
+	printf ( "language package: %s\n", GetStr ( ppm_lang ) );
+	printf ( "total size: 0x%08X (%d)\n\n", GetSize ( ), GetSize () );
+	
+	chunks_create ( chunk, first_chunk );
+	
+	text = chunks_get ( first_chunk, "TEXT" );
+	printf ( "\n\ntext chunk name: %s\n", text->name );
+	
+	lang_create ( text, first_lang );
+	
+	//reassemble workspace or new one
+	chunks_free ( first_chunk );
+	
+	return E_OK;
+
+
+}

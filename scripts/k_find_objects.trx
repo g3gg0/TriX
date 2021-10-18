@@ -1,0 +1,301 @@
+
+
+
+class nokiaMethod
+{
+    public:
+    //krisha's tired of writing all that get/set functions :-))
+        nokiaMethod();
+        unsigned short id;
+        unsigned int addr;
+        char *name;
+};
+
+class nokiaObject
+{
+    private:
+        unsigned int classPointer;
+        unsigned int superClassPointer;
+        unsigned int methodsPointer;
+        unsigned short methodCount;
+        unsigned short ObjectSize;
+        unsigned int namePointer;
+        char *name;
+    public:
+        nokiaObject ( );
+        void addMethod ( unsigned int addr, unsigned short id );
+        void setClassPointer ( unsigned int p );
+        void setSuperClassPointer ( unsigned int p );
+        void setMethodsPointer ( unsigned int p );
+        void setMethodCount ( unsigned short p );
+        void setObjectSize ( unsigned short p );
+        void setNamePointer ( unsigned int p );
+        void setName ( char *n );
+        unsigned int getSuperClassPointer ();
+        unsigned int getClassPointer ();
+        unsigned short getMethodCount ();
+        unsigned short getObjectSize();
+        char* getName ( );
+        unsigned short getRealMethodCount ();
+
+};
+
+void nokiaMethod::nokiaMethod ( )
+{
+	return;
+}
+void nokiaObject::nokiaObject ( )
+{
+	return;
+}
+void nokiaObject::setClassPointer ( unsigned int p )
+{
+    classPointer = p;
+}
+void nokiaObject::setSuperClassPointer ( unsigned int p )
+{
+    superClassPointer = p;
+}
+void nokiaObject::setMethodsPointer ( unsigned int p )
+{
+    methodsPointer = p;
+}
+void nokiaObject::setMethodCount ( unsigned short p )
+{
+    methodCount = p;
+}
+void nokiaObject::setObjectSize ( unsigned short p )
+{
+    ObjectSize = p;
+}
+void nokiaObject::setNamePointer ( unsigned int p )
+{
+    namePointer = p;
+}
+void nokiaObject::setName ( char *n )
+{
+    name = n;
+}
+unsigned int nokiaObject::getSuperClassPointer ()
+{
+    return superClassPointer;
+}
+unsigned int nokiaObject::getClassPointer ()
+{
+    return classPointer;
+}
+unsigned short nokiaObject::getMethodCount ()
+{
+    return methodCount;
+}
+unsigned short nokiaObject::getObjectSize()
+{
+    return ObjectSize;
+}
+char* nokiaObject::getName ( )
+{
+    return name;
+}
+unsigned short nokiaObject::getRealMethodCount ()
+{
+//    return (unsigned short)methods.size();
+}
+
+void nokiaObject::addMethod ( unsigned int addr, unsigned short id )
+{
+    nokiaMethod *method;
+    method = malloc( sizeof (nokiaMethod));
+    method->id = id;
+    method->addr = addr;
+//    methods << method;
+    switch ( id )
+    {
+        case 0xC000:
+            method->name = str ("M_IS_OF_CLASS");
+            break;
+        case 0xC001:
+            method->name = str ("M_GET_METHOD_HANDLER");
+            break;
+        case 0xC002:
+            method->name = str ("M_GET_CLASS");
+            break;
+        case 0xC003:
+            method->name = str ("M_NEW");
+            break;
+        case 0xC004:
+            method->name = str ("M_CONSTRUCTOR");
+            break;
+        case 0xC005:
+            method->name = str ("M_DELETE");
+            break;
+        case 0xC006:
+            method->name = str ("M_DESTRUCTOR");
+            break;
+        default:
+            method->name = str("?");
+    }
+}
+
+
+
+
+typedef struct s_Method
+{
+   unsigned short ID;
+   unsigned int (*Handler)(void *ThisObject, unsigned short MethodID, unsigned int Arg0, unsigned int Arg1, unsigned int Arg2);
+} Method;
+
+typedef struct s_Class
+{
+   int Class;
+   int SuperClass;
+   int Methods;               // table of methods, last one has ID == M_C_END
+   unsigned short MethodsCount;
+   unsigned short ObjectSize;
+   int Name;
+} Class;
+
+typedef struct s_Object
+{
+   int Class;
+   // Object's private data follow
+} Object;
+
+#define MSG_0P                                   (0)
+#define MSG_1P                                   (0x4000)
+#define MSG_2P                                   (0x8000)
+#define MSG_3P                                   (0xc000)
+
+int k_dump_methods ( unsigned int address, unsigned int object, unsigned char *name )
+{
+	int pos = 0;
+	unsigned char buffer[128];
+	unsigned int function = 0;
+
+	if ( !strcmp ( "no name available", name ) )
+		sprintf ( buffer, "obj_%08X", object );
+	else
+		sprintf ( buffer, "obj_%s_%08X", name, object );
+
+	for ( pos = 0; pos < strlen ( buffer ); pos++ )
+	{
+		if ( ! (
+			     ( buffer[pos] >= 0x30 && buffer[pos] <= 0x39 ) ||
+				 ( buffer[pos] >= 0x41 && buffer[pos] <= 0x5A ) ||
+				 ( buffer[pos] >= 0x61 && buffer[pos] <= 0x7A ) ||
+				 ( buffer[pos] == '_' )
+				)
+			)
+			buffer[pos] = '_';
+	}
+	printf ( "    MakeName ( 0x%08X, \"%s\" );\n", object, buffer );
+	printf ( "    MakeDword ( 0x%08X );\n", object );
+	printf ( "    SetType ( 0x%08X, \"char *self;\" );\n", object );
+	printf ( "    MakeDword ( 0x%08X );\n", object + 4 );
+	printf ( "    SetType ( 0x%08X, \"char *parent;\" );\n", object + 4 );
+	printf ( "    MakeDword ( 0x%08X );\n", object + 8 );
+	printf ( "    SetType ( 0x%08X, \"char *methods;\" );\n", object + 8 );
+	printf ( "    MakeWord ( 0x%08X );\n", object + 12 );
+	printf ( "    MakeWord ( 0x%08X );\n", object + 14 );
+	printf ( "    MakeDword ( 0x%08X );\n", object + 16 );
+	printf ( "    SetType ( 0x%08X, \"char *name;\" );\n", object + 16 );
+
+	while ( GetWord ( address + 4 ) )
+	{
+		function = GetWord ( address + 4 ) & ~0x0000001;
+
+		if ( !strcmp ( "no name available", name ) )
+			sprintf ( buffer, "obj_%08X_%08X", object, function );
+		else
+			sprintf ( buffer, "obj_%s_%08X", name, function );
+
+		for ( pos = 0; pos < strlen ( buffer ); pos++ )
+		{
+			if ( ! (
+				     ( buffer[pos] >= 0x30 && buffer[pos] <= 0x39 ) ||
+					 ( buffer[pos] >= 0x41 && buffer[pos] <= 0x5A ) ||
+					 ( buffer[pos] >= 0x61 && buffer[pos] <= 0x7A ) ||
+					 ( buffer[pos] == '_' )
+					)
+				)
+				buffer[pos] = '_';
+		}
+		printf ( "    MakeFunction ( 0x%08X, BADADDR );\n", function );
+		printf ( "    MakeName ( 0x%08X, \"%s\" );\n", function, buffer );
+		printf ( "    MakeWord ( 0x%08X );\n", address );
+		printf ( "    MakeWord ( 0x%08X );\n", address + 2 );
+		printf ( "    MakeDword ( 0x%08X );\n", address + 4 );
+		printf ( "    SetType ( 0x%08X, \"char *handler;\" );\n", address + 4 );
+		address += 8;
+	}
+}
+
+int k_find_objects ( int ida_out )
+{
+
+	/* short c++ test 
+	nokiaObject test;
+	test.setMethodCount( 5 );
+	printf ( "%d\n", test.getMethodCount() );
+	 end c++ test */
+	Class *temp_class = NULL;
+    unsigned int address = 0;
+	unsigned int i;
+	t_stage *s = NULL;
+	t_segment *segment = NULL;
+	int pos = 0;
+	int segments = 0;
+	t_fileinfo *fi = NULL;
+
+	temp_class = malloc ( sizeof ( Class ) );
+
+	fi = GetWorkspace()->fileinfo;
+	s = __stage_get_last (fi->stages);
+	if ( !s )
+		return 0;
+		
+	printf ( "Okay\n" );
+	printf ( "\n" );
+	printf ( "\n\n" );
+	printf ( "IDA Script output:\n" );
+	printf ( "-------------------------------------\n" );
+	printf ( "#include <idc.idc>\n" );
+ 	printf ( "static main()\n" );
+ 	printf ( "{\n" );
+
+	segments = __segment_count ( s->segments );
+	while ( pos < segments )
+	{
+
+		segment = __segment_find_by_num ( s->segments, pos );
+		if ( !segment )
+			return 0;
+
+		if ( !ida_out )
+			printf ( "Scanning segment %i, 0x%08X-0x%08X\n", pos+1, segment->start, segment->end );
+			
+		address = segment->start;
+		while ( address + 4 <= segment->end )
+		{
+			i = GetWord ( address );
+			if ( i == address )
+			{
+				MemCpyGet ( (unsigned char*)temp_class, address, sizeof ( Class ) );
+				if ( !ida_out )
+					printf ( "{ 0x%08X, 0x%08X, 0x%08X, 0x%04X, 0x%04X, '%s' }\n", SW(temp_class->Class), SW(temp_class->SuperClass), SW(temp_class->Methods), SH(temp_class->MethodsCount), SH(temp_class->ObjectSize), GetStr(SW(temp_class->Name) ) );
+				else
+					k_dump_methods ( SW(temp_class->Methods), address, GetStr(SW(temp_class->Name)) );
+			}
+			address+=4;
+		} 
+		pos++;
+	}	
+	printf ( "}\n" );
+	printf ( "-------------------------------------\n" );
+	printf ( "\n\n" );
+	
+
+    printf ("\nend...\n" );
+
+    return 0;
+}

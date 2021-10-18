@@ -1,0 +1,4 @@
+	unsigned int (*alloc_priv) ( t_stage * stage);
+	unsigned int (*set_cryptkeys) ( t_crypt_key * encrypt_key, t_crypt_key * decrypt_key);
+	unsigned int (*set_decryptkey) ( t_crypt_key * key);
+	unsigned int (*set_encryptkey) ( t_crypt_key * key);

@@ -1,0 +1,2 @@
+#define TRIXPLUG_MAJOR 25
+#define TRIXPLUG_MINOR 0

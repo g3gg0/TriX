@@ -1,0 +1,15 @@
+#title "ARMada test"
+#author "g3gg0"
+#plugin "trix_fmttest"
+
+#include trix
+#include stdio
+
+
+int main ()
+{
+	SetDebugLevel ( 0xFF );
+	WorkspaceStartup ( "c:\\test.txt" );
+	return E_OK;
+
+}

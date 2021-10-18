@@ -1,0 +1,12 @@
+	t_workspace *(*create) ( );
+	t_workspace *(*create_file) ( );
+	t_workspace *(*create_file_from_buffer) ( unsigned char *buffer, unsigned int length);
+	t_workspace *(*startup) ( char *filename);
+	unsigned int (*add_file) ( t_workspace * ws, t_fileinfo * fileinfo);
+	unsigned int (*memmap_add) ( t_workspace * ws, t_stage * stage, t_segment * seg);
+	unsigned int (*memmap_release) ( t_workspace * ws);
+	unsigned int (*memmap_sort) ( t_workspace * ws);
+	unsigned int (*release) ( t_workspace * ws);
+	unsigned int (*set_modified) ( t_workspace * ws);
+	unsigned int (*update_memmap) ( t_workspace * ws);
+	void (*skip_error) ( int skip);

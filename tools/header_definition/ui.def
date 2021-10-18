@@ -1,0 +1,17 @@
+	unsigned int (*dlg_bool) ( char *text);
+	unsigned int (*dlg_dumpmem) ( t_workspace * ws, int address);
+	unsigned int (*dlg_dumpmem_finish) ( );
+	unsigned int (*dlg_dumpmem_get_addr) ( );
+	unsigned int (*dlg_dumpmem_set_addr) ( int address);
+	unsigned int (*dlg_dumpmem_visible) ( );
+	unsigned int (*dlg_int) ( char *text, int min, int max, int adv, int def);
+	unsigned int (*dlg_menu) ( char *title, char *text[], int options);
+	unsigned int (*dlg_msg) ( char *text, int type);
+	unsigned int (*dlg_string) ( char *text, char **buf);
+	unsigned int (*dlg_tree) ( t_treenode * tree);
+ 	unsigned int (*dlg_box_clear) ( unsigned int id);
+ 	unsigned int (*dlg_box_create) ( unsigned char *title);
+ 	unsigned int (*dlg_box_msg) ( unsigned int id, unsigned char *msg);
+ 	unsigned int (*dlg_box_release) ( unsigned int id);
+ 	unsigned int (*dlg_box_release_all) ( );
+ 	unsigned int (*dlg_box_size) ( unsigned int id, unsigned int width, unsigned int height);

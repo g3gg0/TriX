@@ -1,0 +1,47 @@
+
+
+
+
+void k_compile_arm_c_files ()
+{
+	t_workspace *ws = NULL;
+	t_fileinfo *fi = NULL;
+	char *buff = NULL;
+	char *directory = "scripts/k_compile_arm_c_files";
+
+	buff = malloc ( 200 + strlen(directory) );
+
+	fi = __file_io_create_empty ();
+	if ( !fi || ! buff )
+		return;
+
+	sprintf ( buff, "" );
+	strcat ( buff, "export PATH=../../tools/arm:$PATH\n" );
+	strcat ( buff, "echo $PATH\n" );
+	strcat ( buff, "cd " );
+	strcat ( buff, directory );
+	strcat ( buff, "\n" );
+	strcat ( buff, "rm *.o\n" );
+	strcat ( buff, "make\n" );
+
+	fi->stages->segments->length = strlen ( buff );
+	fi->stages->segments->data = strdup ( buff );
+	
+
+	if ( __file_io_write ( "run.sh", fi ) != E_OK )
+		printf ( "Write failed\n" );
+
+	system ( "tools\\arm\\bash.exe run.sh" );
+	
+	sprintf ( buff, "%s/dump_objects.o", directory );
+	ws =  __workspace_startup ( buff );
+	__elf_dump_object ( ws );
+
+	sprintf ( buff, "%s/rotate_lcd.o", directory );
+	ws =  __workspace_startup ( buff );
+	__elf_dump_object ( ws );
+
+	free ( buff );
+	printf ( "done!\n" );
+	
+}

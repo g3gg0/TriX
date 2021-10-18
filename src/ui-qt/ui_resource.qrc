@@ -1,0 +1,24 @@
+<RCC>
+    <qresource prefix="/icons" >
+        <file>icons/22x22-gartoon/amusement.png</file>
+        <file>icons/22x22-gartoon/calculator.png</file>
+        <file>icons/22x22-gartoon/chat.png</file>
+        <file>icons/22x22-gartoon/choice-no.png</file>
+        <file>icons/22x22-gartoon/choice-yes.png</file>
+        <file>icons/22x22-gartoon/configuration.png</file>
+        <file>icons/22x22-gartoon/disk-floppy.png</file>
+        <file>icons/22x22-gartoon/disk.png</file>
+        <file>icons/22x22-gartoon/editor.png</file>
+        <file>icons/22x22-gartoon/file.png</file>
+        <file>icons/22x22-gartoon/folder-open.png</file>
+        <file>icons/22x22-gartoon/ghostview.png</file>
+        <file>icons/22x22-gartoon/information.png</file>
+        <file>icons/22x22-gartoon/item.png</file>
+        <file>icons/22x22-gartoon/modules.png</file>
+        <file>icons/22x22-gartoon/quit.png</file>
+        <file>icons/22x22-gartoon/science.png</file>
+        <file>icons/22x22-gartoon/viewer.png</file>
+        <file>icons/22x22-gartoon/window.png</file>
+        <file>icons/22x22-gartoon/www.png</file>
+    </qresource>
+</RCC>

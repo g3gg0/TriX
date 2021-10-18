@@ -1,0 +1,172 @@
+
+int fchk_out_checksum ( char * text, char *data, char *orig )
+{
+	int pos = 0;
+
+	printf ( "%s", text );
+	pos = 0;
+	while ( pos < 8 && data )
+	{
+		printf ( "%02X", data[pos]);
+		pos++;
+	}
+	printf ( "  " );
+	pos = 0;
+	while ( pos < 8 && orig )
+	{
+		printf ( "%02X", data[pos] ^ orig[pos] );
+		pos++;
+	}
+	printf ( "\n" );
+
+	return 0;
+}
+
+int g_fchk_fix ()
+{
+	//int addr = 0x011A0258;
+	int addr = 0x01103C14;
+	int reset = 0;
+	char *data = NULL;
+	int len = 0;
+	int bytes = 0;
+	object *arm_object = NULL;
+	char *buf = NULL;
+
+//	data = x2c ( "A001490747F946C0E3C19AB6749411820001FFE0010001000000000000000000" );
+//	len = 0x20;
+
+	say ( "\n\n" );
+	say ( "g3gg0's FCHK tests :)\n" );
+	
+	if ( reset )
+	{
+		say ( "Creating 'undo' partial for address 0x%08X\n", addr );
+		mark_modded ( addr );
+	}
+	else
+	{
+		__symbols_add ( NULL, "spi_send_dma", SYM_PTR, "0x0110269C" );
+		__symbols_add ( NULL, "spi_check_bit", SYM_PTR, "0x0110276C" );
+
+		arm_object = __arm_create_object_from_makefile ( "scripts/k_compile_arm_c_files", "rotate_lcd.o" );
+		if ( arm_object )
+		{
+			bytes = NokiaCreateFunc ( arm_object, 0x01198C80 );
+			if ( bytes == E_FAIL )
+			{
+				printf ( "patching failed\n" );
+				getchar();
+			}
+			printf ( "patched bytes: %d\n", bytes );
+			drawbytes ( 0x01198C80, 0x10, 112 );
+			__util_free_object ( arm_object );
+		}
+		else
+			say ( "ERROR\n" );
+
+		printf ( "Old BL 0x%08X -> 0x%08X\n", 0x01103C14, ARMGet ( 0x01103C14 )  );
+		ARMSet ( BL, 0x01103C14, 0x01198C80 );
+		printf ( "New BL 0x%08X -> 0x%08X\n", 0x01103C14, ARMGet ( 0x01103C14 )  );
+
+
+//		half( 0x010F57A0, 0xEB02 );
+
+	}
+	say ( "\n\n" );
+}
+
+int g_fchk_test ()
+{
+	int i = 0;
+	int pos = 0;
+	int offset = 0x01000100;
+	int blocks = 0x0001FFE0;
+	unsigned char *data;
+	unsigned char *buf;
+	unsigned char *orig;
+	unsigned char *xor;
+	unsigned char *xor_buf;
+
+	data = malloc ( 8 );
+	buf = malloc ( 8 );
+	xor = malloc ( 8 );
+	xor_buf = malloc ( 8 );
+	orig = malloc ( 8 );
+
+
+
+	pos = 0;
+	while ( pos < 8 )
+	{
+		buf[pos] = 0;
+		pos++;
+	}
+	pos = 0;
+	while ( pos < 8 )
+	{
+		xor[pos] = 0;
+		pos++;
+	}
+	pos = 0;
+	while ( pos < 8 )
+	{
+		xor_buf[pos] = 0;
+		pos++;
+	}
+
+	MemCpyGet ( buf, offset, 8 );
+	MemCpyGet ( orig, 0x0100006C, 8 );
+	offset = GetWord ( 0x01000078 );
+	blocks = GetWord ( 0x01000074 );
+
+	offset += 8;
+
+	printf (			"\n" );
+	printf (            "Uncrypted     : 0x%08X - 0x%08X\n", GetWord ( 0x0100008C ), GetWord ( 0x01000090 ) );
+	printf (            "Uncrypted     : 0x%08X - 0x%08X\n", GetWord ( 0x01000094 ), GetWord ( 0x01000098 ) );
+	printf (			"\n" );
+	fchk_out_checksum ( "Checksum      : ", orig, NULL );
+	printf (            "Block count   : 0x%08X\n", blocks );
+	printf (            "Start address : 0x%08X\n", offset );
+	printf (			"\n" );
+	printf (			"Going to check address 0x%08X - 0x%08X\n", offset, offset + 8*blocks );
+	printf (			"\n" );
+
+	while ( offset != E_FAIL && blocks-- )
+	{
+		/* get the data block to checksum */
+		MemCpyGet ( data, offset, 8 );
+
+		/* status message */
+//		if ( (offset & 0xFFFF) == 0 )
+//			printf ( "0x%08X\n", offset );
+
+		/* run for "incremental" checksumming */
+//		Calc_1 ( data, buf );
+		/* run on clean xor ouput buffer */
+//		Calc_1 ( data, xor_buf );
+
+		/* XOR data into xor buffer and clean xor output buffer*/
+		pos = 0;
+		while ( pos < 8 )
+		{
+			xor[pos] = xor[pos] ^ xor_buf[pos];
+			xor_buf[pos] = 0;
+			pos++;
+		}
+
+		/* skip 8 bytes */
+		pos = 8;
+		while ( pos-- )
+			offset = __v_get_next_offset ( GetWorkspace(), offset );
+	}
+	printf ( "\n" );
+
+	printf ( "                           plain           XOR orig    \n" );
+	fchk_out_checksum ( "Orig   checksum   ", orig, NULL );
+	fchk_out_checksum ( "Calced checksum   ", buf, orig );
+	fchk_out_checksum ( "XOR    checksum   ", xor, orig );
+
+
+}

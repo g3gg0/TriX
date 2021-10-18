@@ -1,0 +1,134 @@
+
+#define g3gg0
+
+int g_pin_toggle (  )
+{
+#ifdef g3gg0
+//	int addr = 0x01000074;
+//	int addr = 0x01330764; // abort handler offset
+	int addr = 0x01330704; // call rom
+	int freespace = _6610_565_funcs();
+#else
+	int addr = 0x13536F4;	//3100 5.91
+	int freespace = _3100_591_funcs();	//3100 5.91
+#endif
+
+	int reset = 0;
+	int bytes = 0;
+	object *arm_object = NULL;
+	int pos = 0;
+
+	say ( "\n\n" );
+	say ( "g3gg0's pin tests :)\n" );
+	
+	if ( reset )
+	{
+		say ( "Creating 'undo' partial for address 0x%08X\n", addr );
+		mark_modded ( addr );
+	}
+	else
+	{
+/*
+//	these symbols are defined in nokia_dct4_function_def.trx now
+#ifdef g3gg0
+		// 6610 vx.yz
+		__symbols_add ( "hw_set_pin", SYM_PTR, "0x0132FBC0" );
+		__symbols_add ( "hw_set_pinstate", SYM_PTR, "0x0132FA4C" );
+		__symbols_add ( "hw_light_set_ratio", SYM_PTR, "0x0133029C" );
+		__symbols_add ( "hw_light_set_pwm", SYM_PTR, "0x01330254" );
+		__symbols_add ( "spi_send_cmd", SYM_PTR, "0x0132FFBC" );
+		__symbols_add ( "spi_send_data", SYM_PTR, "0x0133005C" );
+		__symbols_add ( "bx_r1", SYM_PTR, "0x012DF4E6" );
+		__symbols_add ( "sprintf", SYM_PTR, "0x012DF454" );
+		__symbols_add ( "decrypt", SYM_PTR, "0x01330540" );
+		// fake values
+		__symbols_add ( "hw_io_get_pin", SYM_PTR, "0x0132FBC0" );
+		__symbols_add ( "strlen", SYM_PTR, "0x0133029C" );
+		__symbols_add ( "system_get_type_freq", SYM_PTR, "0x0133029C" );
+#else		
+		//3100 5.91
+		__symbols_add ( "hw_light_set_ratio", SYM_PTR, "0x13533E0" );
+		__symbols_add ( "hw_light_set_pwm", SYM_PTR, "0x1353340" );
+		__symbols_add ( "hw_set_pin", SYM_PTR, "0x1352FB4" );
+		__symbols_add ( "hw_set_pinstate", SYM_PTR, "0x1352E44" );
+		__symbols_add ( "spi_send_cmd", SYM_PTR, "0x13530A8" );
+		__symbols_add ( "spi_send_data", SYM_PTR, "0x1353148" );
+		__symbols_add ( "bx_r1", SYM_PTR, "0x13083C6" );
+		__symbols_add ( "wdt_reset", SYM_PTR, "0x0129DE08" );
+
+		__symbols_add ( "hw_io_get_pin", SYM_PTR, "0x1352F74" );
+		__symbols_add ( "malloc", SYM_PTR, "0x13679A4" );
+		__symbols_add ( "free", SYM_PTR, "0x13681E8" );
+		__symbols_add ( "sprintf", SYM_PTR, "0x1308334" );
+		__symbols_add ( "strlen", SYM_PTR, "0x13095E0" );
+		__symbols_add ( "system_get_type_freq", SYM_PTR, "0x129C4A4" );
+#endif
+
+*/
+		__arm_run_makefile ( "scripts/k_compile_arm_c_files" );
+
+		arm_object = __arm_create_object ( "scripts/k_compile_arm_c_files", "fonts.o" );
+		if ( arm_object )
+		{
+
+			bytes = NokiaCreateFunc ( arm_object, freespace );
+			if ( bytes == E_FAIL )
+			{
+				printf ( "patching failed\n" );
+				getchar();
+			}
+			printf ( "patched bytes: %d\n", bytes );
+			__util_free_object ( arm_object );
+		}
+		else
+			say ( "ERROR\n" );
+
+
+		freespace += bytes;
+
+		arm_object = __arm_create_object ( "scripts/k_compile_arm_c_files", "lcd.o" );
+		if ( arm_object )
+		{
+		__util_dump_object ( arm_object );
+
+			bytes = NokiaCreateFunc ( arm_object, freespace );
+			if ( bytes == E_FAIL )
+			{
+				printf ( "patching failed\n" );
+				getchar();
+			}
+			printf ( "patched bytes: %d\n", bytes );
+			__util_free_object ( arm_object );
+		}
+		else
+			say ( "ERROR\n" );
+
+		freespace += bytes;
+
+		arm_object = __arm_create_object ( "scripts/k_compile_arm_c_files", "pin_toggle.o" );
+		if ( arm_object )
+		{
+			bytes = NokiaCreateFunc ( arm_object, freespace );
+			if ( bytes == E_FAIL )
+			{
+				printf ( "patching failed\n" );
+				getchar();
+			}
+			printf ( "patched bytes: %d\n", bytes );
+			__util_free_object ( arm_object );
+		}
+		else
+			say ( "ERROR\n" );
+
+		printf ( "Old BL 0x%08X -> 0x%08X\n", addr, ARMGet ( addr )  );
+
+
+		ARMSet ( BL, addr, __symbols_get_address ( NULL, "toggle_pins" ) );
+//		SetWord ( addr, __symbols_get_address ( "pseudo_abort_handler" )+1 );
+//		SetWord ( 0x01330768, 0x0100006C );
+//		SetWord ( 0x01000074, 0x000FFFFF );
+		printf ( "New BL 0x%08X -> 0x%08X\n", addr, ARMGet ( addr )  );
+//		SetWord ( 0x01000074, 0x0001FFE0 );
+	}
+	say ( "\n\n" );
+}

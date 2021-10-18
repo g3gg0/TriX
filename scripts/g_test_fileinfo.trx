@@ -1,0 +1,41 @@
+
+int g_test_fileinfo()
+{
+	t_fileinfo *fi = NULL;
+
+	printf ( "\n\n\n" );
+    printf ( "------------------------------------------------------\n" );
+    printf ( "--------------    test script for TriX  --------------\n" );
+    printf ( "------------------------------------------------------\n" );
+	printf ( "\n" );
+
+	printf ( "Getting FileInfo struct:     " );
+	fi = GetWorkspace ()->fileinfo;
+	if ( !fi )
+	{
+		printf ( "Failed :(\n" );
+		return 0;
+	}
+	printf ( "Okay\n" );
+	printf ( "dump it:\n" );
+    __stage_dump ( fi->stages );
+
+	printf ( "\n" );
+    printf ( "------------------------------------------------------\n" );
+	printf ( "\n" );
+
+	printf ( "Opening external file:       " );
+	fi = __file_open ( "test.fls" );
+	if ( !fi )
+	{
+		printf ( "Error opening file\n" );
+		return 0;
+	}
+
+	printf ( "Okay\n" );
+	printf ( "dump it:\n" );
+    __stage_dump ( fi->stages );
+
+    return 0;
+}
+

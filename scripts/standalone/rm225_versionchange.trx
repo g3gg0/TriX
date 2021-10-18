@@ -1,0 +1,35 @@
+#title "rm225 string version change"
+#author "krisha"
+
+#include trix
+
+int main ()
+{
+
+	unsigned short checksum = 0;
+	int addr = __v_get_w ( GetWorkspace(), 0x01000078 );
+	int end = __v_get_w ( GetWorkspace(), 0x010000FC );
+
+	MemCpyPut ( 0x01148388, "test1\x00\x00", 7 );
+	MemCpyPut ( 0x01148398, "test2\x00\x00", 7 );
+	
+	// 1. reference
+//	SetWord ( 0x010BA5A0, 0x1148388 );
+	
+	// 2. reference
+	SetWord ( 0x011B360C, 0x1148398 );
+
+
+	while ( addr < end  )
+	{
+		checksum += __v_get_h ( GetWorkspace(), addr );
+		addr += 2;
+	}
+
+	printf ( "Old Checksum 0x%02X, new 0x%02X\n", __v_get_h (  GetWorkspace(), 0x01000026 ), checksum );
+	__v_set_h (  GetWorkspace(), 0x01000026, checksum );
+
+
+
+
+}

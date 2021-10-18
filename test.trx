@@ -1,0 +1,298 @@
+
+#title "test.trx generic"
+#author "some freakx"
+
+/*
+#plugin "trix_term"
+#include trix_term
+#plugin "trix_fmttest"
+*/
+
+#include trix
+#include stdio
+#include stdlib
+#include fmt_parsers
+
+
+unsigned char *teststring = NULL;
+int testbool = 0;
+
+
+OPT_BEGIN
+	OPTION( OPT_BOOL, "Bool Test Variable", "testmodule.testbool", &testbool )
+	OPTION( OPT_STR,  "String Test Variable", "testmodule.teststring", &teststring )
+OPT_FINISH
+
+
+void pw ()
+{
+	say ( "[warning]\n" );
+}
+void pd ()
+{
+	say ( "[done]\n" );
+}
+void pf ()
+{
+	say ( "[failed]\n" );
+}
+
+int word ( int address, int val )
+{
+	printf ( "Old    0x%08X: 0x%08X -> 0x%08X\n", address, GetWord(address), val  );
+	SetWord ( address, val );
+
+	return E_OK;
+}
+int half ( int address, int val )
+{
+	printf ( "Old    0x%08X: 0x%04X     -> 0x%04X\n", address, GetHalf(address), val  );
+	SetHalf ( address, val );
+
+	return E_OK;
+}
+
+int nop_bl ( int address )
+{
+	printf ( "Old BL 0x%08X -> 0x%08X\n", address, ARMGet ( address )  );
+	SetWord ( address, 0x46C046C0 );
+
+	return E_OK;
+}
+
+int nop_op ( int address )
+{
+	printf ( "Old OP 0x%08X  = 0x%04X\n", address , GetHalf ( address )  );
+	SetHalf ( address, 0x46C0 );
+
+	return E_OK;
+}
+
+
+/*
+	this routine sets an address as modified, so one can
+	generate a partial with original data to restore.
+*/
+int
+mark_modded ( int addr )
+{
+	SetHalf ( addr, GetHalf ( addr ) ^1 );
+
+	__file_sync ( GetWorkspace()->fileinfo->stages );
+	__workspace_update_memmap ( GetWorkspace() );
+	__v_cache_flush ();
+
+	SetHalf ( addr, GetHalf ( addr ) ^1 );
+}
+
+void drawbytes ( int data, int width, int bytes )
+{
+	int pos = 0;
+	int col = 0;
+	unsigned char byte = 0;
+
+	printf ( "------ draw bytes at 0x%08X ------\n", data );
+
+	while ( pos < bytes )
+	{
+		printf ( "%08X: ", pos );
+		col = 0;
+		while ( col < width  )
+		{
+			if ( col+pos < bytes )
+				printf ( "%02X ", GetByte (data+pos+col) );
+			else
+				printf ( "   " );
+			col++;
+		}
+
+		col = 0;
+		while ( col < width )
+		{
+			if ( col+pos < bytes )
+			{
+				byte = GetByte (data+pos+col);
+				if ( byte < 0x80 && byte > 0x20 )
+					printf ( "%c", byte );
+				else
+					printf ( "." );
+			}
+			else
+				printf ( " " );
+
+			col++;
+		}
+		printf ( "\n" );
+		pos += width;
+	}
+
+	printf ( "\n---------- printed all bytes ---------\n" );
+	return;
+}
+
+
+
+#include "scripts/g_misc_scans.trx"
+#include "scripts/g_test_elf.trx"
+#include "scripts/nokia_dct4_function_def.trx"
+#include "scripts/g_pin_toggle.trx"
+#include "scripts/g_fchk_test.trx"
+#include "scripts/g_dump_data.trx"
+#include "scripts/g_patch_netmon.trx"
+#include "scripts/g_scan_callee.trx"
+#include "scripts/g_test_seer.trx"
+#include "scripts/g_test_fileinfo.trx"
+#include "scripts/g_test_bz2.trx"
+#include "scripts/g_test_trixcrypt.trx"
+#include "scripts/k_test_arm.trx"
+#include "scripts/k_find_objects.trx"
+#include "scripts/k_testnokia.trx"
+#include "scripts/scan_strings.trx"
+#include "scripts/test_v0.1.trx"
+#include "scripts/test_v0.2.trx"
+#include "scripts/k_find_key_transtable.trx"
+#include "scripts/k_ati9_patch.trx"
+#include "scripts/k_compile_arm_c_files.trx"
+//#include "scripts/a_imeipatch.trx"
+#include "scripts/k_dump_io.trx"
+#include "scripts/k_own_ati_handler.trx"
+#include "scripts/k_lcd_irq_count.trx"
+
+unsigned char DecodeIMEIMask2[] = { 0x4A, 0x33, 0x78, 0x90, 0x11, 0xAF, 0xF2, 0x3C };
+unsigned char DecodeIMEIMask5[] = { 0x54, 0xA1, 0x3B, 0x22, 0x9D, 0xA8, 0x11, 0x77 };
+unsigned char DecodeIMEIMask7[] = { 0x9C, 0xD7, 0xE4, 0xA9, 0xA4, 0x36, 0x72, 0x92 };
+
+int dump ( unsigned char *string )
+{
+	unsigned char buf[8];
+	unsigned char *data = NULL;
+	int pos = 0;
+	
+	pos = 0;
+	while ( pos < 8 )
+	{
+		buf[pos] = 0;
+		pos++;
+	}
+
+/*
+	data = __util_hexunpack ( string );
+	__splock_encrypt ( data, DecodeIMEIMask2 );
+	printf ( "%s -> %s\n", string, __util_hexpack ( data, 8 ) );
+	__splock_decrypt ( data, DecodeIMEIMask2 );
+	printf ( "%s -> %s\n", string, __util_hexpack ( data, 8 ) );
+*/
+	return 0;
+}
+
+int main() 
+{ 
+
+/*
+	t_stage *stage = __stage_find_by_num ( trix_workspace->fileinfo->stages, 1 );
+	stage->segments->length += 14;
+	stage->segments->end += 14;
+	stage->segments->data = realloc ( stage->segments->data, stage->segments->length );
+	__stage_set_modified ( stage );
+	__stage_set_workspace ( stage );
+	__workspace_update_memmap ( trix_workspace );
+//	MemCpyPut ( 0x0100002C, x2c ( "D63EE633D8DCACA9D847CA630001" ), 14 );  // FFed 2nd half
+//	MemCpyPut ( 0x0100002C, x2c ( "3EB937AC9891F0A5D5368F170001" ), 14 );  // original FAID
+	MemCpyPut ( 0x0100002C, x2c ( "E45A2EBC542DBB93B51FC2290001" ), 14 );  // netmon FAID
+*/	
+
+//nokia_known_funcs();
+	k_lcd_irq_count ();
+//	g_patch_netmon ();
+//	g_pin_toggle ();
+
+//	SetByte ( 0x01000024, 0xEF );
+
+//	return 0;
+//locate_function_calls ( 0x012E00A0 ); // memcpy
+//locate_function_calls ( 0x012DFAA8 ); // memcmp
+//locate_function_calls ( 0x012E026C ); // memset
+//locate_function_calls ( 0x0127C7BC ); // call_object_real
+//locate_function_calls ( 0x01425F9C ); // call_object
+
+
+//	k_find_objects ( 1 );
+//  assert
+//	locate_function_calls ( SimpleFindPattern (  "\xB5\x70\x1C\x0C\x1C\x11\x1C\x06\x1C\x15\x1C\x20\xF7\x77\xFC\xE3\x1C\x33", "\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xF8\x00\xF8\x00\xFF\xFF", 18, 0 ) );
+
+//	dump_ostrich_strings();
+//	dump_assert_strings();
+//	dump ( "AAB6E5F4C8AC2CD3" );
+//	dump ( "BB73C85CCC96C0C0" );
+//	dump ( "B0B11A12B09679F2" );
+//	dump ( "E3C19AB674941182" );
+
+//	SetWord ( 0x013306DC, 0x2000 );
+//	SetWord ( 0x013306DE, 0x7800 );
+
+
+//	nokia_known_funcs ();
+//	g_task_dump ();
+//	g_test_dump ( );
+//	g_mem_init_dump ( 0x0150CD84 );
+//	dump_assert_strings ( 1, 1);
+
+
+//	dump_ostrich_strings();
+
+
+//	g_scan_iopins_setup();
+//	g_scan_iopins_state();
+
+//	scan_strings();
+
+//	dump_assert_strings();
+
+
+//SetWord ( 0x012E4E84, 0xE3A0001F ); // force system mode in second ROMCALL
+
+//SetWord ( 0x01055b18, 0x00000200 ); // check the checksum method
+//SetWord ( 0x01055b14, 0x02000000 );
+	
+//	g_fchk_fix ();
+//	g_fchk_test ();
+
+//	SetHalf ( 0x012027E6, 0x2001 );
+//	printf ( "Half: 0x%04X\n", GetHalf ( 0x012027E6 ) );
+//	g_scan_address();
+//	g_scan_movl();
+
+//	g_scan_int_new ( 0, 1 );
+//	g_scan_irqs ();
+//	g_scan_fiqs ();
+//	g_dump_data();
+
+	//test_v001 ();
+	//test_v002 ();
+	//g_test_bz2 ();
+	//k_test_arm ();
+	//g_test_fileinfo ();
+	//k_find_objects();
+	//g_find_java();
+	//k_find_key_transtable();
+	//k_ati9_patch();
+	//k_testnokia();
+	//g_test_performance();
+	//g_test_seer();
+//	g_dump_data();
+
+	//scan_strings();
+	//k_compile_arm_c_files();
+
+
+//	k_ati9_patch();
+//	k_own_ati_handler();
+
+
+	//k_dump_io();
+
+
+	//a_imeipatch();
+//	getchar ();
+	return 0;
+}

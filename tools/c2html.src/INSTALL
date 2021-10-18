@@ -1,0 +1,55 @@
+*****************************************************************************
+INSTALLING C2HTML version: 1.0.0 bèta
+*****************************************************************************
+
+This file describes how to install c2html.
+At first we have to extract the c2html-package (.tar.gz file). Now there are
+two required steps to install c2html left:
+- compiling the program
+- installing the program
+Not a required, but however a recommended step, is cleaning (= removing
+object files and the executable) the directory where we compiled the program.
+
+
+COMPILING
+=========
+
+We compile c2html by running make:
+	$ make
+If you are running a system (like BSD) which uses cc instead of gcc, you
+should run:
+	$ make cc
+And when you are using another compiler:
+	$ make CC=<compiler>
+Where <compiler> is the name of the compiler you are using.
+
+
+INSTALLING
+==========
+
+Now we can install the program (under root), by running:
+	$ make install
+The program will be installed in /usr/local/c2html and a binary in
+/usr/local/bin . To install the programm in a self-defined directory run:
+	$ make install prefix=<directory>
+After doing this, c2html is installed in <directory>/c2html and a binary in
+<directory>/bin .
+
+
+CLEANING
+========
+
+To delete the object files and executable in the current working directory,
+run:
+	$ make clean
+
+
+UNINSTALLING
+============
+
+To remove c2html run:
+	$ make uninstall
+This undoes all effects of a previous 'make install'.
+When c2html is not installed in the default directory (/usr/local), run:
+	$ make uninstall prefix=<directory>
+<directory> is the directory where c2html is installed in.

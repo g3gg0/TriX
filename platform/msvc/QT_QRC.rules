@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<VisualStudioToolFile
+	Name="QT Resource"
+	Version="8.00"
+	>
+	<Rules>
+		<CustomBuildRule
+			Name="QRC"
+			DisplayName="Compile QT Resource File (*.qrc)"
+			CommandLine="$(QTDIR)/bin/rcc.exe &quot;$(InputPath)&quot; -o ..\..\src\ui-qt\$(InputName).cpp"
+			Outputs="..\..\src\ui-qt\$(InputName).cpp"
+			FileExtensions="*.qrc"
+			ExecutionDescription="Creating UI File ..\..\src\ui-qt\\$(InputName).cpp"
+			>
+			<Properties>
+			</Properties>
+		</CustomBuildRule>
+	</Rules>
+</VisualStudioToolFile>

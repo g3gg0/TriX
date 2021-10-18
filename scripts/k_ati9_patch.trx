@@ -1,0 +1,337 @@
+
+void drawxref ( int addr, int level )
+{
+	int start;
+	int i;
+	char lvl[16];
+	
+	if ( level == 0 )
+		return;
+		
+	sprintf ( lvl, "lvl %d: ", level );
+	level--;
+	printf ( "%s---{ finding xrefs to 0x%08X}---\n", lvl, addr );
+	
+	for ( i = -1; i < 2; i++ )
+	{
+		start = MEM_AUTO;
+		do
+		{
+			start = ARMFindSrcOfDest ( ADDRESS, addr+i, start, MEM_AUTO, LOC_FORWARD );
+			
+			if ( start != E_FAIL )
+			{
+				printf ( "%s\tXref at 0x%08X: 0x%08X\n", lvl, start, addr+i );
+				drawxref ( start, level );
+				start++;
+			}
+		} while ( start != E_FAIL );
+	}
+	
+	start = MEM_AUTO;
+	
+	do
+	{
+		start = ARMFindSrcOfDest ( BL, addr, start, MEM_AUTO, LOC_FORWARD );
+		
+		if ( start != E_FAIL )
+		{
+			printf ( "%s\tXref BL at 0x%08X-> 0x%08X\n", lvl, start, addr );
+			drawxref ( start, level );
+			start++;
+		}
+	} while ( start != E_FAIL );
+	
+	printf ( "%s--{ end xref search }--\n", lvl );
+}
+		
+	
+
+t_function2 printf_in_light[] =
+{
+	"name", "printf_in_light", "",
+	".text",    "\xA0\x01\xF0\x00\xF8\x00\xE0\x00\x39\x00\x20\xFE\x21\x00\xF0\x00\xF8\x00", "18",
+	"!SYM_CALL", "at_printf", "0x00002",
+	"!SYM_CALL", "at_send_success", "0xe",
+	NULL
+};
+
+t_function2 ati9patch[] =
+{
+	"name",		"ati9patch", "",
+	".text",	"\xA1\x02\xF0\x00\xF8\x00\x20\xC8\x00\x80\xBD\x80krisha\x00", "19",	//NOTE: SEER SUCKS AGAIN. AFTER \x00 all is crap :-( g3gg0 fixed it - yeah :)
+	//".text",	"1234\x0067890", "10",
+	"!SYM_CALL", "at_print","2",
+	NULL
+};
+
+t_function2 objectprint[] =
+{
+	"name", "objectprint", "",
+	".text",        "\x68\x34\x49\x06\x42\x8D\xD1\x0D\xA0\x05\x1C\x29\xF0\x00\xF8\x00\x20\xFE\x21\x00\xF0\x00\xF8\x00\xE0\x04\x46\xC0\x01\x02\x03\x04\x25\x78\x0A\x00", "36",
+	//".text", "\xB4\x1F\x46\xc0\x46\xc0\x46\xc0\xBC\x1F\xE0\x00\x2E\x00", "14",
+	//".text", "\xff", "1",
+	"!SYM_CALL", "at_printf", "0x0000C",
+	"!SYM_CALL", "at_send_success", "0x14",
+	NULL
+};
+
+t_function2 objectprint2[] =
+{
+	"name", "objectprint", "",
+	".text",  "\x68\x34\x49\x06\x46\xC0\x78\x09\x29\x02\xD1\x0A\xA0\x04\xF0\x00\xF8\x00\x20\xFE\x21\x00\xF0\x00\xF8\x00\xE0\x02\x00\x03\x16\x20\x2E\x00\x46\xC0","36",
+	"!SYM_CALL", "at_printf", "0xe",
+	"!SYM_CALL", "at_send_success", "0x16",
+	NULL
+};
+
+t_function2 ati9patch2[] =
+{
+	"name", "ati9patch", "",
+	".text", "\x49\x01\x20\x02\x70\x08\xE0\x07\x00\x03\x00\x00\x46\xC0\x46\xC0\x46\xC0\x46\xC0\x46\xC0\x46\xC0", "24",
+	NULL
+};
+
+
+t_function2 DRAWLIGHTLEV[] =
+{
+    "name", "DRAWLIGHTLEV", "",
+    ".text", "\xB5\x3F\x4D\x08\x22\x10\x70\x2A\x46\xC0\x24\x00\x5D\x29\xA0\x0B\xF0\x00\xF8\x00\x34\x01\x2C\x05\xD1\xF8\x21\x00\x20\xFE\xF0\x00\xF8\x00\xBD\x3F\x00\x03\x00\x00\x6C\x69\x67\x68\x74\x20\x6C\x65\x76\x65\x6C\x3A\x20\x25\x64\x0A\x00\x00\x00\x00\x25\x30\x32\x58\x20\x00\x00\x00", "68",
+    "!SYM_CALL", "at_printf", "16",
+    "!SYM_CALL", "at_send_success", "30",
+    NULL
+};
+
+t_function2 objecthook[] =
+{
+    "name", "objecthook", "",
+    ".text", "\x46\x6A\x46\xc0\xF0\x00\xF8\x00\x46\xC0\x46\xC0\x46\xC0\x46\xC0", "16",
+    "!SYM_CALL", "dump_objects", "4",
+    NULL
+};
+
+func dump_object[] =
+{
+    "name", "dump_object", "",
+    ".text", "\xB5\x3F\x49\x0D\x68\x34\x46\xC0\x42\x8C\xD0\x11\x68\x63\x49\x0B\x42\x8B\xD1\x0D\x0C\x21\xA0\x0A\xF0\x00\xF8\x00\x04\x21\x0C\x09\x1C\x2A\xA0\x09\xF0\x00\xF8\x00\x20\xFE\x21\x0E\xF0\x00\xF8\x00\xBD\x3F\x46\xC0\x00\x03\x00\x00\x01\x52\x2A\x84\x01\x48\xBF\xC8\x7B\x6F\x3A\x25\x30\x34\x58\x00\x25\x30\x34\x58\x20\x6D\x3A\x25\x30\x34\x58\x7D\x20\x00\x00\x00", "88",
+    "!SYM_CALL", "at_printf", ".text+24",
+    "!SYM_CALL", "at_printf", ".text+36",
+    "!SYM_CALL", "at_send_success", ".text+44",
+    NULL
+};
+
+
+
+t_function2 IN_LIGHT[] =
+{
+    "name", "IN_LIGHT", "",
+    ".text", "\xF0\x00\xF8\x00\x46\xC0\x46\xC0\x46\xC0\x46\xC0\x46\xC0\x46\xC0\x46\xC0", "18",
+    "!SYM_CALL", "DRAWLIGHTLEV", "0",
+    NULL
+};
+
+object dump_objects_c[] = 
+{
+	".text",	"\xB5\x10h\x02h\x13\x1C\x0CB\x9A\xD0\x00\xBD\x10I\x0BB\x8A\xD0\xFBi\x13I\x0AB\x8B\xD1\xF7K\x09\x14\x11H\x09@\x1A\xF7\xFF\xFF\xFE\x1C!H\x08\xF7\xFF\xFF\xFE \xFE!\x0E\xF7\xFF\xFF\xFE\xE7\xE8\x00\x00\x01R*\x84\x01H\xBF\xC8\x00\x00\xFF\xFF\x00\x00\x00\x00\x00\x00\x00\x10",	"80",
+	".rodata.str1.4",	"{o:%04X%04X} \x00\x00\x00{m:%04X} \x00\x00\x00",	"28",
+	"!SYM_EXP",	"dump_objects",	".text+0x00",
+	"!SYM_CALL",	"at_printf",	".text+0x24",
+	"!SYM_CALL",	"at_printf",	".text+0x2C",
+	"!SYM_CALL",	"at_send_success",	".text+0x34",
+	"!SYM_PTR",	".rodata.str1.4+0x00",	".text+0x48",
+	"!SYM_PTR",	".rodata.str1.4+0x10",	".text+0x4C",
+	NULL
+};
+
+/*
+void dump_objects2_init ()
+{
+	char tmp[16];
+	// .text /
+	dump_objects2[4] = x2c ( "B510680268131C0C429AD000BD10490B428AD0FB6913490A428BD1F74B0914114809401AF7FFFFFE1C214808F7FFFFFE20FE210EF7FFFFFEE7E8000001522A840148BFC80000FFFF0000000000000010B5004802F7FFFFFE2000BD000000001C" );
+	//sprintf ( tmp, "0x%08X", strlen ( "B510680268131C0C429AD000BD10490B428AD0FB6913490A428BD1F74B0914114809401AF7FFFFFE1C214808F7FFFFFE20FE210EF7FFFFFEE7E8000001522A840148BFC80000FFFF0000000000000010B5004802F7FFFFFE2000BD000000001C" ) / 2 );
+	//dump_objects2[5] = strdup ( tmp );
+	
+	// .strdata /
+	dump_objects2[7] = x2c ( "7B6F3A25303458253034587D200000007B6D3A253034587D200000007465737400000000" );
+	//sprintf ( tmp, "0x%08X", strlen ( "7B6F3A25303458253034587D200000007B6D3A253034587D200000007465737400000000" ) / 2 );
+	//dump_objects2[8] = strdup ( tmp );
+	
+}
+*/
+
+void k_ati9_patch ()
+{
+
+	/*
+	t_function ati9patch;
+	t_function_block block[2];
+	t_function_relative_data symbol[1];
+	block[0].name = str (".text");
+	block[0].data = str ( "\xA0\x02\xF0\x00\xF8\x00\x20\xC8\x00\x80\xBD\x80krisha\x00");
+	block[0].length = 19;
+	block[1].name = NULL;
+	block[1].data = NULL;
+	block[1].length = 0;
+	
+	symbol[0].offset = 2;
+	symbol[0].type = SYM_CALL;
+	symbol[0].dest = str ( "at_print" );
+	symbol[1].offset = 0;
+	symbol[1].type = 0;
+	symbol[1].dest = NULL;
+	*/
+	/*
+	symbol[0].offset = 0;
+	symbol[0].type = 0;
+	symbol[0].dest = NULL;
+	
+	ati9patch.name = str("ATI 9 patch");
+	ati9patch.blocks = block;
+	ati9patch.rel_data = symbol;
+	
+	printf ( "%s", objectprint[5] );
+	*/
+	
+	object *dump_o = NULL;
+	int i;
+	char tmp_data[16];
+	/*
+	printf ( "blub:\n" );
+	drawxref ( 0x12D4E70, 1 );
+	return;
+	
+	printf ( "hw_io_pin_check_bridge:\n" );
+	drawxref ( 0x1354228, 1 );
+	
+	
+	printf ( "hw_io_set_pin:\n" );
+	drawxref ( 0x1352FB4, 1 );
+	
+	printf ( "\n\nhw_io_get_pin:\n" );
+	drawxref ( 0x1352F74, 1 );
+	
+	return;
+	*/
+	//SetDebugLevel ( DEBUG_NOKIA | DEBUG_ARM );
+	
+	int at_print = SimpleFindPattern ( "\x1C\x01\x48\x03\xB5\x80\x68\x00\x78\x80\xF0\x02\xF8\x7D\xBD\x80", NULL, 16, 0 );
+	int ati_handler = SimpleFindPattern ( "\xB5\x80\x68\x00\x30\x40\x8B\x40\x28\x05\xD2\x04\x06\x00\x0E\x00\xF0\x02\xFD\xD3\xE0\x12\x28\x09",
+										  "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xf0\x00\xf8\x00\x00\xff\xff\xff",
+										  24, 0 );
+	int object_get_method_ptr = SimpleFindPattern ( "\xB5\x70\x1C\x06\x1C\x0D\x28\x00\xD1\x05\x22\xFF\x32\x20\xA1\x44\xA0\x45\xF0\x00\xF9\xCC\x68\x34",
+								"\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\x00\x00\xa0\x00\xa0\x00\xf0\x00\xf8\x00\xff\x34",
+								24, 0 );
+
+										  
+	sprintf ( tmp_data, "0x%08X", at_print );
+	__symbols_add ( NULL, "at_print", SYM_PTR, tmp_data );
+	__symbols_add ( NULL, "at_printf", SYM_PTR, "0x13459E0" );
+	__symbols_add ( NULL, "at_send_success", SYM_PTR, "0x1061220" );
+	__symbols_add ( NULL, "disable_int", SYM_PTR, "0x129C1B4" );
+	__symbols_add ( NULL, "enable_int", SYM_PTR, "0x129C1C2" );
+	__symbols_add ( NULL, "enable_access", SYM_PTR, "0x13528D0" );
+	__symbols_add ( NULL, "disable_access", SYM_PTR, "0x13528FC" );
+	__symbols_add ( NULL, "malloc", SYM_PTR, "0x13679A4" );
+	__symbols_add ( NULL, "free", SYM_PTR, "0x13681E8" );
+	__symbols_add ( NULL, "sec_init", SYM_PTR, "0x1353658" );
+	__symbols_add ( NULL, "bx_r1", SYM_PTR, "0x13083C6" );
+	__symbols_add ( NULL, "bx_r2", SYM_PTR, "0x13083C8" );
+	__symbols_add ( NULL, "get_uem", SYM_PTR, "0x129DA6C" );
+	
+	__symbols_add ( NULL, "hw_io_get_pin", SYM_PTR, "0x1352F74" );
+	
+	__symbols_add ( NULL, "sprintf", SYM_PTR, "0x1308334" );
+	__symbols_add ( NULL, "strlen", SYM_PTR, "0x13095E0" );
+
+	__symbols_add ( NULL, "get_string", SYM_PTR, "0x1191DAA" );
+	
+	__symbols_add ( NULL, "call_method_0p", SYM_PTR, "0x12AA3C2" );		// ( object, method )
+	__symbols_add ( NULL, "call_method_1p", SYM_PTR, "0x12AA3A2" );		// ( object, method, param1 )
+	__symbols_add ( NULL, "call_method_2p", SYM_PTR, "0x12AA37E" );		// (object, method, param1, param2 )
+	__symbols_add ( NULL, "call_method_3p", SYM_PTR, "0x12AA35A" );		// ( object, method, param1, param2, param3 )
+	__symbols_add ( NULL, "call_super_method_4p", SYM_PTR, "12AA3E0" );	// ...
+	
+	
+	//__symbols_dump ();
+
+	
+	/*printf ( "at_print found: 0x%08X\n", at_print );
+	printf ( "ati_handler found: 0x%08X\n", ati_handler );
+	printf ( "object_get_method_ptr found: 0x%08X\n", object_get_method_ptr );
+	*/
+	//printf ( "patched own ati9 at: 0x%08X\n", NokiaCreateFunc ( ati9patch2, ati_handler+26 ) );
+	
+	/*printf ( "patched it at: 0x%08X\n", NokiaCreateFunc ( ati9patch, ati_handler+26 ) );
+	printf ( "let us see the bytes there:\n" );
+	
+	for ( i = 0; i < 19; i+=4 )
+		printf ( "%08X ", GetWord ( ati_handler+26+i ) );
+		
+	printf ( "\n" );*/
+	
+	//printf ( "ldr  dest 0x%08X\n", ARMGet ( 0x012AA306) );
+	
+	//drawbytes ( object_get_method_ptr+6, 40 );
+	
+	//printf ( "patched object_get_method_ptr at: 0x%08X\n", NokiaCreateFunc ( objectprint, object_get_method_ptr+6 ) );
+	
+	//ARMSet ( B, object_get_method_ptr+6+30-2, 0x12aa322 );
+	//SetWord ( object_get_method_ptr+6+36-8, 0xc018 );//0x147a41c );
+	//SetWord ( object_get_method_ptr+6+4, 0xFFFFCCCC );
+	
+	//printf ( "ldr  dest 0x%08X\n", ARMGet ( object_get_method_ptr+6+2) );
+	//printf ( "jump dest 0x%08X\n", ARMGet( object_get_method_ptr+6+6 ) );
+	//printf ( "jump dest 0x%08X\n", ARMGet( object_get_method_ptr+6+10 ) );
+	
+	//drawbytes ( object_get_method_ptr+6, 40 );
+	
+	//SetWord ( 0x12A11D4, 0xCAFEBABE );
+	//printf ( "patched it at: 0x%08X\n", NokiaCreateFunc ( printf_in_light, 0x13533f8 ) );
+	/*
+	drawxref ( 0x01061792 );
+	drawxref ( 0x014572BC );
+	*/
+	
+
+	//printf ( "found 'krisha' at: 0x%08X\n", SimpleFindPattern ( "KRI\x00", NULL, 4, 0 ) );
+	
+	//printf ( "patched it at: 0x%08X\n", NokiaCreateFunc ( DRAWLIGHTLEV, 0x12A11D4 ) );
+	//printf ( "patched it at: 0x%08X\n", NokiaCreateFunc ( IN_LIGHT, 0x013533F8 ) );
+	
+	
+	//printf ( "patched it at: 0x%08X\n", NokiaCreateFunc ( ati9patch2, ati_handler+26 )  ) );
+	
+	//dump_objects2_init();
+	//printf ( "%02X %02X %02X %02X", dump_objects2[4][0], dump_objects2[4][1], dump_objects2[4][2], dump_objects2[4][3] );
+	//mark_modded ( 0x13536DC );
+	//mark_modded ( object_get_method_ptr+6 );
+	dump_o = __arm_create_object_from_makefile ( "scripts/k_compile_arm_c_files", "dump_objects.o" );
+	//__util_dump_object( dump_o );
+	if ( dump_o )
+	{
+		//drawbytes ( 0x12A11D4, 108 );
+		printf ( "patched bytes: %d\n", NokiaCreateFunc ( dump_o, 0x01465050 ));//0x12A11D4-350 ) );
+		//drawbytes ( 0x12A11D4, 108 );
+		printf ( "patched bytes: 0x%08X\n", NokiaCreateFunc ( objecthook, object_get_method_ptr+6 ) );
+		printf ( "objecthook: push r7 on stack too\n" );
+		SetHalf ( 0x12AA2F8, 0xB5F0 );
+		SetHalf ( 0x12AA346, 0xBDF0 );
+		SetHalf ( 0x12AA358, 0xBDF0 );
+		__util_free_object ( dump_o );
+	}
+	
+	//SetHalf ( 0x134D6F8, 0x46F7 );
+	//SetHalf ( 0x153576E, 0x33 );	//change keys
+	
+	SetByte ( ati_handler+26, 1 );	//defect fchk
+	
+	
+	
+	printf ( "util_symbols dump:\n" );
+	__symbols_dump(NULL);
+	
+	printf ("Eh... try it now :-))\n" );
+	
+	
+}

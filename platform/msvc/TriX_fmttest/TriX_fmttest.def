@@ -1,0 +1,4 @@
+LIBRARY	"TriX_fmttest"
+EXPORTS
+	trix_plugin_info @1
+

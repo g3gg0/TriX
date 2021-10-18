@@ -1,0 +1,28 @@
+OBJECTS=$(SOURCES:.c=.o)
+INSTALLFILES=\
+	$(TARGET)\
+	$(INSTALL_FILES)\
+
+all: $(TARGET)
+
+cc:
+	$(MAKE) CC=cc \
+		all
+
+clean:
+	$(RM) $(TARGET) $(OBJECTS)
+
+$(DESTDIR):
+	mkdir $(DESTDIR)
+
+$(TARGET): $(OBJECTS)
+	$(CC) -o  $@ $(OBJECTS)
+
+install: $(TARGET) $(DESTDIR)
+	cp $(INSTALLFILES) $(DESTDIR)
+	ln -f $(DESTDIR)/$(TARGET) $(BINDIR)/$(TARGET)
+
+uninstall:
+	$(RM) $(DESTDIR)/*
+	$(RMDIR) $(DESTDIR)
+	$(RM) $(BINDIR)/$(TARGET)

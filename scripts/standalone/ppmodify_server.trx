@@ -1,0 +1,83 @@
+#include trix
+
+#plugin trix_ppmodify
+#plugin trix_xml
+#include trix_ppmodify
+#include trix_xml
+
+
+int main ( )
+{
+	int endianess_le = 0;
+	int selection = 0;
+	unsigned char *xml_data;
+	char *filename_1 = NULL;
+	char *filename_2 = NULL;
+	t_treenode * mainnode = NULL;
+	t_treenode * langnode = NULL;
+
+	t_treenode * refnode = NULL;
+	t_treenode * modnode = NULL;
+
+	int done = 0;
+	int command = 0;
+	
+	say ( "PPM<->XML script - Customize your PPM\n" );
+	say ( "\n" );
+	
+	
+	UiDlgString ( "Enter xml input filename", &filename_1 );
+	if ( filename_1 == NULL )
+	{
+		say ( "error getting filename\n" );
+		return -1;
+	}
+
+	UiDlgString ( "Enter xml output filename", &filename_2 );
+	if ( filename_2 == NULL )
+	{
+		say ( "error getting filename\n" );
+		return -1;
+	}
+
+	printf ( "Reading...\n" );
+	mainnode = __xml_connector_parse_file ( filename_1 );
+	if ( mainnode == NULL )
+	{
+		say ( "could not parse XML file\n" );
+		return -1;
+	}
+	
+	printf ( "Building...\n" );
+	if ( __ppmodify_merge_ppm ( mainnode ) == E_FAIL )
+	{
+		say ( "could not create PPM...\n" );
+		__treenode_release ( mainnode );
+		return -1;
+	}
+
+	xml_data = __xml_connector_create ( mainnode, NULL );
+	if ( !xml_data )
+	{
+		say ( "could not create XML file from treenode data...\n" );
+		__treenode_release ( mainnode );
+		return -1;
+	}	
+	
+	printf ( "Saving...\n" );
+	trix_workspace = WorkspaceCreateFileFromBuffer ( xml_data, strlen ( xml_data ) );
+	if ( !trix_workspace )
+		return E_FAIL;
+
+	__file_format ( trix_workspace->fileinfo, "BZ2" );
+	
+	__file_write ( filename_2, trix_workspace->fileinfo );
+	
+	
+	printf ( "loaded %s and built PPM from it.\n", filename_1 );
+	__treenode_release ( mainnode );
+	__workspace_release ( trix_workspace );
+	
+	
+	return E_OK;
+}

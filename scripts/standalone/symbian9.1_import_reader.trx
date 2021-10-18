@@ -1,0 +1,159 @@
+#title "symbian9.1_import_reader"
+#author "krisha"
+
+#include trix
+
+#define NONE_IDA(x) if(!idabool)x
+#define IDA(x) if(idabool)x
+
+/* set this to 1 if you want output as IDA script! */
+int idabool = 1;
+
+char *own_strcat ( char* src, char character )
+{
+	int i = 0;
+	
+	while ( src[i] && src[i] != character )
+		i++;
+	
+	if ( src[i] )
+		return src+i;
+	
+	return NULL;
+}
+	
+
+int main ()
+{
+	t_workspace *ws = NULL;
+	t_segment *imp = NULL;
+	t_workspace *ws_imp = NULL;
+	t_workspace *ws_lib = NULL;
+	
+	char libfilename[0x64];
+	char tmp[0x64];
+	char *libname;
+	
+	char *tmp_pointer = NULL;
+	
+	int firstDllName = 0;
+	int importSegLen = 0;
+	
+	int currentPos = 0;
+	
+	int currentDll = 0;
+	int currentDllImport = 0;
+	int currentDllImportAppOffset = 0;
+	int currentDllImportCount = 0;
+	
+	int i = 0;
+	
+	ws = GetWorkspace();
+	
+	/* set correct EPOC endianess */
+	ws->flags = ws->flags & ~FLAGS_ENDIANESS;
+	ws->flags = ws->flags | FLAGS_ENDIANESS_LE;
+	
+	imp = __segment_find_by_name ( ws->memmap->segment, ".import" );
+	if ( !imp )
+	{
+		printf ( "error finding .import segment\n" );
+		return E_FAIL;
+	}
+	
+	/* create new import workspace */
+	ws_imp = WorkspaceCreateFileFromBuffer ( imp->data, imp->length );
+	if ( !ws )
+	{
+		printf ( "could not create new .import workspace\n" );
+		return E_FAIL;
+	}
+	
+	/* set correct endianess for import - still EPOC */
+	ws_imp->flags = ws_imp->flags & ~FLAGS_ENDIANESS;
+	ws_imp->flags = ws_imp->flags | FLAGS_ENDIANESS_LE;
+	
+	importSegLen = __v_get_w ( ws_imp, 0 );
+	NONE_IDA(printf ( "import section length: 0x%08X\n", importSegLen ));
+	if ( importSegLen <= 4 )
+	{
+		printf ( "nothing to parse here\n" );
+		return E_OK;
+	}
+	
+	firstDllName = __v_get_w ( ws_imp, 4 );
+	NONE_IDA(printf ( "dll names at: 0x%08X\n", firstDllName ));
+	
+	currentPos = 4;
+	
+	if ( idabool )
+	{
+		printf ( "\n\n" );
+		printf ( "IDA Script output:\n" );
+		printf ( "-------------------------------------\n" );
+		printf ( "#include <idc.idc>\n" );
+ 		printf ( "static main()\n" );
+ 		printf ( "{\n" );
+	}
+	
+	while ( currentPos < firstDllName )
+	{
+		currentDll = __v_get_w ( ws_imp, currentPos );
+		currentDllImportCount = __v_get_w ( ws_imp, currentPos + 4 );
+		
+		currentPos += 4;
+		
+		libname = __v_get_str ( ws_imp, currentDll );
+		NONE_IDA(printf ( "DLL: %s (%d imports)\n", libname, currentDllImportCount ));
+		
+
+		tmp_pointer = own_strcat ( libname, '[' );
+		if ( tmp_pointer )
+		{
+			i = (int)tmp_pointer;
+			i -= (int)libname;
+			memcpy ( tmp, libname, i );
+			tmp[i] = 0;
+		}
+		else
+		{
+			memcpy ( tmp, libname, strlen ( libname ) - 4 );
+			tmp[strlen ( libname ) - 4] = 0;
+		}
+
+		sprintf ( libfilename, "scripts\\standalone\\symbian91libs\\%s.dso.txt", tmp );
+		ws_lib = WorkspaceStartup ( libfilename );
+		for ( i = 0; i < currentDllImportCount; i++ )
+		{
+			currentPos += 4;
+			currentDllImportAppOffset = __v_get_w ( ws_imp, currentPos );
+			currentDllImport = GetWord ( currentDllImportAppOffset + __v_get_start ( ws ) );
+			if ( currentDllImport & 0x80000 )
+			{
+				currentDllImport = currentDllImport & ~0x80000;
+				NONE_IDA(printf ( "    %04d (0x%04X) offset by 8 ", currentDllImport, currentDllImport ));
+			}
+			else
+				NONE_IDA(printf ( "    %04d (0x%04X) ", currentDllImport, currentDllImport ));
+			
+			if ( ws_lib )
+			{
+				NONE_IDA(printf ( "%s", __util_get_line ( __v_get_ptr ( ws_lib, 0 ), currentDllImport - 1) ));
+				IDA(printf ( "   MakeFunction ( 0x%08X, BADADDR );\n", currentDllImportAppOffset + __v_get_start ( ws ) - 4));
+				IDA(printf ( "   MakeName ( 0x%08X, \"%s\");", currentDllImportAppOffset + __v_get_start ( ws ) - 4, __util_get_line ( __v_get_ptr ( ws_lib, 0 ), currentDllImport - 1) ));
+			}
+				
+			printf ( "\n" );
+			
+		}
+		__workspace_release ( ws_lib );
+		
+		currentPos += 4;
+	}
+	
+	IDA (printf("}\n\n"));
+	
+	__workspace_release ( ws_imp );
+	
+	return E_OK;
+}

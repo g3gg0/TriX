@@ -1,0 +1,6 @@
+
+int g_test_elf ()
+{
+    __segment_dump ( __stage_get_last(GetWorkspace()->fileinfo->stages)->segments );
+	return 0;
+}

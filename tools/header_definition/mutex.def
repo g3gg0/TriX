@@ -1,0 +1,5 @@
+	t_mutex *(*create) ( );
+	unsigned int (*locked) ( t_mutex * mutex);
+	void (*lock) ( t_mutex * mutex);
+	void (*release) ( t_mutex * mutex);
+	void (*unlock) ( t_mutex * mutex);

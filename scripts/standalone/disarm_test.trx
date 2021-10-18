@@ -1,0 +1,19 @@
+#title "DisARM test"
+#author "g3gg0"
+#plugin "trix_disarm"
+
+#include trix
+#include stdio
+#include trix_disarm
+
+
+int main ()
+{
+	char buffer[256];
+
+	__disarm_address ( trix_workspace, (char*)&buffer, 0x01000100, 0 );
+
+	printf ( buffer );
+	return E_OK;
+
+}

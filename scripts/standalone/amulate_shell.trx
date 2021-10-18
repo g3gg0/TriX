@@ -1,0 +1,405 @@
+#title "Emulator shell"
+#author "g3gg0"
+#plugin "trix_armulate"
+#plugin "trix_disarm"
+
+#include trix
+#include stdio
+#include trix_armulate
+#include trix_disarm
+
+unsigned int reg_box = E_FAIL;
+unsigned int asm_box = E_FAIL;
+
+int init_armulate ()
+{
+	char *val = NULL;
+	int value = 0;
+	int err = 0;
+
+	UiDlgString ( "Which start address? In hexadecimal form, please.", &val );
+	if ( !val )
+		return E_FAIL;
+
+	err = 0;
+	value = __util_hex_get ( val, &err );
+	if ( err )
+		return E_FAIL;
+
+	__armulate_setup ( trix_workspace, value );
+}
+
+int change_reg ()
+{
+	char *val = NULL;
+	int reg = 0;
+	int value = 0;
+	int err = 0;
+
+	reg = UiDlgInt ( "Which register to change? (0-15)", 0, 15 );
+	if ( reg == E_FAIL )
+		return E_FAIL;
+
+	UiDlgString ( "Which value? In hexadecimal form, please.", &val );
+	if ( !val )
+		return E_FAIL;
+
+	err = 0;
+	value = __util_hex_get ( val, &err );
+	if ( err )
+		return E_FAIL;
+
+	__armulate_set_reg ( reg, value );
+}
+
+int change_pc ()
+{
+	char *val = NULL;
+	int value = 0;
+	int err = 0;
+
+	UiDlgString ( "Which value? In hexadecimal form, please.", &val );
+	if ( !val )
+		return E_FAIL;
+
+	err = 0;
+	value = __util_hex_get ( val, &err );
+	if ( err )
+		return E_FAIL;
+
+	__armulate_set_pc ( value );
+}
+
+int dump_regs ()
+{
+	int i = 0;
+	unsigned char buffer[64];
+	unsigned char msg[1024];
+
+	strcpy ( msg, "" );
+	
+	for (i=0; i<4; i++ )
+	{
+		sprintf ( buffer, "R%i:  0x%08X  ", i, __armulate_get_reg ( i ) );
+		strcat ( msg, buffer );
+	}
+
+	strcat ( msg, "\n" );
+
+	for (i=4; i<8; i++ )
+	{
+		sprintf ( buffer, "R%i:  0x%08X  ", i, __armulate_get_reg ( i ) );
+		strcat ( msg, buffer );
+	}
+
+	strcat ( msg, "\n" );
+
+	if ( !__armulate_is_thumb() ) 
+	{
+		for (i=8; i<10; i++ )
+		{
+			sprintf ( buffer, "R%i:  0x%08X  ", i, __armulate_get_reg ( i ) );
+			strcat ( msg, buffer );
+		}
+		for (i=10; i<12; i++ )
+		{
+			sprintf ( buffer, "R%i: 0x%08X  ", i, __armulate_get_reg ( i ) );
+			strcat ( msg, buffer );
+		}
+
+		strcat ( msg, "\n" );
+		sprintf ( buffer, "R%i: 0x%08X  ", 12, __armulate_get_reg ( 12 ) );
+		strcat ( msg, buffer );
+	}
+
+	sprintf ( buffer, "SP:  0x%08X  ", __armulate_get_reg ( 13 ) );
+	strcat ( msg, buffer );
+	sprintf ( buffer, "LR:  0x%08X  ", __armulate_get_reg ( 14 ) );
+	strcat ( msg, buffer );
+	sprintf ( buffer, "PC:  0x%08X  ", __armulate_get_pc () );
+	strcat ( msg, buffer );
+
+	strcat ( msg, "\n" );
+
+	UiBoxClear ( reg_box );
+	UiBoxMsg ( reg_box, msg );
+	
+	return E_OK;
+
+}
+
+
+int exec_next ()
+{
+	char buffer[256];
+	int state = 0;
+
+	state = __armulate_exec_next ();
+
+
+	__disarm_address ( trix_workspace, (char*)buffer, __armulate_get_pc (), __armulate_is_thumb () );
+	printf ( buffer );
+	if ( state != ARMULATE_EXECUTED )
+		printf ( "\t[%s]", __armulate_reason (state)  );
+	printf ( "\n" );
+
+}
+
+
+int exec_until ()
+{
+	char buffer[256];
+	int state = 0;
+	char *val = NULL;
+	int value = 0;
+	int err = 0;
+
+	UiDlgString ( "Until which address? In hexadecimal form, please.", &val );
+	if ( !val )
+		return E_FAIL;
+
+	err = 0;
+	value = __util_hex_get ( val, &err );
+	if ( err )
+		return E_FAIL;
+
+
+	state = __armulate_run_until ( value );
+
+
+	__disarm_address ( trix_workspace, (char*)buffer, __armulate_get_pc (), __armulate_is_thumb () );
+	printf ( buffer );
+	if ( state != ARMULATE_EXECUTED )
+		printf ( "\t[%s]", __armulate_reason (state)  );
+	printf ( "\n" );
+
+}
+
+int exec_step ()
+{
+	char buffer[256];
+	int state = 0;
+
+	state = __armulate_exec_step ();
+
+
+	__disarm_address ( trix_workspace, (char*)buffer, __armulate_get_pc (), __armulate_is_thumb () );
+	printf ( buffer );
+	if ( state != ARMULATE_EXECUTED )
+		printf ( "\t[%s]", __armulate_reason (state)  );
+	printf ( "\n" );
+
+}
+
+int print_opcode ()
+{
+	char buffer[256];
+
+	__disarm_address ( trix_workspace, (char*)buffer, __armulate_get_pc (), __armulate_is_thumb () );
+
+	printf ( buffer );
+	printf ( "\n" );
+}
+
+int print_opcodes ()
+{
+	char buffer[128];
+	char msg[2048];
+	int opcode_size = 4;
+	int pos = 0;
+	int lines_before = 4;
+	int lines_after = 4;
+
+	if ( __armulate_is_thumb() )
+		opcode_size = 2;
+
+	strcpy ( msg, "" );
+
+	for ( pos = 0; pos < lines_after+lines_before+1; pos++ )
+	{
+		__disarm_address ( trix_workspace, (char*)buffer, __armulate_get_pc () + (pos-lines_before)*opcode_size, __armulate_is_thumb () );
+		if ( pos == lines_before )
+			strcat ( msg, "-> " );
+		else
+			strcat ( msg, "   " );
+		strcat ( msg, buffer );
+		strcat ( msg, "\n" );
+	}
+	UiBoxClear ( asm_box );
+	UiBoxMsg ( asm_box, msg );
+}
+
+int dump_memmap ( )
+{
+	t_memmap *m = trix_workspace->memmap;
+
+	while ( m )
+	{
+		printf ( "----------------------\n" );
+		printf ( "Start : 0x%08X\n", m->start );
+		printf ( "End   : 0x%08X\n", m->end );
+		printf ( "Length: 0x%08X\n", m->length );
+		m = (t_memmap*)m->next;
+	}
+
+}
+
+int dump_memory ()
+{
+	char *addr = NULL;
+	unsigned int address = 0;
+	unsigned int length = 0;
+	int err = 0;
+
+	UiDlgString ( "Which address? In hexadecimal form, please.", &addr );
+	if ( !addr )
+		return E_FAIL;
+
+	err = 0;
+	address = __util_hex_get ( addr, &err );
+	if ( err )
+		return E_FAIL;
+
+	length = UiDlgInt ( "How many bytes? (0-0xFFFFFF)", 0, 0xFFFFFF );
+	if ( length == E_FAIL )
+		return E_FAIL;
+
+	DrawBytes ( address, 16, length );
+}
+
+int rebase_code ()
+{
+	char buffer[256];
+	int state = 0;
+	char *val = NULL;
+	int value = 0;
+	int err = 0;
+
+	UiDlgString ( "New base address? In hexadecimal form, please.", &val );
+	if ( !val )
+	{	
+		printf ( "Invalid address\n" );
+		return E_FAIL;
+	}
+
+	err = 0;
+	value = __util_hex_get ( val, &err );
+	if ( err )
+	{	
+		printf ( "Invalid address\n" );
+		return E_FAIL;
+	}
+
+	trix_workspace->fileinfo->stages->segments->start = value;
+	trix_workspace->fileinfo->stages->segments->end = value + trix_workspace->fileinfo->stages->segments->length;
+
+	WorkspaceUpdateMemmap ( trix_workspace );
+	printf ( "Rebased to 0x%08X\n", value );
+
+}
+
+
+int change_endianess ()
+{
+	
+	if ( trix_workspace->flags == FLAGS_ENDIANESS_LE )
+	{
+		trix_workspace->flags = FLAGS_ENDIANESS_BE;
+		printf ( "Switched to: Big Endian\n" );
+	}
+	else
+	{
+		trix_workspace->flags = FLAGS_ENDIANESS_LE;
+		printf ( "Switched to: Little Endian\n" );
+	}
+	WorkspaceUpdateMemmap ( trix_workspace );
+
+}
+
+int main ( )
+{
+	int repaint = 1;
+	int done = 0;
+	int command = 0;
+	char *menu[] = { "Initialize/Reset Emu", "Change Registers", "Change PC", "Rebase Code", "Toggle Endianess", "Execute Next instruction", "Step into instruction", "Execute until", "Dump Memory Map", "Dump Memory" };
+
+	if ( !trix_workspace || !trix_workspace->fileinfo || !trix_workspace->fileinfo->stages || !trix_workspace->fileinfo->stages->segments )
+	{
+		UiDlgMsg ( "Sorry, no file loaded", 0 );
+		return E_FAIL;
+	}
+
+	reg_box = UiBoxCreate ( "Registers" );
+	asm_box = UiBoxCreate ( "Disassembly" );
+	UiBoxSize ( reg_box, 500, 80 );
+	UiBoxSize ( asm_box, 600, 190 );
+
+// !!!!!!!!!! iphone !!!!!!!!!!
+/*
+	trix_workspace->fileinfo->stages->segments->start = 0x9FFFF65C;
+	trix_workspace->fileinfo->stages->segments->end = trix_workspace->fileinfo->stages->segments->start + trix_workspace->fileinfo->stages->segments->length;
+	WorkspaceUpdateMemmap ( trix_workspace );
+
+	trix_workspace->flags = FLAGS_ENDIANESS_LE;
+*/ 
+// !!!!!!!!!! iphone !!!!!!!!!!
+
+
+	while ( !done )
+	{
+		dump_regs ();
+		print_opcodes ();
+
+		command = UiDlgMenu ( "ARMulate Shell", menu, UI_OPT_QUIT | (repaint?0:UI_OPT_NOREPAINT) );
+		if ( command == 0 )
+			return E_OK;
+		repaint = 0;
+
+		switch ( command )
+		{
+			case E_FAIL:
+				repaint = 1;
+				break;
+			case 0:
+				return E_OK;
+				break;
+			case 1:
+				init_armulate ();
+				break;
+			case 2:
+				dump_regs ();
+				change_reg ();
+				break;
+			case 3:
+				change_pc ();
+				break;
+			case 4:
+				rebase_code ();
+				break;
+			case 5:
+				change_endianess ();
+				break;
+			case 6:
+				exec_next ();
+				break;
+			case 7:
+				exec_step ();
+				break;
+			case 8:
+				exec_until ();
+				break;
+			case 9:
+				dump_memmap ();
+				repaint = 1;
+				break;
+			case 10:
+				dump_memory ();
+				repaint = 1;
+				break;
+			default:
+				break;
+		}
+	}
+
+}
+

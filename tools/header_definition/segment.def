@@ -1,0 +1,13 @@
+	t_segment *(*add) ( t_segment * s);
+	t_segment *(*create) ( );
+	t_segment *(*duplicate) ( t_segment * s);
+	t_segment *(*find_by_end) ( t_segment * s, unsigned int addr);
+	t_segment *(*find_by_name) ( t_segment * s, char *name);
+	t_segment *(*find_by_num) ( t_segment * s, unsigned int num);
+	t_segment *(*find_by_start) ( t_segment * s, unsigned int addr);
+	t_segment *(*get_last) ( t_segment * s);
+	unsigned int (*count) ( t_segment * s);
+	unsigned int (*dump) ( t_segment * s);
+	unsigned int (*release) ( t_segment * s);
+	unsigned int (*release_all) ( t_segment * s);
+ 	t_segment *(*find_by_end_and_name) ( t_segment * s, unsigned int addr, char *name);

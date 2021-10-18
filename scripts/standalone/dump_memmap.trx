@@ -1,0 +1,28 @@
+#title "Dump MemMaps"
+#author "g3gg0"
+
+#include trix
+
+int dump_memmap ( )
+{
+	t_memmap *m = trix_workspace->memmap;
+
+	while ( m )
+	{
+		printf ( "----------------------\n" );
+		printf ( "Start : 0x%08X\n", m->start );
+		printf ( "End   : 0x%08X\n", m->end );
+		printf ( "Length: 0x%08X\n", m->length );
+		m = (t_memmap*)m->next;
+	}
+
+}
+
+int main ()
+{
+
+	dump_memmap ( );
+
+	return E_OK;
+
+}

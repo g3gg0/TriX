@@ -1,0 +1,44 @@
+int findstar ( int start )
+{
+	return QuickFindPattern ( "*", NULL, 1, start /*> 10 ? start-10 : start*/, start+5, 0 );
+}
+
+void k_find_key_transtable ()
+{
+	/*int transtable;
+	do
+	{
+		transtable = SimpleFindPattern ( "\x01\x00\x00\x31\x02\x00\x00\x32\x03", "\xFF\x00\x00\x00\x02\x00\x00\x00\xFF", 9, 0 );
+		printf ( "key trans table possibly at: 0x%08X\n", transtable );
+	} while ( transtable != E_FAIL );*/
+	
+	//printf ( "scanned all\n" );
+	
+	int start = MEM_AUTO;
+	int count = 0;
+
+	while ( start != E_FAIL )
+	{
+		/*start = QuickFindPattern (
+		"\x01\x00\x00\x31\x02\x00\x00\x32\x03",
+		"\xFF\xFF\xFF\x00\xFF\xFF\x00\x00\xFF",
+		9, start, MEM_MAX, 0 );*/
+		start = QuickFindPattern ( 
+				"\x0a\x00\x00\x31\x0b\x00\x00\x32\x0c\x00\x00\x13",
+				"\xFF\x00\x00\x00\xFF\x00\x00\x00\xFF\x00\x00\xff",
+				12, start, MEM_MAX, 0 );
+		//start = QuickFindPattern ( "#", 0, 1, start, MEM_MAX, 0 );
+		if ( start != E_FAIL && findstar ( start ) != E_FAIL )
+		{
+			//printf ( "# at: %08X, * at: %08X, %08X %08X\n", start, findstar ( start ), GetWord ( start), GetWord ( start+4 ) );
+			printf ( "possible found at 0x%08X: %08X %08X %08X\n", start, GetWord ( start ), GetWord ( start+4 ), GetWord ( start+8) );
+			//start++;
+			count++;
+		}
+		if ( start != E_FAIL )
+			start++;
+	}
+	
+	printf ( "scanned and found pattern %d times\n", count );
+	
+}

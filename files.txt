@@ -1,0 +1,7 @@
+***********************
+*special purpose files*
+***********************
+
+TriX.cbp
+- Code::Blocks Project File (IDE)
+	correct target output (path!!!) in that file before using
