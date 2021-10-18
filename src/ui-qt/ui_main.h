@@ -21,11 +21,11 @@
 ** Include any stock Qt files here...
 **
 */
-#include <Qt/qapplication.h>
+#include <QtGui/QApplication>
 #include <QtGui/QtGui>
-#include <Qt/qmainwindow.h>
-#include <Qt/qdebug.h>
-#include <Qt/qevent.h>
+#include <QtGui/QMainWindow>
+#include <QtCore/QDebug>
+#include <QtCore/QEvent>
 //---------------------------------------------------------------------------
  
 /*
@@ -51,7 +51,7 @@ class QTextEdit;
 
 /**
  ** The Main Window is the main user interface screen for the
- **  application.  It is implemented as a MIDI type window.
+ **  application. It is implemented as a MIDI type window.
  **
  */
 class TriXMainWindow : public QMainWindow, private Ui::MainWindow
@@ -61,16 +61,19 @@ class TriXMainWindow : public QMainWindow, private Ui::MainWindow
 public:
 	TriXMainWindow();
 	void update_scriptlist();
+	void projectLoad ( char *path );
 
 public slots:
 
-	void dragEnterEvent(QDragEnterEvent *event);
+	void closeEvent ( QCloseEvent *event );
+
+	void dragEnterEvent ( QDragEnterEvent *event );
 	void dropEvent(QDropEvent *event);
 
 	void setVisible (bool);
 	void evtTimerElapsed();
-	void cmbSaveModeActivated(int Pos);
-	void cmbFileTypeActivated(int Pos);
+	void cmbSaveModeActivated ( int Pos );
+	void cmbFileTypeActivated ( int Pos );
 
 	void editSimpleInputEdited ( const QString &  );
 	void editSimpleOutputEdited ( const QString &  );
@@ -84,14 +87,14 @@ public slots:
 	void editDCT4InputPPMEdited ( const QString &  );
 	void editDCT4OutputPPMEdited ( const QString &  );
 
-	void grpDCT3InputToggled(bool Checked);
-	void grpDCT3OutputToggled(bool Checked);
-	void grpDCT4InputToggled(bool Checked);
-	void grpDCT4OutputToggled(bool Checked);
-	void grpSimpleInputToggled(bool Checked);
-	void grpSimpleOutputToggled(bool Checked);
-	void boxDCT3CustomPPMToggled(bool Checked);
-	void boxDCT3SeparatePPMToggled(bool Checked);
+	void grpDCT3InputToggled ( bool Checked );
+	void grpDCT3OutputToggled ( bool Checked );
+	void grpDCT4InputToggled ( bool Checked );
+	void grpDCT4OutputToggled ( bool Checked );
+	void grpSimpleInputToggled ( bool Checked );
+	void grpSimpleOutputToggled ( bool Checked );
+	void boxDCT3CustomPPMToggled ( bool Checked );
+	void boxDCT3SeparatePPMToggled ( bool Checked );
 	void btnEditImportClicked();
 	void btnEditExportClicked();
 	void btnSimpleInputClicked();
@@ -106,6 +109,9 @@ public slots:
 	void btnDCT4OutputPPMClicked();
 	void actShowWorkspaceTriggered();
 	void actNewTriggered();
+	void actOpenTriggered();
+	void actSaveTriggered();
+	void actSaveAsTriggered();
 	void actQuitTriggered();
 	void actPluginsTriggered();
 	void actStartTriggered();
@@ -121,7 +127,8 @@ public slots:
 	void actDebugInfoTriggered();
 
 protected:
-	void timerEvent(QTimerEvent *event);
+	void timerEvent ( QTimerEvent *event );
+	void setFileAssociation();
 	
 };
 //---------------------------------------------------------------------------

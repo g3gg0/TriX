@@ -8,3 +8,21 @@ unsigned int disarm_address ( t_workspace *ws, unsigned char *dest, unsigned int
 #define DISARM_SYMBOLS \
 	REGISTER_SYMBOL ( disarm_address );\
 
+
+typedef unsigned char  u8;
+typedef unsigned short u16;
+typedef unsigned long  u32;
+
+typedef signed char  s8;
+typedef signed short s16;
+typedef signed long  s32;
+
+
+typedef unsigned char  u8;
+typedef unsigned short u16;
+typedef unsigned long  u32;
+
+typedef signed char  s8;
+typedef signed short s16;
+typedef signed long  s32;
+

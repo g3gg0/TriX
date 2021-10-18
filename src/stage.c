@@ -49,7 +49,7 @@ unsigned int stage_merge ( t_stage * s, unsigned char *buffer, unsigned int leng
 	while ( seg )
 	{
 		/* just merge if the segment is mapped into memory */
-		if ( seg->end )
+		if ( segment_is_mapped ( seg ) )
 			memcpy ( buffer + (seg->start - start_address), seg->data, seg->length );
 		LIST_NEXT(seg);
 	}
@@ -74,7 +74,7 @@ unsigned int stage_get_start ( t_stage * s )
 	seg = s->segments;
 	while ( seg )
 	{
-		if ( (address == E_FAIL || seg->start < address) && seg->end )
+		if ( (address == E_FAIL || seg->start < address) && segment_is_mapped ( seg ) )
 			address = seg->start;
 		LIST_NEXT(seg);
 	}
@@ -97,7 +97,7 @@ unsigned int stage_get_end ( t_stage * s )
 	seg = s->segments;
 	while ( seg )
 	{
-		if ( (address == E_FAIL || seg->end > address) && (/*seg->start && */seg->end)  )
+		if ( (address == E_FAIL || seg->end > address) && segment_is_mapped ( seg ) )
 			address = seg->end;
 		LIST_NEXT(seg);
 	}
@@ -125,7 +125,7 @@ unsigned int stage_has_unmapped ( t_stage * s )
 	{
 		seg = segment_find_by_num ( s->segments, pos );
 
-		if ( !seg->start && !seg->end )
+		if ( !segment_is_mapped ( seg ) )
 			return 1;
 	}
 	return 0;
@@ -162,7 +162,7 @@ unsigned int stage_has_overlaps ( t_stage * s )
 				just check, when segment hast start and end 
 				so we will ignore e.g. BT segments
 			*/
-			if ( seg1->start && seg1->end )
+			if ( segment_is_mapped ( seg1 ) )
 			{
 
 				/*
@@ -205,7 +205,7 @@ stage_replace ( t_stage * t, t_stage * s )
 	stage_release ( t );
 
 	memcpy ( t, s, sizeof ( t_stage ) );
-	free ( s );
+	CHECK_AND_FREE ( s );
 
 	return E_OK;
 }
@@ -347,6 +347,21 @@ stage_restore_info ( t_stage * s, t_stage_info * i )
 		s->flags = i->flags;
 		s = s->next;
 		i = i->next;
+	}
+
+	return E_OK;
+}
+
+unsigned int
+stage_release_info ( t_stage_info *info )
+{
+	LIST_FFWD(info);
+
+	while ( info )
+	{
+		t_stage_info *entry = info;
+		LIST_PREV(info);
+		free ( entry );
 	}
 
 	return E_OK;
@@ -554,9 +569,7 @@ stage_release ( t_stage * s )
     if ( !s )
         return E_FAIL;
 
-    R ( fmt_free_priv ( s ) );
-    // call fmt_free_priv
-    // shouldnt be neccessary to free segments after that
+	R ( fmt_free_priv ( s ) );
 
     if ( s->symbols )
 		if ( symbols_free_all ( s ) == E_FAIL )
@@ -567,9 +580,12 @@ stage_release ( t_stage * s )
             failed = E_FAIL;
 
 	if ( s->flags & FLAGS_FREE_NAME )
-		free ( s->name );
+		CHECK_AND_FREE ( s->name );
 
-
+	/* 
+	when the flag for replacing was set, dont update pointers since the
+	entry will not get deleted, but just replaced
+	*/
 	if ( !(s->flags&FLAGS_REPLACE) )
 	{
 		if ( s->prev && (s->prev->next == s) )
@@ -577,7 +593,7 @@ stage_release ( t_stage * s )
 		if ( s->next && (s->next->prev == s) )
 			s->next->prev = s->prev;
 
-		free ( s );
+		CHECK_AND_FREE ( s );
 	}
     return failed;
 }

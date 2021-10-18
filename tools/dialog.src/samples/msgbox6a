@@ -1,5 +1,5 @@
 #!/bin/sh
-# $Id: msgbox6a,v 1.1 2006/06/28 13:53:39 geggo Exp $
+# $Id: msgbox6a 1521 2006-06-28 13:53:39Z geggo $
 # this differs from msgbox3 by making a window small enough to force scrolling.
 : ${DIALOG=dialog}
 

@@ -141,7 +141,7 @@ int tins_sp_rel_str (void)
 {
 	INSTRUCTION_TRACE();
 
-	write_word (get_ARM_reg(13) + ((OPCODE_T&0xFF)<<2), Rd_imm_t_g, meminterface );
+	write_word (get_ARM_reg(13) + ((OPCODE_T&0xFF)<<2), Rd_imm_t_g, arm );
 
 	instr_advance();
 	return 1;
@@ -151,7 +151,7 @@ int tins_sp_rel_ldr (void)
 {
 	INSTRUCTION_TRACE();
 
-	Rd_imm_t_s (read_word (get_ARM_reg(13) + ((OPCODE_T&0xFF)<<2), meminterface));
+	Rd_imm_t_s (read_word (get_ARM_reg(13) + ((OPCODE_T&0xFF)<<2), arm));
 
 	instr_advance();
 	return 1;
@@ -163,7 +163,7 @@ int tins_pc_rel_ldr (void)
 	INSTRUCTION_TRACE();
 
 
-	Rd_imm_t_s (read_word(addr, meminterface));
+	Rd_imm_t_s (read_word(addr, arm));
 	
 	instr_advance();
 	return 1;
@@ -193,7 +193,7 @@ int tins_str_imm (void)
 {
 	INSTRUCTION_TRACE();
 
-	write_word (Rs_t_g + (((OPCODE_T>>6)&0x1F)<<2), Rd_t_g, meminterface);
+	write_word (Rs_t_g + (((OPCODE_T>>6)&0x1F)<<2), Rd_t_g, arm);
 
 	instr_advance();
 	return 1;
@@ -203,7 +203,7 @@ int tins_strh_imm (void)
 {
 	INSTRUCTION_TRACE();
 
-	write_hword (Rs_t_g + (((OPCODE_T>>6)&0x1F)<<1), (u16)Rd_t_g, meminterface);
+	write_hword (Rs_t_g + (((OPCODE_T>>6)&0x1F)<<1), (u16)Rd_t_g, arm);
 
 	instr_advance();
 	return 1;
@@ -213,7 +213,7 @@ int tins_strb_imm (void)
 {	
 	INSTRUCTION_TRACE();
 
-	write_byte (Rs_t_g + ((OPCODE_T>>6)&0x1F), (u8)Rd_t_g, meminterface);
+	write_byte (Rs_t_g + ((OPCODE_T>>6)&0x1F), (u8)Rd_t_g, arm);
 
 	instr_advance();
 	return 1;
@@ -223,7 +223,7 @@ int tins_ldr_imm (void)
 {	
 	INSTRUCTION_TRACE();
 
-	Rd_t_s (read_word(Rs_t_g + (((OPCODE_T>>6)&0x1F)<<2), meminterface));
+	Rd_t_s (read_word(Rs_t_g + (((OPCODE_T>>6)&0x1F)<<2), arm));
 
 	instr_advance();
 	return 1;
@@ -233,7 +233,7 @@ int tins_ldrh_imm (void)
 {
 	INSTRUCTION_TRACE();
 
-	Rd_t_s (read_hword (Rs_t_g + (((OPCODE_T>>6)&0x1F)<<1), meminterface));
+	Rd_t_s (read_hword (Rs_t_g + (((OPCODE_T>>6)&0x1F)<<1), arm));
 
 	instr_advance();
 	return 1;
@@ -243,7 +243,7 @@ int tins_ldrb_imm (void)
 {
 	INSTRUCTION_TRACE();
 
-	Rd_t_s (read_byte(Rs_t_g + ((OPCODE_T>>6)&0x1F), meminterface));
+	Rd_t_s (read_byte(Rs_t_g + ((OPCODE_T>>6)&0x1F), arm));
 
 	instr_advance();
 	return 1;
@@ -263,10 +263,12 @@ int tins_ldmia(void)
 		if (reglist & (1 << i))
 		{
 			if ( i != ((OPCODE_T>>8)&0x7) )
-				set_ARM_reg(i, read_word(Rd_imm_t_g, meminterface));
+            {
+				set_ARM_reg(i, read_word(Rd_imm_t_g, arm));
+            }
 			else
 			{
-				temp = read_word(Rd_imm_t_g, meminterface);
+				temp = read_word(Rd_imm_t_g, arm);
 				update_base = 1;
 			}
 			Rd_imm_t_s (Rd_imm_t_g + 4);
@@ -291,7 +293,7 @@ int tins_stmia(void)
 	{
 		if (reglist & (1 << i))
 		{
-			write_word(Rd_imm_t_g, get_ARM_reg(i), meminterface);
+			write_word(Rd_imm_t_g, get_ARM_reg(i), arm);
 			Rd_imm_t_s (Rd_imm_t_g + 4);
 		}
 	}
@@ -309,7 +311,7 @@ int tins_lsl (void)
 
 	if (depl != 0)
 	{
-		CFLAG = !!(Rd_t_g & (1 << (depl-1)));
+		CFLAG_SET(!!(Rd_t_g & (1 << (depl-1))));
 		Rd_t_s (Rd_t_g << depl);
 		SET_DP_LOG_FLAGS(Rd_t_g);
 	}
@@ -336,7 +338,7 @@ int tins_lsr(void)
 
 	if (depl != 0)
 	{
-		CFLAG = !!(Rd_t_g & (1 << (32-depl)));
+		CFLAG_SET(!!(Rd_t_g & (1 << (32-depl))));
 		Rd_t_s (Rd_t_g >> depl);
 		SET_DP_LOG_FLAGS(Rd_t_g);
 	}
@@ -353,7 +355,7 @@ int tins_lsr_imm (void)
 
 	if (depl == 0)
 		depl = 32;
-	CFLAG = !!(Rs_t_g & (1 << (depl-1)));
+	CFLAG_SET(!!(Rs_t_g & (1 << (depl-1))));
 	Rd_t_s (Rs_t_g >> depl);
 
 	SET_DP_LOG_FLAGS(Rd_t_g);
@@ -368,7 +370,7 @@ int tins_asr(void)
 
 	INSTRUCTION_TRACE();
 
-	CFLAG = !!(Rs_t_g & (1 << (shift_amount-1)));
+	CFLAG_SET(!!(Rs_t_g & (1 << (shift_amount-1))));
 	if (Rd_t_g&0x80000000)
 		Rd_t_s (((0xFFFFFFFF<<(32-shift_amount))|(Rd_t_g>>shift_amount))); 
 	else
@@ -387,7 +389,7 @@ int tins_asr_imm (void)
 	INSTRUCTION_TRACE();
 
 	if (Rs_t_g&0x80000000)
-		Rd_t_s (((0xFFFFFFFF<<(32-shift_amount))|(OP_REG_get>>shift_amount))); 
+		Rd_t_s (((0xFFFFFFFF<<(32-shift_amount))|(OP_REG_get()>>shift_amount))); 
 	else
 		Rd_t_s ((Rs_t_g >> shift_amount));
 
@@ -450,7 +452,7 @@ int tins_str(void)
 {
 	INSTRUCTION_TRACE();
 
-	write_word(Rs_t_g + Rn_t_g, Rd_t_g, meminterface);
+	write_word(Rs_t_g + Rn_t_g, Rd_t_g, arm);
 
 	instr_advance();
 	return 1;
@@ -460,7 +462,7 @@ int tins_ldr(void)
 {
 	INSTRUCTION_TRACE();
 
-	Rd_t_s (read_word(Rs_t_g + Rn_t_g, meminterface));
+	Rd_t_s (read_word(Rs_t_g + Rn_t_g, arm));
 
 	instr_advance();
 	return 1;
@@ -470,7 +472,7 @@ int tins_strh(void)
 {
 	INSTRUCTION_TRACE();
 
-	write_hword(Rs_t_g + Rn_t_g, (u16)Rd_t_g, meminterface);
+	write_hword(Rs_t_g + Rn_t_g, (u16)Rd_t_g, arm);
 
 	instr_advance();
 	return 1;
@@ -480,7 +482,7 @@ int tins_ldrh(void)
 {
 	INSTRUCTION_TRACE();
 
-	Rd_t_s (read_hword(Rs_t_g + Rn_t_g, meminterface));
+	Rd_t_s (read_hword(Rs_t_g + Rn_t_g, arm));
 
 	instr_advance();
 	return 1;
@@ -490,7 +492,7 @@ int tins_strb (void)
 {
 	INSTRUCTION_TRACE();
 
-	write_byte(Rs_t_g + Rn_t_g, (u8)Rd_t_g, meminterface);
+	write_byte(Rs_t_g + Rn_t_g, (u8)Rd_t_g, arm);
 
 	instr_advance();
 	return 1;
@@ -500,7 +502,7 @@ int tins_ldrb (void)
 {
 	INSTRUCTION_TRACE();
 
-	Rd_t_s (read_byte(Rs_t_g + Rn_t_g, meminterface));
+	Rd_t_s (read_byte(Rs_t_g + Rn_t_g, arm));
 
 	instr_advance();
 	return 1;
@@ -508,7 +510,7 @@ int tins_ldrb (void)
 
 int tins_ldrsb (void)
 {
-	u8 b = read_byte(Rs_t_g + Rn_t_g, meminterface);
+	u8 b = read_byte(Rs_t_g + Rn_t_g, arm);
 	INSTRUCTION_TRACE();
 
 
@@ -523,7 +525,7 @@ int tins_ldrsb (void)
 
 int tins_ldrsh (void)
 {
-	u16 hw = read_hword(Rs_t_g + Rn_t_g, meminterface);
+	u16 hw = read_hword(Rs_t_g + Rn_t_g, arm);
 
 	INSTRUCTION_TRACE();
 
@@ -689,12 +691,13 @@ int tins_mul(void)
 
 int tins_add_short_imm (void)
 {
+	u32 temp = Rs_t_g;
 	u32 op = ((OPCODE_T>>6)&0x7);
 
 	INSTRUCTION_TRACE();
 
 	Rd_t_s (Rs_t_g + op);
-	SET_ADD_FLAGS (Rs_t_g, op, Rd_t_g);
+	SET_ADD_FLAGS (temp, op, Rd_t_g);
 
 	instr_advance();
 	return 1;
@@ -702,12 +705,13 @@ int tins_add_short_imm (void)
 
 int tins_sub_short_imm (void)
 {
+	u32 temp = Rs_t_g;
 	u32 op = ((OPCODE_T>>6)&0x7);
 	INSTRUCTION_TRACE();
 
 
 	Rd_t_s (Rs_t_g - op);
-	SET_SUB_FLAGS (Rs_t_g, op, Rd_t_g);
+	SET_SUB_FLAGS (temp, op, Rd_t_g);
 
 	instr_advance();
 	return 1;
@@ -736,7 +740,7 @@ int tins_push (void)
 	if (OPCODE_T & 0x100) 
 	{
 		set_ARM_reg ( 13, get_ARM_reg(13) - 4 );
-		write_word ( get_ARM_reg(13), get_ARM_reg(14), meminterface );
+		write_word ( get_ARM_reg(13), get_ARM_reg(14), arm );
 	}
 			
 	for (i=7; i>=0; i--) 
@@ -744,7 +748,7 @@ int tins_push (void)
 		if (OPCODE_T & (1<<i)) 
 		{
 			set_ARM_reg ( 13, get_ARM_reg(13) - 4 );
-			write_word ( get_ARM_reg(13), get_ARM_reg(i), meminterface );
+			write_word ( get_ARM_reg(13), get_ARM_reg(i), arm );
 		}
 	}
 
@@ -762,14 +766,14 @@ int tins_pop (void)
 	{	
 		if (OPCODE_T & (1<<i)) 
 		{
-			set_ARM_reg(i, read_word (get_ARM_reg(13), meminterface));
+			set_ARM_reg(i, read_word (get_ARM_reg(13), arm));
 			set_ARM_reg(13, get_ARM_reg(13) + 4);
 		}
 	}
 
 	if (OPCODE_T & 0x100) 
 	{
-		new_pc = read_word (get_ARM_reg(13), meminterface);
+		new_pc = read_word (get_ARM_reg(13), arm);
 
 		if ( !(new_pc & 1)  )
 			set_ARM_mode ( ARM_MODE );
@@ -787,7 +791,6 @@ int tins_bcond (void)
 {
 	int cond = 0;
 	INSTRUCTION_TRACE();
-
 
 	switch ((OPCODE_T >> 8) & 15)
 	{
@@ -858,6 +861,7 @@ int tins_bcond (void)
 			return ARMULATE_INV_INSTR;
 			break;
 	}
+
 	if (cond) 
 	{	
 		if (OPCODE_T & 0x80)
@@ -872,39 +876,36 @@ int tins_bcond (void)
 
 int tins_bl (void)
 {
-	u32 temp;
+	int H_field = (OPCODE_T >> 11) & 0x03;
+	u32 next_instr = (get_ARM_reg(15) - 2);
 
 	INSTRUCTION_TRACE();
 
-	/* Make it in one step */
-
-	if (!(OPCODE_T & 0x800)) 
+	if ( H_field == 0x02 ) 
 	{
 		if (OPCODE_T & 0x400)
 			set_ARM_reg(14, get_ARM_reg(15) + (((OPCODE_T&0x7FF)-0x800)<<12) );
 		else
 			set_ARM_reg(14, get_ARM_reg(15) + ((OPCODE_T&0x7FF)<<12) );
-
-		instr_advance();
-
-		temp = get_ARM_reg(14) + ((OPCODE_T&0x7FF)<<1);
-		set_ARM_reg(14, (get_ARM_reg(15) - 2) | 1);
-
-		// BLX instruction?
-		if (!(OPCODE_T & 0x1000))
-		{
-			set_ARM_mode ( ARM_MODE );
-			set_ARM_reg(15, temp & ~3);
-		}
-		else
-			set_ARM_reg(15, temp );
-
-		instr_advance ();
-		return 1;
+	}
+	else if ( H_field == 0x03 ) 
+	{
+		set_ARM_reg(15, get_ARM_reg(14) + ((OPCODE_T&0x7FF)<<1) );
+		set_ARM_reg(14, next_instr | 1);
+	}
+	else if ( H_field == 0x01 ) 
+	{
+		set_ARM_reg(15, (get_ARM_reg(14) + ((OPCODE_T&0x7FF)<<1)) & ~0x03 );
+		set_ARM_reg(14, next_instr | 1);
+	}
+	else 
+	{
+		abort_situation = ARMULATE_ABORT_UNKNOWN_INSTR;
+		return ARMULATE_INV_INSTR;
 	}
 
-	abort_situation = ARMULATE_ABORT_UNKNOWN_INSTR;
-	return ARMULATE_INV_INSTR;
+	instr_advance ();
+	return 1;
 }
 
 int tins_bx (void)
@@ -942,6 +943,15 @@ int tins_b (void)
 		set_ARM_reg(15, get_ARM_reg(15) + ((OPCODE_T&0x7FF)<<1) );
 
 	instr_advance ();
+	return 1;
+}
+
+int tins_swi (void)
+{
+	INSTRUCTION_TRACE();
+
+	swi ();
+
 	return 1;
 }
 

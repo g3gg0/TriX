@@ -1,23 +1,203 @@
 
-int g_test_trixcrypt ()
+#title "test.trx generic"
+#author "some freakx"
+
+/*
+#plugin "trix_term"
+#include trix_term
+#plugin "trix_fmttest"
+*/
+
+#include trix
+#include stdio
+#include stdlib
+#include fmt_parsers
+
+
+unsigned char *teststring = NULL;
+int testbool = 0;
+
+
+OPT_BEGIN
+	OPTION( OPT_BOOL, "Bool Test Variable", "testmodule.testbool", &testbool )
+	OPTION( OPT_STR,  "String Test Variable", "testmodule.teststring", &teststring )
+OPT_FINISH
+
+
+void pw ()
+{
+	say ( "[warning]\n" );
+}
+void pd ()
+{
+	say ( "[done]\n" );
+}
+void pf ()
+{
+	say ( "[failed]\n" );
+}
+
+int word ( int address, int val )
+{
+	printf ( "Old    0x%08X: 0x%08X -> 0x%08X\n", address, GetWord(address), val  );
+	SetWord ( address, val );
+
+	return E_OK;
+}
+int half ( int address, int val )
+{
+	printf ( "Old    0x%08X: 0x%04X     -> 0x%04X\n", address, GetHalf(address), val  );
+	SetHalf ( address, val );
+
+	return E_OK;
+}
+
+int nop_bl ( int address )
+{
+	printf ( "Old BL 0x%08X -> 0x%08X\n", address, ARMGet ( address )  );
+	SetWord ( address, 0x46C046C0 );
+
+	return E_OK;
+}
+
+int nop_op ( int address )
+{
+	printf ( "Old OP 0x%08X  = 0x%04X\n", address , GetHalf ( address )  );
+	SetHalf ( address, 0x46C0 );
+
+	return E_OK;
+}
+
+
+/*
+	this routine sets an address as modified, so one can
+	generate a partial with original data to restore.
+*/
+int
+mark_modded ( int addr )
+{
+	SetHalf ( addr, GetHalf ( addr ) ^1 );
+
+	__file_sync ( GetWorkspace()->fileinfo->stages );
+	__workspace_update_memmap ( GetWorkspace() );
+	__v_cache_flush ();
+
+	SetHalf ( addr, GetHalf ( addr ) ^1 );
+}
+
+void drawbytes ( int data, int width, int bytes )
+{
+	int pos = 0;
+	int col = 0;
+	unsigned char byte = 0;
+
+	printf ( "------ draw bytes at 0x%08X ------\n", data );
+
+	while ( pos < bytes )
+	{
+		printf ( "%08X: ", pos );
+		col = 0;
+		while ( col < width  )
+		{
+			if ( col+pos < bytes )
+				printf ( "%02X ", GetByte (data+pos+col) );
+			else
+				printf ( "   " );
+			col++;
+		}
+
+		col = 0;
+		while ( col < width )
+		{
+			if ( col+pos < bytes )
+			{
+				byte = GetByte (data+pos+col);
+				if ( byte < 0x80 && byte > 0x20 )
+					printf ( "%c", byte );
+				else
+					printf ( "." );
+			}
+			else
+				printf ( " " );
+
+			col++;
+		}
+		printf ( "\n" );
+		pos += width;
+	}
+
+	printf ( "\n---------- printed all bytes ---------\n" );
+	return;
+}
+
+
+
+// slow but detailed
+int compare ( unsigned char *b1, unsigned char *b2, unsigned int length )
+{
+	unsigned int pos = 0;
+	
+	while ( pos < length )
+	{
+		if ( b1[pos] != b2[pos] )
+		{
+			printf ( "DIFF: %i, %02X, %02X\r\n", pos, b1[pos], b2[pos] );
+			return 1;
+		}
+		pos++;
+	}
+	
+	return 0;
+}
+
+int g_test_trixcrypt ( int num_loops, int keysize )
 {	
 	t_crypt_key dec_key;
 	t_crypt_key enc_key;
-/*	unsigned char *buffer = NULL;
+	unsigned char tmp_buffer[32];
+	unsigned char *str_fmt = "Test entry %04i\r\n"; // %04i takes exactly the 4 bytes, which it will represent so dont change, else we will have malloc problems ;)
+	unsigned char *buffer = NULL;
+	unsigned char *buffer_orig = NULL;
+	unsigned char *buffer_cmp = NULL;
 	int length = 0;
-*/
+	int loop = 0;
+	int loops = 10000; // maximum 10000 !!
+	
+	
+	if ( num_loops < loops )
+		loops = num_loops;
+
 	say ( "Creating key...\n" );
-	__crypto_generate_key ( 384, &enc_key, &dec_key );
+	__crypto_generate_key ( keysize, &enc_key, &dec_key );
 /*
 	say ( "Compiling test script...\n" );
 	buffer = scCompile_File ( "g_teradyne.trx", &length );
 */
 	say ( "Creating File...\n" );
-	trix_workspace = __workspace_create_file_from_buffer ( strdup("Test File"), 10 );
-//	trix_workspace = __workspace_create_file_from_buffer ( buffer, length );
+//	trix_workspace = __workspace_create_file_from_buffer ( strdup("Test File"), 10 );
+
+	length = strlen ( str_fmt ) * loops + 1;
+	buffer = malloc ( length );
+	strcpy ( buffer, "" );
+
+	for ( loop=0; loop<loops; loop++ )
+	{
+		sprintf ( tmp_buffer, str_fmt, loop );
+		strcat ( buffer, tmp_buffer );
+	}
+	length = strlen( buffer ) + 1;
+	buffer = realloc ( buffer, length );
+	buffer_cmp = malloc ( length );
+	buffer_orig = malloc ( length );
+	memcpy ( buffer_orig, buffer, length );
+			
+	//say ( "Buffer:\r\n");
+	//printf ( buffer );
+	
+	trix_workspace = __workspace_create_file_from_buffer ( buffer, length );
 
 	say ( "Writing File...\n" );
-	__file_write ( "test1.dat", trix_workspace->fileinfo );
+	__file_write ( "aes_src.dat", trix_workspace->fileinfo );
 
 	say ( "Encrypting File...\n" );
 	__trixcrypt_set_cryptkeys ( &enc_key, &dec_key );
@@ -25,29 +205,85 @@ int g_test_trixcrypt ()
 	__workspace_update_memmap ( trix_workspace );
 
 	say ( "Writing File...\n" );
-	__file_write ( "test2.dat", trix_workspace->fileinfo );
+	__file_write ( "aes_enc.dat", trix_workspace->fileinfo );
 
-	say ( "Dumping Stage 0 of File...\n" );
+	//say ( "Dumping Stage 0 of File...\n" );
 	SetWorkStage ( 0, 0 );	
-	drawbytes ( 0, 0x10, 0x80/*GetSize()*/ );
+	//drawbytes ( 0, 0x10, 0x80/*GetSize()*/ );
 
-	say ( "Dumping Stage %i of File...\n", GetStageCount (0)-1 );
+	//say ( "Dumping Stage %i of File...\n", GetStageCount (0)-1 );
 	SetWorkStage ( 0, GetStageCount(0)-1 );	
-	drawbytes ( 0, 0x10, 0x80/*GetSize()*/ );
+	//drawbytes ( 0, 0x10, 0x80/*GetSize()*/ );
 
 
 	printf ( "\n\n----------- file written --------------\n\n" );
 
 	say ( "Reading File...\n" );
-	trix_workspace = __workspace_startup ( "test2.dat" );
+	trix_workspace = __workspace_startup ( "aes_enc.dat" );
 
-	say ( "Dumping Stage 0 of File...\n" );
-	SetWorkStage ( 0, 0 );	
-	drawbytes ( 0, 0x10, 0x80/*GetSize()*/ );
+	__v_memcpy_get ( trix_workspace, buffer_cmp, 0, length );
+	if ( memcmp ( buffer_cmp, buffer_orig, length ) )
+	{
+		say ( "[E] Decryption failed!!\r\n");
+		printf ( buffer_cmp );
+		printf ( "\n\n-----------------------------------------------\n\n" );
+		return E_FAIL;
+	}
 
-	say ( "Dumping Stage %i of File...\n", GetStageCount (0)-1 );
-	SetWorkStage ( 0, GetStageCount(0)-1 );	
-	drawbytes ( 0, 0x10, 0x80/*GetSize()*/ );
+	//say ( "Dumping Stage 0 of File...\n" );
+	//SetWorkStage ( 0, 0 );	
+	//drawbytes ( 0, 0x10, 0x80/*GetSize()*/ );
+
+	//say ( "Dumping Stage %i of File...\n", GetStageCount (0)-1 );
+	//SetWorkStage ( 0, GetStageCount(0)-1 );	
+	//drawbytes ( 0, 0x10, 0x80/*GetSize()*/ );
+
+	__stage_set_savestage ( GetWorkStage(0) );
+	say ( "Writing File...\n" );
+	__file_write ( "aes_dec.dat", trix_workspace->fileinfo );
+	
+
+
+	say ( "[x] Decryption successful\r\n");
+	printf ( "\n\n-----------------------------------------------\n\n" );
 
 	return 0;
 }
+
+
+
+
+
+int dump ( unsigned char *string )
+{
+	unsigned char buf[8];
+	unsigned char *data = NULL;
+	int pos = 0;
+	
+	pos = 0;
+	while ( pos < 8 )
+	{
+		buf[pos] = 0;
+		pos++;
+	}
+
+/*
+	data = __util_hexunpack ( string );
+	__splock_encrypt ( data, DecodeIMEIMask2 );
+	printf ( "%s -> %s\n", string, __util_hexpack ( data, 8 ) );
+	__splock_decrypt ( data, DecodeIMEIMask2 );
+	printf ( "%s -> %s\n", string, __util_hexpack ( data, 8 ) );
+*/
+	return 0;
+}
+
+int main() 
+{ 
+
+	g_test_trixcrypt ( 10, 128 );
+	g_test_trixcrypt ( 10, 8192 );
+	g_test_trixcrypt ( 10000, 128 );
+	g_test_trixcrypt ( 10000, 8192 );
+	return 0;
+}
+

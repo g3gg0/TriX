@@ -5,10 +5,25 @@
 
    Author: Giancarlo Niccolai <gian@niccolai.ws>
 
-   $Id: mxml_error.c,v 1.3 2007/03/31 15:13:00 geggo Exp $
+   $Id: mxml_error.c 3483 2009-04-01 12:53:42Z geggo $
 */
 
-#include <stdio.h>
+#include "defines.h"
+#include "seer.h"
+#include "segment.h"
+#include "stage.h"
+#include "file_io.h"
+#include "file.h"
+#include "workspace.h"
+#include "util.h"
+#include "options.h"
+#include "mem.h"
+#include "treenode.h"
+#include "trixplug.h"
+extern struct trix_functions *ft;
+#include "trixplug_wrapper.h"
+
+//#include <stdio.h>
 #include "mxml.h"
 
 static char *edesc[] =

@@ -173,7 +173,7 @@ void PluginWindow::btnUnloadClicked()
 		return;
 	}
 
-	trixplug_unload_plugin ( (unsigned char*) items.first()->text ( 0 ).toAscii().data() );
+	trixplug_unload_plugin ( (unsigned char*) items.first()->text ( 0 ).toLocal8Bit().data() );
 
 }
 

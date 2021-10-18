@@ -5,11 +5,15 @@
 #define SEGMENT_AUTO_IMPORTS \
 	"import t_segment *__segment_duplicate ( t_segment * s);\n"\
 	"import t_segment *__segment_find_by_num ( t_segment * s, unsigned int num);\n"\
-	"import t_segment *__segment_find_by_end_and_name ( t_segment * s, unsigned int addr, char *name);\n"\
-	"import t_segment *__segment_find_by_end ( t_segment * s, unsigned int addr);\n"\
-	"import t_segment *__segment_find_by_start ( t_segment * s, unsigned int addr);\n"\
-	"import t_segment *__segment_find_by_name ( t_segment * s, char *name);\n"\
+	"import t_segment *__segment_find_by_end_and_name ( t_segment * s, unsigned int addr, char *name, unsigned int flags);\n"\
+	"import t_segment *__segment_find_by_end ( t_segment * s, unsigned int addr, unsigned int flags);\n"\
+	"import t_segment *__segment_find_by_start ( t_segment * s, unsigned int addr, unsigned int flags);\n"\
+	"import t_segment *__segment_find_by_name ( t_segment * s, char *name, unsigned int flags);\n"\
 	"import unsigned int __segment_count ( t_segment * s);\n"\
+	"import unsigned int __segment_is_mapped ( t_segment * s);\n"\
+	"import unsigned int __segment_is_sparse ( t_segment * s);\n"\
+	"import void __segment_map_in_mem ( t_segment * s);\n"\
+	"import void __segment_hide_in_mem ( t_segment * s);\n"\
 	"import t_segment *__segment_get_last ( t_segment * s);\n"\
 	"import t_segment *__segment_add ( t_segment * s);\n"\
 	"import t_segment *__segment_create ( );\n"\
@@ -23,11 +27,15 @@
 	"		<font face=\"Monospace\">"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#000000\">t_segment</font>&nbsp;*<font color=\"#000000\">__segment_duplicate</font>&nbsp;(&nbsp;<font color=\"#000000\">t_segment</font>&nbsp;*&nbsp;<font color=\"#000000\">s</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#000000\">t_segment</font>&nbsp;*<font color=\"#000000\">__segment_find_by_num</font>&nbsp;(&nbsp;<font color=\"#000000\">t_segment</font>&nbsp;*&nbsp;<font color=\"#000000\">s</font>,&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">num</font>);<br>"\
-	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#000000\">t_segment</font>&nbsp;*<font color=\"#000000\">__segment_find_by_end_and_name</font>&nbsp;(&nbsp;<font color=\"#000000\">t_segment</font>&nbsp;*&nbsp;<font color=\"#000000\">s</font>,&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">addr</font>,&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">name</font>);<br>"\
-	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#000000\">t_segment</font>&nbsp;*<font color=\"#000000\">__segment_find_by_end</font>&nbsp;(&nbsp;<font color=\"#000000\">t_segment</font>&nbsp;*&nbsp;<font color=\"#000000\">s</font>,&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">addr</font>);<br>"\
-	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#000000\">t_segment</font>&nbsp;*<font color=\"#000000\">__segment_find_by_start</font>&nbsp;(&nbsp;<font color=\"#000000\">t_segment</font>&nbsp;*&nbsp;<font color=\"#000000\">s</font>,&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">addr</font>);<br>"\
-	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#000000\">t_segment</font>&nbsp;*<font color=\"#000000\">__segment_find_by_name</font>&nbsp;(&nbsp;<font color=\"#000000\">t_segment</font>&nbsp;*&nbsp;<font color=\"#000000\">s</font>,&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">name</font>);<br>"\
+	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#000000\">t_segment</font>&nbsp;*<font color=\"#000000\">__segment_find_by_end_and_name</font>&nbsp;(&nbsp;<font color=\"#000000\">t_segment</font>&nbsp;*&nbsp;<font color=\"#000000\">s</font>,&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">addr</font>,&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">name</font>,&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">flags</font>);<br>"\
+	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#000000\">t_segment</font>&nbsp;*<font color=\"#000000\">__segment_find_by_end</font>&nbsp;(&nbsp;<font color=\"#000000\">t_segment</font>&nbsp;*&nbsp;<font color=\"#000000\">s</font>,&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">addr</font>,&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">flags</font>);<br>"\
+	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#000000\">t_segment</font>&nbsp;*<font color=\"#000000\">__segment_find_by_start</font>&nbsp;(&nbsp;<font color=\"#000000\">t_segment</font>&nbsp;*&nbsp;<font color=\"#000000\">s</font>,&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">addr</font>,&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">flags</font>);<br>"\
+	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#000000\">t_segment</font>&nbsp;*<font color=\"#000000\">__segment_find_by_name</font>&nbsp;(&nbsp;<font color=\"#000000\">t_segment</font>&nbsp;*&nbsp;<font color=\"#000000\">s</font>,&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">name</font>,&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">flags</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__segment_count</font>&nbsp;(&nbsp;<font color=\"#000000\">t_segment</font>&nbsp;*&nbsp;<font color=\"#000000\">s</font>);<br>"\
+	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__segment_is_mapped</font>&nbsp;(&nbsp;<font color=\"#000000\">t_segment</font>&nbsp;*&nbsp;<font color=\"#000000\">s</font>);<br>"\
+	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__segment_is_sparse</font>&nbsp;(&nbsp;<font color=\"#000000\">t_segment</font>&nbsp;*&nbsp;<font color=\"#000000\">s</font>);<br>"\
+	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">void</font>&nbsp;<font color=\"#000000\">__segment_map_in_mem</font>&nbsp;(&nbsp;<font color=\"#000000\">t_segment</font>&nbsp;*&nbsp;<font color=\"#000000\">s</font>);<br>"\
+	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">void</font>&nbsp;<font color=\"#000000\">__segment_hide_in_mem</font>&nbsp;(&nbsp;<font color=\"#000000\">t_segment</font>&nbsp;*&nbsp;<font color=\"#000000\">s</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#000000\">t_segment</font>&nbsp;*<font color=\"#000000\">__segment_get_last</font>&nbsp;(&nbsp;<font color=\"#000000\">t_segment</font>&nbsp;*&nbsp;<font color=\"#000000\">s</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#000000\">t_segment</font>&nbsp;*<font color=\"#000000\">__segment_add</font>&nbsp;(&nbsp;<font color=\"#000000\">t_segment</font>&nbsp;*&nbsp;<font color=\"#000000\">s</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#000000\">t_segment</font>&nbsp;*<font color=\"#000000\">__segment_create</font>&nbsp;(&nbsp;);<br>"\
@@ -47,6 +55,10 @@
 	scAddExtSymInt ( segment_find_by_start );\
 	scAddExtSymInt ( segment_find_by_name );\
 	scAddExtSymInt ( segment_count );\
+	scAddExtSymInt ( segment_is_mapped );\
+	scAddExtSymInt ( segment_is_sparse );\
+	scAddExtSymInt ( segment_map_in_mem );\
+	scAddExtSymInt ( segment_hide_in_mem );\
 	scAddExtSymInt ( segment_get_last );\
 	scAddExtSymInt ( segment_add );\
 	scAddExtSymInt ( segment_create );\
@@ -64,6 +76,10 @@ void segment_find_by_end ();
 void segment_find_by_start ();
 void segment_find_by_name ();
 void segment_count ();
+void segment_is_mapped ();
+void segment_is_sparse ();
+void segment_map_in_mem ();
+void segment_hide_in_mem ();
 void segment_get_last ();
 void segment_add ();
 void segment_create ();

@@ -1,5 +1,5 @@
 /*
- *  $Id: dialog.h,v 1.1 2006/06/28 13:53:39 geggo Exp $
+ *  $Id: dialog.h 1521 2006-06-28 13:53:39Z geggo $
  *
  *  dialog.h -- common declarations for all dialog modules
  *

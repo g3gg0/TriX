@@ -34,6 +34,7 @@ struct stage_funcs
 	unsigned int (*set_modified) ( t_stage * s);
 	unsigned int (*set_savestage) ( t_stage * s);
 	unsigned int (*set_workspace) ( t_stage * s);
+	unsigned int (*release_info) ( t_stage_info * info);
 };
 
 /* trixplug struct initializer */
@@ -58,6 +59,7 @@ unsigned int stage_plug_init ( ) \
 	ft->stage->find_by_num = stage_find_by_num;\
 	ft->stage->get_last = stage_get_last;\
 	ft->stage->restore_info = stage_restore_info;\
+	ft->stage->release_info = stage_release_info;\
 	ft->stage->save_info = stage_save_info;\
 	ft->stage->count = stage_count;\
 	ft->stage->get_num = stage_get_num;\

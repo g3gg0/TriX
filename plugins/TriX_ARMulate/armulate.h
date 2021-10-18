@@ -1,23 +1,31 @@
 
+
+#define ARMULATE_BP_COUNT  32
+#define ARMULATE_BP_EXEC   1
+#define ARMULATE_BP_READ   2
+#define ARMULATE_BP_WRITE  4
+
+typedef struct
+{
+    unsigned int address;
+    unsigned int flags;
+} breakpoint_t;
+
+
 unsigned int armulate_init ( );
+unsigned int armulate_cleanup ( );
 
-
-void free_emu ( t_emustate *state);
-t_emustate *init_emu (void);
-int set_pointers ( t_emustate *state );
-void place_emu (unsigned long pc, int is_thumb);
-void reset_emu (unsigned long pc, int is_thumb);
+ARM7TDMI *init_emu (void);
+void free_emu ();
 int exec_step (void);
 int exec_next (void);
 int run_breakpoint (unsigned long);
 void set_reg (unsigned long index, unsigned long value);
 unsigned long get_reg (unsigned long index);
-int emu_is_thumb ( void );
-char *get_cpu_mode_name();
-u32 get_cpsr();
 int is_thumb_state();
+u32 get_cpsr();
 void set_cpsr (u32 value);
-void *get_memint ();
+
 
 unsigned int armulate_setup ( t_workspace *ws, unsigned int start_address );
 unsigned int armulate_run_until ( unsigned int address );
@@ -30,7 +38,10 @@ unsigned int armulate_exec_step ( void );
 unsigned int armulate_exec_next ( void );
 unsigned int armulate_get_pc ( void );
 unsigned int armulate_is_thumb ( void );
-unsigned int armulate_set_bps ( unsigned int *address );
+unsigned int armulate_gdb_listen ( void );
+unsigned int armulate_add_bp ( unsigned int address );
+unsigned int armulate_set_bps ( unsigned int *bps );
+unsigned int armulate_is_bp_flag ( unsigned int address, unsigned int flags );
 unsigned int armulate_is_bp ( unsigned int address );
 const char *armulate_reason ( int reason );
 unsigned int armulate_set_pc ( unsigned int address );
@@ -47,6 +58,8 @@ void armulate_set_abort_value ( unsigned int val );
 void armulate_set_abort_width ( unsigned int val );
 void armulate_set_abort_override ( unsigned int val );
 void armulate_set_abort_situation ( unsigned int val );
+void armulate_set_exec_callback (unsigned int (*cb)(unsigned int) );
+void armulate_lr_dump(unsigned int count);
 
 //
 // SEE ALSO emu.h !!!!!
@@ -81,8 +94,10 @@ void armulate_set_abort_situation ( unsigned int val );
 	"import unsigned int __armulate_get_pc (  );\n"\
 	"import unsigned int __armulate_set_pc ( unsigned int address );\n"\
 	"import unsigned int __armulate_is_thumb ( );\n"\
-	"import unsigned int __armulate_set_bps ( unsigned int *address );\n"\
+	"import unsigned int __armulate_add_bp ( unsigned int address );\n"\
+	"import unsigned int __armulate_set_bps ( unsigned int *bps );\n"\
 	"import unsigned int __armulate_is_bp ( unsigned int address );\n"\
+	"import unsigned int __armulate_gdb_listen (  );\n"\
 	"import const char *__armulate_reason ( int reason );\n"\
 	"import unsigned int __armulate_get_abort_address ( );\n"\
 	"import unsigned int __armulate_get_abort_memory ( );\n"\
@@ -96,6 +111,8 @@ void armulate_set_abort_situation ( unsigned int val );
 	"import void __armulate_set_abort_width ( unsigned int val );\n"\
 	"import void __armulate_set_abort_override ( unsigned int val );\n"\
 	"import void __armulate_set_abort_situation ( unsigned int val );\n"\
+	"import void __armulate_set_exec_callback (unsigned int cb);\n"\
+	"import void __armulate_lr_dump(unsigned int count);\n"\
 	"#define ARMULATE_EXECUTED        0x01\n"\
 	"#define ARMULATE_BP_REACHED      0x02\n"\
 	"#define ARMULATE_SKIPPED         0x03\n"\
@@ -122,8 +139,10 @@ void armulate_set_abort_situation ( unsigned int val );
 	REGISTER_SYMBOL ( armulate_get_pc );\
 	REGISTER_SYMBOL ( armulate_set_pc );\
 	REGISTER_SYMBOL ( armulate_is_thumb );\
+	REGISTER_SYMBOL ( armulate_add_bp );\
 	REGISTER_SYMBOL ( armulate_set_bps );\
 	REGISTER_SYMBOL ( armulate_is_bp );\
+	REGISTER_SYMBOL ( armulate_gdb_listen );\
 	REGISTER_SYMBOL ( armulate_reason );\
 	REGISTER_SYMBOL ( armulate_get_abort_address );\
 	REGISTER_SYMBOL ( armulate_get_abort_memory );\
@@ -137,5 +156,7 @@ void armulate_set_abort_situation ( unsigned int val );
 	REGISTER_SYMBOL ( armulate_set_abort_width );\
 	REGISTER_SYMBOL ( armulate_set_abort_override );\
 	REGISTER_SYMBOL ( armulate_set_abort_situation );\
+	REGISTER_SYMBOL ( armulate_set_exec_callback );\
+	REGISTER_SYMBOL ( armulate_lr_dump );\
 
 

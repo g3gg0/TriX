@@ -8,11 +8,12 @@
 
 #ifdef WIN32
 #include <Windows.h>
-#include "win32/MemoryModule.h"
 #else
 #include <dlfcn.h>
 #endif 
 
+// defined in *.vcproj - easier for debugging plugins
+//#define TRIXPLUG_DL_MEMORY
 
 #include "defines.h"
 #include "segment.h"
@@ -24,7 +25,7 @@
 #include "seer.h"
 #include "workspace.h"
 #include "util.h"
-#include "seer.h"
+#include "ui.h"
 #include "mem.h"
 #include "trixplug.h"
 #include "crypto.h"
@@ -33,9 +34,7 @@
 int skip_plugin_fail = 0;
 int plugin_signature_details = 2;
 
-typedef unsigned int (*dll_init_func) (  );
-typedef char *(*dll_name_func) (  );
-typedef unsigned int (*dll_vers_func) (  );
+
 struct trix_functions *ft;
 
 char *plugin_path = "plugins";
@@ -63,7 +62,7 @@ t_plugin_info *trixplug_get ( t_plugin_info *info, int type )
 }
 
 unsigned int
-trixcrypt_handle_load ( unsigned char **plugin, unsigned int length )
+trixplug_handle_load ( unsigned char **plugin, unsigned int length, unsigned char *desc )
 {
 	t_crypt_key pub_key[] = TRIX_PUBLIC_KEYS;
 	char *signature = NULL;
@@ -84,11 +83,24 @@ trixcrypt_handle_load ( unsigned char **plugin, unsigned int length )
 	}
 	else
 	{
+#ifdef PPMODD
+//		return E_FAIL;
+#else
 		if ( !skip_plugin_fail )
 		{
-			if ( ui_dlg_bool ( "This plugin is not signed correctly.\nAre you sure you want to load it?\n" ) != E_OK )
+			unsigned char *msg = "The plugin '%s' is not signed correctly.\nAre you sure you want to load it?\n(To disable this message, enable plugins.trixplug.skip_plugin_fail)";
+			unsigned char *buffer = malloc ( strlen ( desc ) + strlen ( msg ) + 1 );
+			sprintf ( buffer, msg , desc );
+
+			if ( ui_dlg_bool ( buffer ) != E_OK )
+			{
+				free ( buffer );
 				return E_FAIL;
+			}
+
+			free ( buffer );
 		}
+#endif
 	}
 	return crypto_unfold ( plugin, length, pub_key );
 }
@@ -109,7 +121,7 @@ unsigned int trixplug_load_plugin ( char *name )
 
 	if ( !name )
 	{
-		ERR ( 1, "no plugin name given", filename );
+		ERR ( 1, "no plugin name given" );
 		return E_FAIL;
 	}
 
@@ -123,9 +135,9 @@ unsigned int trixplug_load_plugin ( char *name )
 	filename = malloc ( strlen ( name ) + strlen ( plugin_path ) + 10 );
 
 
-	DBG ( DEBUG_PLUG, "Opening %s", filename );
+	DBG ( DEBUG_PLUG, "Opening %s", name );
 
-#ifdef WIN32
+#if defined (WIN32) && defined(TRIXPLUG_DL_MEMORY)
 	// per default look in plugins subdir
 	sprintf ( filename, "%s"DIR_SEP_STR"%s.txp", plugin_path, name );
 	workspace_skip_error ( 1 );
@@ -135,27 +147,49 @@ unsigned int trixplug_load_plugin ( char *name )
 	{
 		// maybe its compressed?
 		sprintf ( filename, "%s"DIR_SEP_STR"%s.txz", plugin_path, name );
-		ws = workspace_startup ( name );
+		ws = workspace_startup ( filename );
 	}
 
 	if ( !ws )
 	{
 		// maybe its a http url or an absolute path?
 		sprintf ( filename, "%s", name );
-		ws = workspace_startup ( name );
+		ws = workspace_startup ( filename );
 	}
 	workspace_skip_error ( 0 );
 
 	if ( ws )
 	{
-		if ( v_get_ptr(ws,0) )
-		{
-			unsigned char *buffer = malloc ( v_get_size ( ws ) );
-			memcpy ( buffer, v_get_ptr(ws,0), v_get_size ( ws ) );
+		/* try to find a MZ header */
+		t_stage *pe = ws->memmap->stage;
 
-			if ( trixcrypt_handle_load ( &buffer, v_get_size ( ws ) ) == E_OK )
-				plugin_handle = DL_OPEN ( buffer );
+		LIST_FFWD ( pe );
+		while ( pe && v_get_h_raw ( pe, 0 ) != 0x5A4D ) // MZ
+			LIST_PREV ( pe );
+
+		if ( pe )
+		{
+			/* MZ header found. this plugin is not crypted or signed */
+			unsigned char *buffer = malloc ( pe->segments->length );
+			memcpy ( buffer, pe->segments->data, pe->segments->length );
+
+			plugin_handle = DL_OPEN ( buffer );
 		}
+		else
+		{
+			/* no MZ header found. maybe plugin is signed. use last stage */
+			if ( v_get_ptr(ws,0) )
+			{
+				unsigned char *buffer = malloc ( v_get_size ( ws ) );
+				memcpy ( buffer, v_get_ptr(ws,0), v_get_size ( ws ) );
+
+				if ( trixplug_handle_load ( &buffer, v_get_size ( ws ), name ) == E_OK )
+				{
+					plugin_handle = DL_OPEN ( buffer );
+				}
+			}
+		}
+
 		workspace_release ( ws );
 	}
 
@@ -167,7 +201,12 @@ unsigned int trixplug_load_plugin ( char *name )
 
 	if ( !plugin_handle )
 	{
-		ERR ( 1, "Could not open plugin '%s'", name );
+#ifdef WIN32
+		ERR ( 1, "Could not open plugin '%s'. LastError: 0x%08X", name, GetLastError() );
+#else
+		ERR ( 1, "Could not open plugin '%s'.", name );
+#endif
+		free ( filename );
 		free ( name );
 		return E_FAIL;
 	}
@@ -190,11 +229,13 @@ unsigned int trixplug_load_plugin ( char *name )
 	if ( !pi )
 	{
 		printf ( " - INVALID NAME -  " );
+		free ( filename );
 		DL_CLOSE ( plugin_handle );
 		return E_FAIL;
 	}
 	pluginname = pi->param1;
 	printf ( " - %s -  ", pluginname );
+
 
 	//  check if plugin was already loaded
 	if ( trixplug_get_plugin_entry ( pluginname ) )
@@ -204,6 +245,8 @@ unsigned int trixplug_load_plugin ( char *name )
 		DL_CLOSE ( plugin_handle );
 		return E_OK;
 	}
+
+
 
 	// check version
 	pi = trixplug_get ( plugin_info, PLUGIN_INFO_INTERFACE );
@@ -220,6 +263,7 @@ unsigned int trixplug_load_plugin ( char *name )
 		printf ( " - Plugin: v%i.%i TriX: v%i.%i - ", (int)pi->param1, (int)pi->param2, TRIXPLUG_MAJOR, TRIXPLUG_MINOR );
 		status = E_PLUGIN_INTERFACE_FAILURE;
 	}
+
 
 	// get function table
 	if ( status == E_OK )
@@ -311,6 +355,7 @@ t_plugin_entry *trixplug_get_plugin_entry ( unsigned char *name )
 unsigned int trixplug_unload_plugin ( unsigned char *name )
 {
 	dll_cleanup_func plugin_cleanup = NULL;
+	dll_lasterror_func plugin_lasterror = NULL;
 	t_plugin_entry *plugin = NULL;
 	t_plugin_info *pi = NULL;
 	t_seer_dict *dict = NULL;
@@ -323,7 +368,19 @@ unsigned int trixplug_unload_plugin ( unsigned char *name )
 	if ( pi && pi->param1 )
 	{
 		plugin_cleanup = pi->param1;
-		plugin_cleanup ();
+		if ( plugin_cleanup () != E_OK )
+		{
+			unsigned char *error = "Cleanup failed (no reason given)";
+			pi = trixplug_get ( plugin->info, PLUGIN_INFO_LASTERROR );
+			if ( pi && pi->param1 )
+			{
+				plugin_lasterror = pi->param1;
+				error = plugin_lasterror ();
+			}
+
+			printf ( "Unloading Plugin '%s' failed: '%s'\n", name, error );
+			return E_FAIL;
+		}
 	}
 
 	dict = plugin->headers;

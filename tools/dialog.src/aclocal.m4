@@ -1,6 +1,6 @@
 dnl macros used for DIALOG configure script
 dnl Copyright 1999-2004,2005 -- Thomas E. Dickey
-dnl $Id: aclocal.m4,v 1.1 2006/06/28 13:53:39 geggo Exp $
+dnl $Id: aclocal.m4 1521 2006-06-28 13:53:39Z geggo $
 dnl ---------------------------------------------------------------------------
 dnl ---------------------------------------------------------------------------
 dnl AM_GNU_GETTEXT version: 11 updated: 2004/01/26 20:58:40

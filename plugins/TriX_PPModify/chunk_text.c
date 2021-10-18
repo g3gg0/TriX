@@ -24,28 +24,81 @@ extern int dump_chunks;
 extern int recompress;
 extern int bitmask_depth;
 extern int endianess_be;
+extern int ppmodd_ignore_utf16;
+extern int ppmodd_ignore_tokens;
+extern int add_text_id;
+extern int alignment_byte;
+extern unsigned int entries_dumped;
+extern t_lpcs_dict *lpcs;
 extern struct trix_functions *ft;
 
 #include "trixplug_wrapper.h"
 
-unsigned int ppmodify_string_unescape ( unsigned char *string )
+
+unsigned char *utf16_to_lpcs ( t_stringbuffer *string )
+{
+   t_treenode *node  = NULL;
+	unsigned char *buffer = NULL;
+	unsigned int inpos = 0;
+	unsigned short utf16 = 0;
+	unsigned char ch = 0;
+
+	if ( !string || !string->buffer )
+		return NULL;
+
+	buffer = calloc ( string->length + 2, sizeof ( unsigned char ) );
+	if ( !buffer )
+		return NULL;
+
+	while ( inpos < string->length && string->buffer[inpos] )
+	{
+		utf16 = string->buffer[inpos];
+		ch = lpcs->ch[utf16];
+
+		if ( ch == 0 ) // used first time
+		{
+			ch = 1;
+			while ( ch < 0xFF && lpcs->used[ch] ) // find free entry
+				ch++;
+
+			if ( ch == 0xFF )
+			{
+				free ( buffer );
+				return NULL;
+			}
+
+         lpcs->ch[utf16] = ch;
+			lpcs->utf16[ch] = utf16;
+		}
+
+		lpcs->used[ch] = 1;
+		buffer[inpos] = ch;
+
+		inpos++;
+	}
+
+	return buffer;
+}
+
+unsigned int ppmodify_string_unescape ( unsigned char *string, t_stringbuffer *coded )
 {
 	unsigned int err = 0;
 	unsigned int inpos = 0;
 	unsigned int outpos = 0;
 	unsigned short hexval;
 	unsigned char tmp[10];
-	unsigned char *buffer = NULL;
 
 	if ( !string )
 		PLUGIN_ERROR ( "(!string) failed", E_FAIL );
 
 	// we will for sure have a less or equal number of bytes
-	buffer = malloc ( strlen ( string ) );
+	coded->length = strlen ( string );
+	coded->allocated = coded->length + 1;
+	coded->buffer = malloc ( coded->allocated * sizeof ( unsigned short ) );
 
 	while ( string[inpos] )
 	{
-		if ( string[inpos] == '\\' )
+		if ( string[inpos] == '\\' && strlen ( &string[inpos] ) >= 5 )
 		{
 			memcpy ( tmp, &string[inpos+1], 4 );
 			tmp[4] = 0x00;
@@ -53,39 +106,37 @@ unsigned int ppmodify_string_unescape ( unsigned char *string )
 			hexval = util_hex_get ( tmp, &err );
 			if ( err != 1  )
 			{
-//				PLUGIN_ERROR ( "util_hex_get_buffer () failed", E_FAIL );
-
 				if ( hexval < 0x80 )
 				{
-					buffer[outpos++] = hexval & 0xFF;
+					coded->buffer[outpos++] = hexval & 0xFF;
 				}
 				else if ( hexval < 0x800 )
 				{
-					buffer[outpos++] = 0xc0 | (hexval >> 6);
-					buffer[outpos++] = 0x80 | (hexval & 0x3f);
+					coded->buffer[outpos++] = 0xc0 | (hexval >> 6);
+					coded->buffer[outpos++] = 0x80 | (hexval & 0x3f);
 				}
 				else if ( hexval < 0x10000 )
 				{
-					buffer[outpos++] = 0xe0 | (hexval >> 12);
-					buffer[outpos++] = 0x80 | ((hexval >> 6) & 0x3f);
-					buffer[outpos++] = 0x80 | (hexval & 0x3f);
+					coded->buffer[outpos++] = 0xe0 | (hexval >> 12);
+					coded->buffer[outpos++] = 0x80 | ((hexval >> 6) & 0x3f);
+					coded->buffer[outpos++] = 0x80 | (hexval & 0x3f);
 				}
 				inpos += 5;
 			}
 			else
-				buffer[outpos++] = string[inpos++];
+				coded->buffer[outpos++] = string[inpos++];
 		}
 		else
-			buffer[outpos++] = string[inpos++];
+			coded->buffer[outpos++] = string[inpos++];
 	}
 
-	memcpy ( string, buffer, outpos );
-	string[outpos] = '\000';
+	coded->buffer[outpos] = '\000';
+	coded->length = outpos;
 
 	return E_OK;
 }
 
-unsigned int utf8_to_utf16 ( unsigned char *coded, t_stringbuffer *string )
+unsigned int utf8_to_utf16 ( t_stringbuffer *coded, t_stringbuffer *string )
 {
 	unsigned int inpos = 0;
 	unsigned int outpos = 0;
@@ -94,58 +145,57 @@ unsigned int utf8_to_utf16 ( unsigned char *coded, t_stringbuffer *string )
 	if ( !string || !coded )
 		return E_FAIL;
 
-	string->allocated = strlen ( coded ) * 2 + 2;
-	string->buffer = malloc ( string->allocated );
+	string->allocated = coded->allocated;
+	string->buffer = malloc ( string->allocated * sizeof ( unsigned short )  );
 	if ( !string->buffer )
 		return NULL;
 
-
-	while ( inpos < strlen ( coded ) )
+	while ( inpos < coded->length )
 	{
-		if ( (coded[inpos] & 0xE0) == 0xC0  )
+		if ( (coded->buffer[inpos] & 0xE0) == 0xC0  )
 		{
-			value = (coded[inpos] & 0x1F) << 6;
+			value = (coded->buffer[inpos] & 0x1F) << 6;
 
 			inpos++;
-			if ( (coded[inpos] & 0xC0) != 0x80 )
+			if ( (coded->buffer[inpos] & 0xC0) != 0x80 )
 				return E_FAIL;
-			value |= coded[inpos] & 0x3F;
+			value |= coded->buffer[inpos] & 0x3F;
 		}
-		else if ( (coded[inpos] & 0xF0) == 0xE0  )
+		else if ( (coded->buffer[inpos] & 0xF0) == 0xE0  )
 		{
-			value = (coded[inpos] & 0x0F) << 12;
+			value = (coded->buffer[inpos] & 0x0F) << 12;
 
 			inpos++;
-			if ( (coded[inpos] & 0xC0) != 0x80 )
+			if ( (coded->buffer[inpos] & 0xC0) != 0x80 )
 				return E_FAIL;
-			value |= (coded[inpos] & 0x3F) << 6;
+			value |= (coded->buffer[inpos] & 0x3F) << 6;
 
 			inpos++;
-			if ( (coded[inpos] & 0xC0) != 0x80 )
+			if ( (coded->buffer[inpos] & 0xC0) != 0x80 )
 				return E_FAIL;
-			value |= coded[inpos] & 0x3F;
+			value |= coded->buffer[inpos] & 0x3F;
 		}
-		else if ( (coded[inpos] & 0xF8) == 0xF0  )
+		else if ( (coded->buffer[inpos] & 0xF8) == 0xF0  )
 		{
-			value = (coded[inpos] & 0x07) << 18;
+			value = (coded->buffer[inpos] & 0x07) << 18;
 
 			inpos++;
-			if ( (coded[inpos] & 0xC0) != 0x80 )
+			if ( (coded->buffer[inpos] & 0xC0) != 0x80 )
 				return E_FAIL;
-			value |= (coded[inpos] & 0x3F) << 12;
+			value |= (coded->buffer[inpos] & 0x3F) << 12;
 
 			inpos++;
-			if ( (coded[inpos] & 0xC0) != 0x80 )
+			if ( (coded->buffer[inpos] & 0xC0) != 0x80 )
 				return E_FAIL;
-			value |= (coded[inpos] & 0x3F) << 6;
+			value |= (coded->buffer[inpos] & 0x3F) << 6;
 
 			inpos++;
-			if ( (coded[inpos] & 0xC0) != 0x80 )
+			if ( (coded->buffer[inpos] & 0xC0) != 0x80 )
 				return E_FAIL;
-			value |= coded[inpos] & 0x3F;
+			value |= coded->buffer[inpos] & 0x3F;
 		}
 		else
-			value = coded[inpos] & 0x7F;
+			value = coded->buffer[inpos] & 0x7F;
 
 		string->buffer[outpos++] = value;
 
@@ -154,6 +204,8 @@ unsigned int utf8_to_utf16 ( unsigned char *coded, t_stringbuffer *string )
 	string->buffer[outpos] = '\000';
 
 	string->length = outpos;
+	string->allocated = string->length;
+	string->buffer = realloc ( string->buffer, string->allocated * sizeof ( unsigned short ) );
 	return E_OK;
 }
 
@@ -220,17 +272,14 @@ unsigned int utf16_switch_endianess ( t_stringbuffer *string )
 {
 	unsigned int pos = 0;
 	unsigned int value = 0;
-	unsigned char *temp = NULL;
 
 	if ( !string || !string->buffer )
 		return E_FAIL;
 
-	temp = (unsigned char*)string->buffer;
 	while ( pos < string->length )
 	{
 		value = string->buffer[pos];
-		temp[2*pos] = value >> 8;
-		temp[2*pos + 1] = value & 0xFF;
+		string->buffer[pos] = ((value & 0xFF) <<8 ) | value >> 8;
 
 		pos++;
 	}
@@ -285,8 +334,8 @@ unsigned int ppmodify_text_tokens_to_utf16 ( t_compress_buffer *buffer, t_string
 		utf16_stradd ( string, 'i' );
 		utf16_stradd ( string, 'd' );
 		utf16_stradd ( string, ')' );
-		
-//		return E_FAIL;
+
+		//		return E_FAIL;
 	}
 
 	while ( pos < buffer->entries )
@@ -319,7 +368,7 @@ unsigned int ppmodify_text_tokens_to_utf16 ( t_compress_buffer *buffer, t_string
 		}
 		utf16_stradd ( string, data );
 	}
-	
+
 	return E_OK;
 }
 
@@ -343,7 +392,7 @@ unsigned int ppmodify_text_subchunk_dump_lang_comp_token ( unsigned char *inbuff
 	return ret;
 }
 
-unsigned int ppmodify_text_subchunk_dump_lang_plain_entry ( t_workspace *ws, unsigned int start, unsigned int length, t_treenode *node, unsigned short flags1, unsigned short flags2 )
+unsigned int ppmodify_text_subchunk_dump_lang_plain_entry ( t_workspace *ws, unsigned int start, unsigned int length, t_treenode *node, unsigned short flags1, unsigned short flags2, unsigned int entry )
 {
 	t_treenode *worknode = NULL;
 	t_treenode *childnode = NULL;
@@ -357,15 +406,15 @@ unsigned int ppmodify_text_subchunk_dump_lang_plain_entry ( t_workspace *ws, uns
 
 	utf16.length = 0;
 	utf16.allocated = 8192;
-	utf16.buffer = (unsigned short *) malloc ( utf16.allocated );
+	utf16.buffer = (unsigned short *) malloc ( utf16.allocated * sizeof ( unsigned short )  );
 	if ( !utf16.buffer )
 		return E_FAIL;
 
 	utf16.buffer[0] = 0;
 
-	if ( !(flags1 & 0x80) )
+	if ( TEXT_ENTRY_UTF8 ( flags1 ) )
 	{
-		utf8 = malloc ( 2 );
+		utf8 = calloc ( 2, sizeof ( unsigned char ) );
 		if ( !utf8 )
 			return E_FAIL;
 	}
@@ -374,9 +423,7 @@ unsigned int ppmodify_text_subchunk_dump_lang_plain_entry ( t_workspace *ws, uns
 	outpos = 0;
 	while ( pos < length )
 	{
-		if ( flags1 & 0x80 )
-			utf16_stradd ( &utf16, v_get_h ( ws, start + 2*pos ) );
-		else
+		if ( TEXT_ENTRY_UTF8 ( flags1 ) )
 		{
 			if ( v_get_b ( ws, start + pos ) < 0x80 )
 			{
@@ -393,10 +440,16 @@ unsigned int ppmodify_text_subchunk_dump_lang_plain_entry ( t_workspace *ws, uns
 			}
 			utf8 = realloc ( utf8, outpos+3 );
 		}
+		else if ( TEXT_ENTRY_UTF16 ( flags1 ) )
+			utf16_stradd ( &utf16, v_get_h ( ws, start + 2*pos ) );
+		else if ( TEXT_ENTRY_LPCS ( flags1 ) )
+			utf16_stradd ( &utf16, lpcs->utf16[v_get_b ( ws, start + pos )] );
+		else
+			PLUGIN_ERROR ( "(!flags1) failed", E_FAIL );
 		pos++;
 	}
 
-	if ( flags1 & 0x80 )
+	if ( !TEXT_ENTRY_UTF8 ( flags1 ) )
 	{
 		utf8 = utf16_to_utf8 ( &utf16 );
 		if ( !utf8 )
@@ -409,17 +462,28 @@ unsigned int ppmodify_text_subchunk_dump_lang_plain_entry ( t_workspace *ws, uns
 
 	worknode = treenode_addchild ( node );
 	treenode_set_name ( worknode, "STRING" );
-/////
-	if ( flags1 & 0x80 )
+
+	if ( add_text_id )
+	{
+		childnode = treenode_addchild ( worknode );
+		treenode_set_name ( childnode, "ID" );
+		treenode_set_content_data_integer ( childnode, entry );
+	}
+
+	/////
+	if ( !ppmodd_ignore_utf16 && !TEXT_ENTRY_UTF8 ( flags1 ) )
 	{
 		childnode = treenode_addchild ( worknode );
 		treenode_set_name ( childnode, "UTF16" );
 		treenode_set_content_data_binary ( childnode, (unsigned char*)utf16.buffer, utf16_strlen ( &utf16 )*2 );
 	}
-/////
+
+	/////
 	childnode = treenode_addchild ( worknode );
 	treenode_set_name ( childnode, "UTF8" );
 	treenode_set_content_data ( childnode, utf8 );
+
+	entries_dumped++;
 
 
 	CHECK_AND_FREE ( utf16.buffer );
@@ -428,7 +492,7 @@ unsigned int ppmodify_text_subchunk_dump_lang_plain_entry ( t_workspace *ws, uns
 	return E_OK;
 }
 
-unsigned int ppmodify_text_subchunk_dump_lang_comp_entry ( t_workspace *ws, unsigned int start, unsigned int length, t_treenode *node, unsigned short flags1, unsigned short flags2, unsigned char *tokens )
+unsigned int ppmodify_text_subchunk_dump_lang_comp_entry ( t_workspace *ws, unsigned int start, unsigned int length, t_treenode *node, unsigned short flags1, unsigned short flags2, unsigned char *tokens, unsigned int id )
 {
 	t_treenode *worknode = NULL;
 	t_treenode *childnode = NULL;
@@ -441,7 +505,7 @@ unsigned int ppmodify_text_subchunk_dump_lang_comp_entry ( t_workspace *ws, unsi
 
 	utf16.length = 0;
 	utf16.allocated = 8192;
-	utf16.buffer = (unsigned short *) malloc ( utf16.allocated );
+	utf16.buffer = (unsigned short *) malloc ( utf16.allocated * sizeof ( unsigned short )  );
 	if ( !utf16.buffer )
 		return E_FAIL;
 
@@ -469,19 +533,35 @@ unsigned int ppmodify_text_subchunk_dump_lang_comp_entry ( t_workspace *ws, unsi
 	treenode_set_name ( worknode, "STRING" );
 
 ///
+
+	if ( add_text_id )
+	{
+		childnode = treenode_addchild ( worknode );
+		treenode_set_name ( childnode, "ID" );
+		//treenode_set_content_data_binary ( childnode, tokenbuffer, length );
+		treenode_set_content_data_integer ( childnode, id );
+	}
+
+	if ( !ppmodd_ignore_tokens )
+	{
 		childnode = treenode_addchild ( worknode );
 		treenode_set_name ( childnode, "TOKEN" );
 		treenode_set_content_data_binary ( childnode, tokenbuffer, length );
-	
+	}
+
+	if ( !ppmodd_ignore_utf16 )
+	{
 		childnode = treenode_addchild ( worknode );
 		treenode_set_name ( childnode, "UTF16" );
 		treenode_set_content_data_binary ( childnode, (unsigned char*)utf16.buffer, utf16_strlen ( &utf16 )*2 );
-	
-		childnode = treenode_addchild ( worknode );
-		treenode_set_name ( childnode, "UTF8" );
-		treenode_set_content_data ( childnode, utf8 );
+	}
 
-////
+	childnode = treenode_addchild ( worknode );
+	treenode_set_name ( childnode, "UTF8" );
+	treenode_set_content_data ( childnode, utf8 );
+
+	////
+	entries_dumped++;
 
 	free ( tokenbuffer );
 	free ( utf16.buffer );
@@ -490,51 +570,76 @@ unsigned int ppmodify_text_subchunk_dump_lang_comp_entry ( t_workspace *ws, unsi
 	return E_OK;
 }
 
-unsigned int ppmodify_text_subchunk_dump_lang_comp_strings ( t_workspace *ws, unsigned int start, unsigned int length, t_treenode *node, unsigned short flags1, unsigned short flags2, unsigned char *tokens, unsigned char *lengths, int entries )
+unsigned int ppmodify_text_subchunk_dump_lang_comp_strings ( t_workspace *ws, unsigned int start, unsigned int length, t_treenode *node, unsigned short flags1, unsigned short flags2, unsigned char *tokens, unsigned char *lengths, int entries, unsigned int first_entry_id )
 {
 	unsigned int entry = 0;
 	unsigned int pos = 0;
+   int entry_length = 0;
 
 	if ( !ws || !node || !lengths || !tokens )
 		return E_FAIL;
 
 	while ( entry < entries )
 	{
-		ppmodify_text_subchunk_dump_lang_comp_entry ( ws, start + pos, lengths[entry] * ((flags1 & 0xF0) == 0xA0 ? 2 : 1 ), node, flags1, flags2, tokens );
-		pos += lengths[entry] * ((flags1 & 0xF0) == 0xA0 ? 2 : 1 );
+		if ( flags1 & TEXT_COMP_2 )
+			entry_length = lengths[entry] * 2;
+		else
+      {
+         if ( flags1 & TEXT_ENTRY_SIZE_2 )
+         {
+            if ( endianess_be )
+               entry_length = (lengths[2*entry]<<8) + lengths[2*entry+1];
+            else
+               entry_length = (lengths[2*entry+1]<<8) + lengths[2*entry];
+         }
+         else
+			   entry_length = lengths[entry];
+      }
+
+		ppmodify_text_subchunk_dump_lang_comp_entry ( ws, start + pos, entry_length, node, flags1, flags2, tokens, entry + first_entry_id);
+		pos += entry_length;
 		entry++;
 	}
 
 	return E_OK;
 }
 
-unsigned int ppmodify_text_subchunk_dump_lang_plain_strings ( t_workspace *ws, unsigned int start, unsigned int length, t_treenode *node, unsigned short flags1, unsigned short flags2, unsigned char *lengths, int entries )
+unsigned int ppmodify_text_subchunk_dump_lang_plain_strings ( t_workspace *ws, unsigned int start, unsigned int length, t_treenode *node, unsigned short flags1, unsigned short flags2, unsigned char *lengths, int entries, unsigned int first_entry_id )
 {
 	int entry = 0;
 	int pos = 0;
+   int entry_length = 0;
 
 	if ( !ws || !node || !lengths )
 		return E_FAIL;
 
 	while ( entry < entries )
 	{
-		ppmodify_text_subchunk_dump_lang_plain_entry ( ws, start + pos, lengths[entry], node, flags1, flags2 );
-		if ( flags1 & 0x80 )
-			pos += 2*lengths[entry];
+      if ( flags1 & TEXT_ENTRY_SIZE_2 )
+         entry_length = lengths[2*entry] | ( lengths[2*entry+1] << 8 );
+      else
+         entry_length = lengths[entry];
+
+		ppmodify_text_subchunk_dump_lang_plain_entry ( ws, start + pos, entry_length, node, flags1, flags2, entry + first_entry_id );
+		if ( TEXT_ENTRY_UTF16 ( flags1 ) )
+			pos += 2 * entry_length;
 		else
-			pos += lengths[entry];
+			pos += entry_length;
 		entry++;
 	}
 
 	return E_OK;
 }
 
-unsigned int ppmodify_text_subchunk_dump_lang_comp ( t_workspace *ws, unsigned int start, unsigned int length, t_treenode *node, unsigned short flags1, unsigned short flags2 )
+unsigned int ppmodify_text_subchunk_dump_lang_comp ( t_workspace *ws, unsigned int start, unsigned int length, t_treenode *node, unsigned short flags1, unsigned short flags2, unsigned int first_entry_id )
 {
 	unsigned char tokens[0x200];
 	unsigned char *lengths = NULL;
 	unsigned int entries = 0;
 	unsigned int total_length = 0;
+	unsigned int read_pos = 0;
+	unsigned stop = 0;
+
 	t_treenode *childnode = NULL;
 	t_treenode *worknode = NULL;
 
@@ -548,49 +653,87 @@ unsigned int ppmodify_text_subchunk_dump_lang_comp ( t_workspace *ws, unsigned i
 	start += 0x200;
 	length -= 0x200;
 
-	while ( start % 2 )
-		start++;
+	start = ALIGN_HALF ( start );
 
-	while ( 
-		   v_get_b ( ws, start + entries ) != 0xFF 
-		&& total_length + entries < length
-		//&& entries < length 
-		)
-	{
-		if (  (flags1 & 0xF0) == 0xA0 )
-			total_length += 2*v_get_b ( ws, start + entries );
-		else
-			total_length += v_get_b ( ws, start + entries );
-		entries++;
-	}
+    if ( flags1 & TEXT_CHUNK_HAS_ENTRIES )
+    {
+        start += 4 * v_get_h ( ws, start );
+        start += 2;
+        entries = v_get_h ( ws, start );
+        start += 2;
+
+        if ( flags1 & TEXT_ENTRY_SIZE_2 )
+        {
+            read_pos += 2 * entries;
+        }
+        else
+        {
+            read_pos += entries;
+        }
+    }
+    else
+    {
+	    while ( /*v_get_b ( ws, start + read_pos ) != 0xFF  // new ppms like rm470 allowed token length == 255
+		    &&*/ (total_length + read_pos < length) && !stop
+		    //&& entries < length 
+		    )
+	    {
+		    if ( flags1 & TEXT_COMP_2 )
+		    {
+			    total_length += 2*v_get_b ( ws, start + read_pos );
+			    read_pos += 1;
+			    if ( total_length + read_pos + 2*v_get_b ( ws, start + read_pos ) > length )
+                stop = 1;
+		    }
+		    else
+		    {
+             if ( flags1 & TEXT_ENTRY_SIZE_2 )
+             {
+                total_length += v_get_h ( ws, start + read_pos );
+                read_pos += 2;
+                if ( total_length + read_pos + v_get_h ( ws, start + read_pos ) > length )
+                   stop = 1;
+             }
+             else
+             {
+			       total_length += v_get_b ( ws, start + read_pos );
+			       read_pos += 1;
+			       if ( total_length + read_pos + v_get_b ( ws, start + read_pos ) > length )
+                   stop = 1;
+             }
+		    }
+          entries++;
+	    }
+    }
 
 	if ( entries >= length )
 		return E_FAIL;
 
-	lengths = (unsigned char *) malloc ( entries );
+	lengths = (unsigned char *) malloc ( read_pos );
 	if ( !lengths )
 		return E_FAIL;
 
-	v_memcpy_get ( ws, lengths, start, entries );
-	start += entries;
-	length -= entries;
+	v_memcpy_get ( ws, lengths, start, read_pos );
+	start += read_pos;
+	length -= read_pos;
 
-	while ( start % 2 )
-		start++;
-
+	start = ALIGN_HALF ( start );
 
 	worknode = treenode_addchild ( node );
 	treenode_set_name ( worknode, "TABLES" );
 
+	if(!ppmodd_ignore_tokens)
+	{
 		childnode = treenode_addchild ( worknode );
 		treenode_set_name ( childnode, "TOKENS" );
 		treenode_set_content_data_binary ( childnode, tokens, 0x200 );
+	}
 
-		childnode = treenode_addchild ( worknode );
-		treenode_set_name ( childnode, "LENGTHS" );
-		treenode_set_content_data_binary ( childnode, lengths, entries );
+	childnode = treenode_addchild ( worknode );
+	treenode_set_name ( childnode, "LENGTHS" );
+	treenode_set_content_data_binary ( childnode, lengths, entries );
 
-	ppmodify_text_subchunk_dump_lang_comp_strings ( ws, start, length, node, flags1, flags2, tokens, lengths, entries );
+	ppmodify_text_subchunk_dump_lang_comp_strings ( ws, start, length, node, flags1, flags2, tokens, lengths, entries, first_entry_id );
 
 	free ( lengths );
 
@@ -598,11 +741,14 @@ unsigned int ppmodify_text_subchunk_dump_lang_comp ( t_workspace *ws, unsigned i
 }
 
 
-unsigned int ppmodify_text_subchunk_dump_lang_plain ( t_workspace *ws, unsigned int start, unsigned int length, t_treenode *node, unsigned short flags1, unsigned short flags2 )
+unsigned int ppmodify_text_subchunk_dump_lang_plain ( t_workspace *ws, unsigned int start, unsigned int length, t_treenode *node, unsigned short flags1, unsigned short flags2, unsigned int first_entry_id )
 {
 	unsigned char *lengths = NULL;
 	unsigned int entries = 0;
 	unsigned int total_length = 0;
+   unsigned int read_pos = 0;
+   unsigned int entry_length = 0;
+   unsigned int stop = 0;
 	t_treenode *childnode = NULL;
 	t_treenode *worknode = NULL;
 
@@ -612,64 +758,96 @@ unsigned int ppmodify_text_subchunk_dump_lang_plain ( t_workspace *ws, unsigned 
 	if ( length < 0x20 )
 		return E_FAIL;
 
-	while ( 
-		   total_length + entries < length
-		&& entries < length 
-		)
-	{
-		if ( flags1 & 0x80 )
-			total_length += 2*v_get_b ( ws, start + entries );
-		else
-			total_length += v_get_b ( ws, start + entries );
+    if ( flags1 & TEXT_CHUNK_HAS_ENTRIES )
+    {
+        entries = v_get_h ( ws, start + read_pos );
+        if ( flags1 & TEXT_ENTRY_SIZE_2 )
+        {
+            start += 2;
+            read_pos += 2 * entries;
+        }
+        else
+        {
+            start += 2;
+            read_pos += entries;
+        }
+    }
+    else
+    {
 
-		entries++;
-	}
+	    while ( ( total_length + read_pos < length ) && ( entries < length )  && !stop )
+	    {
+          if ( flags1 & TEXT_ENTRY_SIZE_2 )
+          {
+             entry_length = v_get_h ( ws, start + read_pos );
+             read_pos += 2;
+          }
+          else
+          {
+             entry_length = v_get_b ( ws, start + read_pos );
+             read_pos += 1;
+          }
+
+		    if ( TEXT_ENTRY_UTF16 ( flags1 )  )
+			    total_length += 2*entry_length;
+		    else
+			    total_length += entry_length;
+
+          if ( flags1 & TEXT_ENTRY_SIZE_2 )
+             if ( total_length + read_pos + 2*v_get_h ( ws, start + read_pos ) > length )
+                stop = 1;
+          else
+             if ( total_length + read_pos + 2*v_get_b ( ws, start + read_pos ) > length )
+                stop = 1;
+
+		    entries++;
+	    }
+    }
 
 	if ( entries >= length )
 		return E_FAIL;
 
-	lengths = (unsigned char *) malloc ( entries );
+	lengths = (unsigned char *) malloc ( read_pos );
 	if ( !lengths )
 		return E_FAIL;
 
-	v_memcpy_get ( ws, lengths, start, entries );
-	start += entries;
-	length -= entries;
+	v_memcpy_get ( ws, lengths, start, read_pos );
+	start += read_pos;
+	length -= read_pos;
 
-	while ( start % 2 )
-		start++;
+   start = ALIGN_HALF ( start );
 
-	if ( lengths[entries-1] == 0xFF )
+	if ( !( flags1 & TEXT_ENTRY_SIZE_2 ) && lengths[entries-1] == 0xFF )
 		entries--;
 
 	worknode = treenode_addchild ( node );
 	treenode_set_name ( worknode, "TABLES" );
 
-		childnode = treenode_addchild ( worknode );
-		treenode_set_name ( childnode, "LENGTHS" );
-		treenode_set_content_data_binary ( childnode, lengths, entries );
+	childnode = treenode_addchild ( worknode );
+	treenode_set_name ( childnode, "LENGTHS" );
+	treenode_set_content_data_binary ( childnode, lengths, entries );
 
-	ppmodify_text_subchunk_dump_lang_plain_strings ( ws, start, length, node, flags1, flags2, lengths, entries );
+	ppmodify_text_subchunk_dump_lang_plain_strings ( ws, start, length, node, flags1, flags2, lengths, entries, first_entry_id );
 
 
 	return E_OK;
 }
 
-unsigned int ppmodify_text_subchunk_dump_lang ( t_workspace *ws, unsigned int start, unsigned int length, t_treenode *node, unsigned short flags1, unsigned short flags2 )
+unsigned int ppmodify_text_subchunk_dump_lang ( t_workspace *ws, unsigned int start, unsigned int length, t_treenode *node, unsigned short flags1, unsigned short flags2, unsigned int first_entry_id )
 {
 	treenode_set_name ( node, "STRINGS" );
 
-	if ( (flags1 & 0xF0) == 0x90 )
-		return ppmodify_text_subchunk_dump_lang_comp ( ws, start, length, node, flags1, flags2 );
-	else if ( (flags1 & 0xF0) == 0xA0 )
-		return ppmodify_text_subchunk_dump_lang_comp ( ws, start, length, node, flags1, flags2 );
-	else 
-		return ppmodify_text_subchunk_dump_lang_plain ( ws, start, length, node, flags1, flags2 );
+	if ( flags1 & TEXT_COMP_1 )
+		return ppmodify_text_subchunk_dump_lang_comp ( ws, start, length, node, flags1, flags2, first_entry_id );
+	else if ( flags1 & TEXT_COMP_2 )
+		return ppmodify_text_subchunk_dump_lang_comp ( ws, start, length, node, flags1, flags2, first_entry_id );
+	else
+		return ppmodify_text_subchunk_dump_lang_plain ( ws, start, length, node, flags1, flags2, first_entry_id );
 
 	return E_FAIL;
 }
 
-unsigned int ppmodify_text_subchunk_dump ( t_workspace *ws, unsigned int start, unsigned int length, t_treenode *node )
+unsigned int ppmodify_text_subchunk_dump ( t_workspace *ws, unsigned int start, unsigned int length, t_treenode *node, unsigned int first_entry_id  )
 {
 	subchunk_hdr header;
 	t_treenode *headernode = NULL;
@@ -688,6 +866,9 @@ unsigned int ppmodify_text_subchunk_dump ( t_workspace *ws, unsigned int start, 
 
 	header.name[4] = '\000';
 
+	if(!header.id) // terminator
+		return ppmodify_ppm_subchunk_dump ( ws, start, length, node );
+
 	if ( dump_chunks )
 	{
 		printf ( "    SubChunk: '%s'\n", header.name );
@@ -701,48 +882,48 @@ unsigned int ppmodify_text_subchunk_dump ( t_workspace *ws, unsigned int start, 
 	}
 	treenode_set_name ( node, "SUBCHUNK" );
 
-		headernode = treenode_addchild ( node );
-		treenode_set_name ( headernode, "INFORMATION" );
+	headernode = treenode_addchild ( node );
+	treenode_set_name ( headernode, "INFORMATION" );
 
-			worknode = treenode_addchild ( headernode );
-			treenode_set_name ( worknode, "ID" );
-			treenode_set_content_type ( worknode, TREENODE_TYPE_HEXVAL );
-			treenode_set_content_data_hexval ( worknode, header.id );
+	worknode = treenode_addchild ( headernode );
+	treenode_set_name ( worknode, "ID" );
+	treenode_set_content_type ( worknode, TREENODE_TYPE_HEXVAL );
+	treenode_set_content_data_hexval ( worknode, header.id );
 
-			worknode = treenode_addchild ( headernode );
-			treenode_set_name ( worknode, "NAME" );
-			treenode_set_content_type ( worknode, TREENODE_TYPE_ASCII );
-			treenode_set_content_data ( worknode, header.name );
+	worknode = treenode_addchild ( headernode );
+	treenode_set_name ( worknode, "NAME" );
+	treenode_set_content_type ( worknode, TREENODE_TYPE_ASCII );
+	treenode_set_content_data ( worknode, header.name );
 
-			worknode = treenode_addchild ( headernode );
-			treenode_set_name ( worknode, "LENGTH" );
-			treenode_set_content_type ( worknode, TREENODE_TYPE_HEXVAL );
-			treenode_set_content_data_hexval ( worknode, header.length );
+	worknode = treenode_addchild ( headernode );
+	treenode_set_name ( worknode, "LENGTH" );
+	treenode_set_content_type ( worknode, TREENODE_TYPE_HEXVAL );
+	treenode_set_content_data_hexval ( worknode, header.length );
 
-			worknode = treenode_addchild ( headernode );
-			treenode_set_name ( worknode, "FLAGS1" );
-			treenode_set_content_type ( worknode, TREENODE_TYPE_HEXVAL );
-			treenode_set_content_data_hexval ( worknode, header.flags1 );
+	worknode = treenode_addchild ( headernode );
+	treenode_set_name ( worknode, "FLAGS1" );
+	treenode_set_content_type ( worknode, TREENODE_TYPE_HEXVAL );
+	treenode_set_content_data_hexval ( worknode, header.flags1 );
 
-			worknode = treenode_addchild ( headernode );
-			treenode_set_name ( worknode, "FLAGS2" );
-			treenode_set_content_type ( worknode, TREENODE_TYPE_HEXVAL );
-			treenode_set_content_data_hexval ( worknode, header.flags2 );
+	worknode = treenode_addchild ( headernode );
+	treenode_set_name ( worknode, "FLAGS2" );
+	treenode_set_content_type ( worknode, TREENODE_TYPE_HEXVAL );
+	treenode_set_content_data_hexval ( worknode, header.flags2 );
 
-			worknode = treenode_addchild ( headernode );
-			treenode_set_name ( worknode, "FLAGS3" );
-			treenode_set_content_type ( worknode, TREENODE_TYPE_HEXVAL );
-			treenode_set_content_data_hexval ( worknode, header.flags3 );
+	worknode = treenode_addchild ( headernode );
+	treenode_set_name ( worknode, "FLAGS3" );
+	treenode_set_content_type ( worknode, TREENODE_TYPE_HEXVAL );
+	treenode_set_content_data_hexval ( worknode, header.flags3 );
 
-			worknode = treenode_addchild ( headernode );
-			treenode_set_name ( worknode, "FLAGS4" );
-			treenode_set_content_type ( worknode, TREENODE_TYPE_HEXVAL );
-			treenode_set_content_data_hexval ( worknode, header.flags4 );
+	worknode = treenode_addchild ( headernode );
+	treenode_set_name ( worknode, "FLAGS4" );
+	treenode_set_content_type ( worknode, TREENODE_TYPE_HEXVAL );
+	treenode_set_content_data_hexval ( worknode, header.flags4 );
 
 	start += 0x10;
 
 	worknode = treenode_addchild ( node );
-	ppmodify_text_subchunk_dump_lang ( ws, start, header.length - 0x10, worknode, header.flags1, header.flags2 );
+	ppmodify_text_subchunk_dump_lang ( ws, start, header.length - 0x10, worknode, header.flags1, header.flags2, first_entry_id );
 
 
 	return E_OK;
@@ -758,6 +939,7 @@ unsigned int ppmodify_text_subchunk_dump ( t_workspace *ws, unsigned int start, 
 unsigned int ppmodify_build_text_utf16 ( t_treenode *node )
 {
 	t_stringbuffer utf16_string;
+	t_stringbuffer utf8_string;
 	t_treenode *worknode = NULL;
 	unsigned char *workbuffer = NULL;
 
@@ -765,7 +947,7 @@ unsigned int ppmodify_build_text_utf16 ( t_treenode *node )
 
 	worknode = treenode_get_byname ( treenode_children ( node ), "UTF16" );
 	workbuffer = treenode_get_content_data ( worknode );
-	if ( !workbuffer )
+	if ( ppmodd_ignore_utf16 || !workbuffer )
 	{
 		utf16_string.length = 0;
 		utf16_string.buffer = NULL;
@@ -778,8 +960,8 @@ unsigned int ppmodify_build_text_utf16 ( t_treenode *node )
 		if ( !workbuffer )
 			return E_FAIL;
 
-		ppmodify_string_unescape ( workbuffer );
-		if ( utf8_to_utf16 ( workbuffer, &utf16_string ) != E_OK )
+		ppmodify_string_unescape ( workbuffer, &utf8_string );
+		if ( utf8_to_utf16 ( &utf8_string, &utf16_string ) != E_OK )
 			return E_FAIL;
 
 		worknode = treenode_get_byname ( treenode_children ( node ), "UTF16" );
@@ -794,6 +976,7 @@ unsigned int ppmodify_build_text_utf16 ( t_treenode *node )
 
 		treenode_set_content_data_binary ( worknode, (unsigned char*)utf16_string.buffer, utf16_string.length * 2 );
 
+		CHECK_AND_FREE ( utf8_string.buffer );
 		CHECK_AND_FREE ( utf16_string.buffer );
 	}
 	return E_OK;
@@ -842,18 +1025,20 @@ unsigned int ppmodify_build_text_subchunk ( t_treenode *node )
 	unsigned char *workbuffer = NULL;
 	unsigned char *chunkdata = NULL;
 	t_workspace *ws = NULL;
-	unsigned int alignment = 0;
 	unsigned int length = 0;
+	unsigned int alignedlength = 0;
 	unsigned int worklength = 0;
 	unsigned int string_entries = 0;
+	unsigned int string_entry_size = 1;
 	unsigned int stringpos = 0;
 	unsigned int lengthtable_pos = 0;
 	unsigned int tokentable_pos = 0;
 	unsigned int tablelength = 0;
+	unsigned int max_lengthentry_value = 0xFF;
 
 	t_compress_buffer *comp_token_table = NULL;
 	unsigned int compressed = 0;
-	unsigned int unicode = 0;
+
 
 	if ( !node )
 		return E_FAIL;
@@ -867,8 +1052,11 @@ unsigned int ppmodify_build_text_subchunk ( t_treenode *node )
 
 	worknode = treenode_get_byname ( treenode_children ( infonode ), "ID" );
 	if ( !worknode )
- 		return E_FAIL;
+		return E_FAIL;
 	header.id = treenode_get_content_data_hexval ( worknode );
+
+	if(!header.id) // terminator
+		return ppmodify_build_ppm_subchunk ( node );
 
 	worknode = treenode_get_byname ( treenode_children ( infonode ), "NAME" );
 	if ( !worknode )
@@ -913,15 +1101,15 @@ unsigned int ppmodify_build_text_subchunk ( t_treenode *node )
 	{
 		// get chunk data
 
-		if ( (header.flags1 & 0xF0) == 0x90 )
+		if ( header.flags1 & TEXT_COMP_1 )
 			compressed = 1;
-		else if ( (header.flags1 & 0xF0) == 0xA0 )
-			compressed = 2;
-		else 
-			compressed = 0;
+      else if ( header.flags1 & TEXT_COMP_2 )
+         compressed = 2;
+      else
+         compressed = 0;
 
-		if ( (header.flags1 & 0x80) == 0x80 )
-			unicode = 1;
+		if ( header.flags1 & TEXT_ENTRY_SIZE_2 )
+			max_lengthentry_value = 0xFEFF;
 
 		// prepare token table space
 		if ( compressed )
@@ -937,8 +1125,6 @@ unsigned int ppmodify_build_text_subchunk ( t_treenode *node )
 
 			tokentable_pos = length;
 			length += worklength;
-
-
 		}
 
 		// count the number of strings
@@ -950,25 +1136,25 @@ unsigned int ppmodify_build_text_subchunk ( t_treenode *node )
 			child = treenode_get_byname ( treenode_next ( child ), "STRING" );
 		}	
 
-		alignment = 0;
-		while ( (alignment + string_entries) % 2 )
-			alignment++;
+		if ( header.flags1 & TEXT_ENTRY_SIZE_2 )
+			string_entry_size = 2;
 
-		chunkdata = realloc ( chunkdata, length + string_entries + alignment );
+		alignedlength = ALIGN_HALF ( string_entries*string_entry_size );
+
+		chunkdata = realloc ( chunkdata, length + alignedlength );
 		if ( !chunkdata )
 			return E_FAIL;
 
-		memset ( chunkdata + length, 0xFF, string_entries + alignment ); 
+		memset ( chunkdata + length, alignment_byte, alignedlength );
 
 		lengthtable_pos = length;
-		length += string_entries + alignment;
-
+		length += alignedlength;
 
 		// generate UTF16 strings from UTF8 if neccessary
 		child = treenode_get_byname ( treenode_children ( stringnode ), "STRING" );
 		while ( child )
 		{
-			if ( unicode )
+			if ( TEXT_ENTRY_UTF16 ( header.flags1 ) || TEXT_ENTRY_LPCS ( header.flags1 ) )
 			{
 				if ( ppmodify_build_text_utf16 ( child ) == E_FAIL )
 				{
@@ -980,28 +1166,31 @@ unsigned int ppmodify_build_text_subchunk ( t_treenode *node )
 
 				if ( !workbuffer )
 				{
-					printf ( " [e] UTF-16 String %i in '%s' could not get built. Could be that this entry is empty! Worknode: %s, Type: %s, Content: %s\n", stringpos, header.name, worknode->name, worknode->content_type, worknode->content_data );
+					worklength = 0;
+					//printf ( " [w] UTF-16 String %i in '%s' could not get built. Could be that this entry is empty! Worknode: %s, Type: %s, Content: %s\n", stringpos, header.name, worknode->name, worknode->content_type, worknode->content_data );
 					//return E_FAIL;
 				}
 
-				if ( worklength % 2 )
+				if ( worklength & 1 )
 				{
 					CHECK_AND_FREE ( workbuffer );
 					printf ( " [e] UTF-16 String %i in '%s' has odd length, must be 2 byte aligned.\n", stringpos, header.name );
 					return E_FAIL;
 				}
-
 			}
-			else
+			else if ( TEXT_ENTRY_UTF8 ( header.flags1 ) )
 			{
 				worknode = treenode_get_byname ( treenode_children ( child ), "UTF8" );
-				workbuffer = treenode_get_content_data_binary ( worknode, &worklength );
-				//workbuffer = treenode_get_content_ascii ( worknode, &worklength );
+				workbuffer = treenode_get_content_ascii ( worknode );
+
 				if ( !workbuffer )
 				{
-					printf ( " [e] UTF-8 String %i in '%s' could not get retrieved. Worknode name: %s, worknode length: %d, content data: %s\n", stringpos, header.name, worknode->name, worklength, worknode->content_type );
-					return E_FAIL;
+					worklength = 0;
+					//printf ( " [e] UTF-8 String %i in '%s' could not get retrieved. Worknode name: %s, worknode length: %d, content data: %s\n", stringpos, header.name, worknode->name, worklength, worknode->content_type );
+					//return E_FAIL;
 				}
+				else
+					worklength = strlen ( workbuffer );
 			}
 
 			//if ( worklength )
@@ -1034,6 +1223,9 @@ unsigned int ppmodify_build_text_subchunk ( t_treenode *node )
 				worknode = treenode_get_byname ( treenode_children ( child ), "UTF16" );
 				workbuffer = treenode_get_content_data_binary ( worknode, &worklength );
 
+				if(!workbuffer)
+					worklength=0;
+
 				// when we have LE, we have to swap bytes in every halfword
 				if ( !endianess_be && (compressed == 2) )
 				{
@@ -1062,7 +1254,7 @@ unsigned int ppmodify_build_text_subchunk ( t_treenode *node )
 			{
 				t_compress_buffer highest;
 				highest.data = NULL;
-				
+
 				// that function never may return a failure except we have a pack
 				// without any strings... cover that?
 				R(ppmodify_text_comp_dict_get_highfreq ( &dictionary, &highest, header.flags1 ));
@@ -1126,11 +1318,15 @@ unsigned int ppmodify_build_text_subchunk ( t_treenode *node )
 		child = treenode_get_byname ( treenode_children ( stringnode ), "STRING" );
 		while ( child )
 		{
+
 			// prepare tokens
 			if ( compressed == 1 )
 			{
 				worknode = treenode_get_byname ( treenode_children ( child ), "TOKEN" );
 				workbuffer = treenode_get_content_data_binary ( worknode, &worklength );
+
+				if( !workbuffer )
+					worklength = 0;
 
 				tablelength = worklength;
 			}
@@ -1139,14 +1335,20 @@ unsigned int ppmodify_build_text_subchunk ( t_treenode *node )
 				worknode = treenode_get_byname ( treenode_children ( child ), "TOKEN" );
 				workbuffer = treenode_get_content_data_binary ( worknode, &worklength );
 
-				if ( worklength % 2 )
+				if( !workbuffer )
+					worklength = 0;
+
+				if ( worklength & 1 )
 					PLUGIN_ERROR ( "Compression type 2 returned uneven token length?!", E_FAIL );
 				tablelength = worklength / 2;
 			}
-			else if ( unicode )
+			else if ( TEXT_ENTRY_UTF16 ( header.flags1 ) )
 			{
 				worknode = treenode_get_byname ( treenode_children ( child ), "UTF16" );
 				workbuffer = treenode_get_content_data_binary ( worknode, &worklength );
+
+				if( !workbuffer )
+					worklength = 0;
 
 				// when we have LE, we have to swap bytes in every halfword
 				if ( !endianess_be )
@@ -1161,22 +1363,59 @@ unsigned int ppmodify_build_text_subchunk ( t_treenode *node )
 				}
 				tablelength = worklength / 2;
 			}
-			else
+			else if ( TEXT_ENTRY_UTF8 ( header.flags1 ) )
 			{
 				worknode = treenode_get_byname ( treenode_children ( child ), "UTF8" );
+				workbuffer = treenode_get_content_ascii ( worknode );
+
+				if ( !workbuffer )
+					worklength = 0;
+
+				worklength = strlen ( workbuffer );
+				tablelength = worklength;
+			}
+			else if ( TEXT_ENTRY_LPCS ( header.flags1 ) )
+			{
+				unsigned char *buff = NULL;
+				t_stringbuffer utf16;
+
+				worknode = treenode_get_byname ( treenode_children ( child ), "UTF16" );
 				workbuffer = treenode_get_content_data_binary ( worknode, &worklength );
-				//workbuffer = treenode_get_content_ascii ( worknode, &worklength );
+
+				if( !workbuffer )
+					worklength = 0;
+				else
+				{
+					utf16.buffer = (unsigned short*)workbuffer;
+					utf16.allocated = worklength;
+					utf16.length = worklength/2;
+
+					// when we have BE, we have to swap bytes in every halfword
+					if ( endianess_be )
+						utf16_switch_endianess ( &utf16 );
+
+					buff = utf16_to_lpcs ( &utf16 );
+
+					if ( !buff )
+					{
+						CHECK_AND_FREE ( workbuffer );
+	               worklength = 0;
+					}
+					else
+					{
+						CHECK_AND_FREE ( workbuffer );
+	               workbuffer = buff;
+						worklength = utf16.length;
+					}
+				}
 
 				tablelength = worklength;
 			}
 
-			if ( !workbuffer || worklength < 0 )
-			{
-				printf ( " [e] String %i in '%s' failed to build. Assuming it's a zero string.\n", stringpos, header.name );
-				//return E_FAIL;
-			}
+			if ( worklength <= 0 )
+				worklength = 0;
 
-			if ( tablelength >= 0xFF )
+			if ( tablelength > max_lengthentry_value )
 			{
 				t_treenode *tempnode = treenode_get_byname ( treenode_children ( child ), "UTF8" );
 				int templength = 0;
@@ -1184,19 +1423,54 @@ unsigned int ppmodify_build_text_subchunk ( t_treenode *node )
 
 				tempbuffer = treenode_get_content_ascii ( tempnode );
 				if ( tempbuffer )
-					printf ( " [!] String %i in '%s' too long! Truncated from %i to %i entries.\n      \"%s\"", stringpos, header.name, tablelength, 0xFE, tempbuffer );
+					printf ( " [!] String %i in '%s' too long! Truncated from %i to %i entries.\n      \"%s\"\r\n", stringpos, header.name, tablelength, max_lengthentry_value, tempbuffer );
 				else
-					printf ( " [!] String %i in '%s' too long! Truncated from %i to %i entries.\n      \"(null)\"", stringpos, header.name, tablelength, 0xFE  );
-				tablelength = 0xFE;
+					printf ( " [!] String %i in '%s' too long! Truncated from %i to %i entries.\n      \"(null)\"", stringpos, header.name, tablelength, max_lengthentry_value  );
+
+				// now fix the length info
+				tablelength = max_lengthentry_value;
+
+				if ( compressed == 1 )
+					worklength = tablelength;
+				else if ( compressed == 2 )
+					worklength = tablelength * 2;
+				else if ( TEXT_ENTRY_UTF16 ( header.flags1 ) )
+					worklength = tablelength * 2;
+				else
+					worklength = tablelength;
+
+				// overwrite last 2 bytes, so that no escape byte (0xFF) is there
+				workbuffer[worklength-1] = 0x00;
+				workbuffer[worklength-2] = 0x00;
+
+				CHECK_AND_FREE(tempbuffer);
 			}
 
-			chunkdata = realloc ( chunkdata, length + worklength );
-			memcpy ( chunkdata + length, workbuffer, worklength ); 
-			CHECK_AND_FREE ( workbuffer );
+			if ( workbuffer && worklength )
+			{
+				chunkdata = realloc ( chunkdata, length + worklength );
+				memcpy ( chunkdata + length, workbuffer, worklength ); 
+				CHECK_AND_FREE ( workbuffer );
+			}
 
 			length += worklength;
 
-			chunkdata[lengthtable_pos + stringpos++] = tablelength;
+			if ( header.flags1 & TEXT_ENTRY_SIZE_2 )
+			{
+            if ( endianess_be )
+				{
+               chunkdata[lengthtable_pos + 2*stringpos] = tablelength >> 8;
+				   chunkdata[lengthtable_pos + 2*stringpos + 1] = tablelength & 0xFF;
+            }
+            else
+				{
+               chunkdata[lengthtable_pos + 2*stringpos] = tablelength & 0xFF;
+				   chunkdata[lengthtable_pos + 2*stringpos + 1] = tablelength >> 8;
+            }
+				stringpos++;
+			}
+			else
+				chunkdata[lengthtable_pos + stringpos++] = tablelength;
 
 			worknode = treenode_get_byname ( treenode_next ( child ), "STRING" );
 			treenode_release ( child );
@@ -1211,7 +1485,7 @@ unsigned int ppmodify_build_text_subchunk ( t_treenode *node )
 	if ( !ws )
 		return E_FAIL;
 
-	ws->flags &= FLAGS_ENDIANESS;
+	ws->flags &= ~FLAGS_ENDIANESS;
 	if ( endianess_be )
 		ws->flags |= FLAGS_ENDIANESS_BE;
 	else
@@ -1220,7 +1494,7 @@ unsigned int ppmodify_build_text_subchunk ( t_treenode *node )
 	v_set_w ( ws, 0x00, header.id );
 
 	if ( header.length != length + 0x10 )
-		printf ( "[i] SubChunk '%s' length changed from %i to %i\n", header.name, header.length, length + 0x10 );
+		printf ( " [i] SubChunk '%s' length changed from %i to %i\n", header.name, header.length, length + 0x10 );
 
 	v_set_w ( ws, 0x04, length + 0x10 );
 	v_memcpy_put ( ws, 0x08, header.name, 0x04 );
@@ -1234,7 +1508,6 @@ unsigned int ppmodify_build_text_subchunk ( t_treenode *node )
 	free ( chunkdata );
 
 	// free subnodes
-
 	treenode_release ( infonode );
 	treenode_release ( stringnode );
 
@@ -1249,4 +1522,3 @@ unsigned int ppmodify_build_text_subchunk ( t_treenode *node )
 }
 
 #endif
-

@@ -1,5 +1,5 @@
 /*
- * $Id: fselect.c,v 1.1 2006/06/28 13:53:39 geggo Exp $
+ * $Id: fselect.c 1521 2006-06-28 13:53:39Z geggo $
  *
  *  fselect.c -- implements the file-selector box
  *

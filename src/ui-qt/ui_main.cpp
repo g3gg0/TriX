@@ -10,8 +10,11 @@
 #include "ui_memviewer_dlg.h"
 
 #ifdef WIN32
+#include <direct.h>
 #include <Windows.h>
+#include <Shlobj.h>
 #endif
+
 extern "C"
 {
   
@@ -37,15 +40,6 @@ extern "C"
 
 #include "mem.h"
 
-#define DEFAULT_SCRIPT \
-	"#include trix\n" \
-	"\n" \
-	"int main ( )\n" \
-	"{\n"\
-	"   char *buffer = NULL;\n"\
-	"	UiDlgString ( \"Just press enter if you're bored ;).\", &buffer );\n" \
-	"}\n"
-
 
 unsigned int seer_run ( char *script );
 int qInitResources();
@@ -65,9 +59,10 @@ int mem_checking = 0;
 
 char trix_out_buffer[TRIX_PRINTF_BUFSIZE+10];
 QTimer *trix_thread_timer = NULL;
-int trix_out_buffer_updated = 0;
-int trix_output_pause = 0;
-int trix_output_flush = 0;
+volatile int trix_out_buffer_length = 0;
+volatile int trix_out_buffer_updated = 0;
+volatile int trix_output_pause = 0;
+volatile int trix_output_flush = 0;
 t_mutex *trix_thread_lock = NULL;
 
 //------------------------------------------
@@ -78,12 +73,12 @@ t_mutex *trix_thread_lock = NULL;
 
 char *dialog_text = NULL;
 char *dialog_message = NULL;
-int dialog_bool = 0;
-int dialog_type = DLG_NONE;
+volatile int dialog_bool = 0;
+volatile int dialog_type = DLG_NONE;
 char *dialog_default = NULL;
 
 t_mutex *trix_dialog_lock = NULL;
-int dlg_locked = 0;
+
 
 //------------------------------------------
 
@@ -114,9 +109,18 @@ struct s_script_entry
 //
 //
 
-#define QT_BOX_CLEAR   0
-#define QT_BOX_APPEND  1
-#define QT_BOX_RELEASE 2
+#define QT_BOX_CLEAR       0
+#define QT_BOX_APPENDLINE  1
+#define QT_BOX_APPENDCHAR  2
+#define QT_BOX_RELEASE     3
+#define QT_BOX_KEYPRESSPTR 4
+
+#define QT_MEMVIEWER_NONE  0
+#define QT_MEMVIEWER_OPEN  1
+#define QT_MEMVIEWER_CLOSE 2
+
+#define QT_WORKSPACE_NONE    0
+#define QT_WORKSPACE_UPDATE  1
 
 typedef struct s_qt_box_queue t_qt_box_queue;
 struct s_qt_box_queue
@@ -140,6 +144,9 @@ struct s_qt_box_entry
 	t_mutex *mutex;
 	TextBox *box;
 };
+
+volatile int qt_dlg_memviewer_cmd = QT_MEMVIEWER_NONE;
+volatile int qt_dlg_workspace_cmd = QT_WORKSPACE_NONE;
 
 t_qt_box_entry *qt_box_list = NULL;
 t_mutex *qt_box_mutex = NULL;
@@ -202,14 +209,14 @@ class TriX_Script_Thread : public QThread
 {
 public:
 	TriX_Script_Thread ();
-    virtual void prepare ( char *script, t_workspace *ws );
-    virtual void prepare_multi ( t_script_entry *scripts, t_workspace *ws );
-    virtual int is_active ();
-    virtual int is_finished ();
-    virtual void run ();
-    virtual void reset ();
-    virtual void abort ();
-    virtual void dump_mem ();
+	virtual void prepare ( char *script, t_workspace *ws );
+	virtual void prepare_multi ( t_script_entry *scripts, t_workspace *ws );
+	virtual int is_active ();
+	virtual int is_finished ();
+	virtual void run ();
+	virtual void reset ();
+	virtual void abort ();
+	virtual void dump_mem ();
 private:
 	int thread_active;
 	int thread_finished;
@@ -312,8 +319,7 @@ void TriX_Script_Thread::run()
 	trix_workspace = workspace;
 
 	// update workspace window
-	if ( modeless_ws_win )
-		modeless_ws_win->Update ( trix_workspace );
+	qt_dlg_workspace_cmd = QT_WORKSPACE_UPDATE;
 
 	// prevent plugin unloading
 	if ( modeless_plug_win )
@@ -321,7 +327,6 @@ void TriX_Script_Thread::run()
 
 
 	execute_scripts ( script_entries );
-
 
 	// allow plugin unloading
 	if ( modeless_plug_win )
@@ -347,19 +352,15 @@ void TriX_Script_Thread::run()
 			file_pos++;
 		}
 	}
-	// save original workspace and "hide" the trix_workspace
+	// save original workspace and "hide" the trix_workspace - why?
 	workspace = trix_workspace;
 	trix_workspace = NULL;
 
 	// update workspace window
-	if ( modeless_ws_win )
-		modeless_ws_win->Update ( trix_workspace );
+	qt_dlg_workspace_cmd = QT_WORKSPACE_UPDATE;
+	while ( qt_dlg_workspace_cmd == QT_WORKSPACE_UPDATE );
 
-	if ( modeless_mem_win )
-	{
-		modeless_mem_win->Stop ();
-		modeless_mem_win->setVisible ( false );
-	}
+	qt_dlg_memviewer_cmd = QT_MEMVIEWER_CLOSE;
 
 	// release text boxes
 	qt_dlg_box_release_all ();
@@ -371,6 +372,7 @@ void TriX_Script_Thread::run()
 
 	if ( mem_checking )
 		mem_check_all (  );
+
 	thread_finished = 1;
 }
 ///////////////////////////////////////////
@@ -379,11 +381,11 @@ class TriX_Dump_Thread : public QThread
 {
 public:
 	TriX_Dump_Thread ();
-    virtual int is_active ();
-    virtual int is_finished ();
-    virtual void run ();
-    virtual void reset ();
-    virtual void abort ();
+	virtual int is_active ();
+	virtual int is_finished ();
+	virtual void run ();
+	virtual void reset ();
+	virtual void abort ();
 
 private:
 	int thread_active;
@@ -453,14 +455,71 @@ static TriX_Dump_Thread dump_thread;
 
 static QTextEdit *_textOutput;
 
+void TriXMainWindow::setFileAssociation ( )
+{
+#ifdef WIN32
+	bool notify = false;
+	QSettings reg ( "HKEY_CLASSES_ROOT", QSettings::NativeFormat );
+
+	if ( !reg.contains ( ".txj/Default" ) ||
+	     !reg.contains ( "TriX.1/Default" ) ||
+	     !reg.contains ( "TriX.1/Shell/open/command/Default" ) )
+		notify = true;
+
+	reg.setValue ( ".txj/Default", "TriX.1" );
+	reg.setValue ( "TriX.1/Default", "TriX Project" );
+	reg.setValue ( "TriX.1/Shell/open/command/Default", "\"" + QDir::toNativeSeparators ( QApplication::applicationFilePath ( ) ) + "\" \"%1\"" );
+
+	if ( notify )
+		SHChangeNotify ( SHCNE_ASSOCCHANGED, SHCNF_IDLIST, NULL, NULL );
+
+	// when TriX is launched by file association, CWD is set to the directory where project is stored
+	_chdir ( QDir::toNativeSeparators ( QApplication::applicationDirPath ( ) ).toLocal8Bit().data() );
+#else
+	/* ? */
+#endif
+}
+
+
 void TriXMainWindow::timerEvent(QTimerEvent *event)
 {
 
 }
+
+void TriXMainWindow::closeEvent(QCloseEvent *event)
+{
+	/* stop scripts */
+	if ( script_thread.is_active())
+	{
+		script_thread.abort();
+		ui_set_exiting ( );
+
+		CHECK_AND_FREE ( dialog_text );
+		dialog_bool = 0;
+		dialog_type = DLG_NONE;
+		mutex_unlock ( trix_dialog_lock );
+	}
+
+	int loop = 10;
+	while(!script_thread.is_finished() && loop--)
+	{
+		qt_dlg_workspace_cmd = QT_WORKSPACE_NONE;
+		Sleep(100);
+	}
+
+	QSettings settings( ORG_DOMAIN, APP_NAME );
+	settings.setValue("geometry", saveGeometry());
+
+	/* do a hard exit if the script is blocking */
+	exit(0);
+
+	QWidget::closeEvent(event);
+}
+
 void TriXMainWindow::dragEnterEvent(QDragEnterEvent *event)
 {
 	if ( tabWidget->currentIndex() == 1 || tabWidget->currentIndex() == 2 )
-        event->acceptProposedAction();
+		event->acceptProposedAction();
 }
 
 void TriXMainWindow::dropEvent(QDropEvent *event)
@@ -470,7 +529,7 @@ void TriXMainWindow::dropEvent(QDropEvent *event)
 		QString name = event->mimeData()->urls().first().toString();
 		event->acceptProposedAction();
 
-		project_add_file ( project, name.toAscii().data() );
+		project_add_file ( project, name.toLocal8Bit().data() );
 
 		update_scriptlist ();
 		lineScriptsName->setText ( QString ( "" ) );
@@ -484,7 +543,7 @@ void TriXMainWindow::dropEvent(QDropEvent *event)
 
 		t_workspace *ws = NULL;
 
-		ws = workspace_startup ( (char*)(name.toAscii().constData()) );
+		ws = workspace_startup ( (char*)(name.toLocal8Bit().constData()) );
 		if ( !ws )
 		{
 			ui_dlg_msg ( "Script loading failed", 0 );
@@ -499,7 +558,6 @@ void TriXMainWindow::dropEvent(QDropEvent *event)
 // if we are closed, also remove the workspace window
 void TriXMainWindow::setVisible (bool visible)
 {
-
 	if ( !visible )
 	{
 		// close all additional boxes
@@ -531,22 +589,29 @@ void TriXMainWindow::setVisible (bool visible)
  ** The constructor initializes the environment for the first application.
  **
  */
-TriXMainWindow::TriXMainWindow()
+TriXMainWindow::TriXMainWindow ( )
 {
 	int ret = 0;
-   /*
-   ** Build the ui component
-   **
-   */
-   setupUi(this);
-   _textOutput = textOutput; // save as global variable to make it accessible by qt_vprintf()
 
-   trix_thread_lock = mutex_create();
-   trix_dialog_lock = mutex_create();
-   /*
-   ** Connect custom slots to signals
-   **
-   */
+
+	//_CrtSetDbgFlag(_CrtSetDbgFlag(0)|_CRTDBG_CHECK_ALWAYS_DF);
+
+	/*
+	** Build the ui component
+	**
+	*/
+	setupUi(this);
+	_textOutput = textOutput; // save as global variable to make it accessible by qt_vprintf()
+
+	setFileAssociation();
+
+	trix_thread_lock = mutex_create();
+	trix_dialog_lock = mutex_create();
+
+	/*
+	** Connect custom slots to signals
+	**
+	*/
 	trix_thread_timer = new QTimer ();
 	ret = connect ( trix_thread_timer, SIGNAL(timeout()), this, SLOT(evtTimerElapsed()));
 
@@ -610,6 +675,9 @@ TriXMainWindow::TriXMainWindow()
 	ret = connect(actPlugins,SIGNAL(triggered()),this,SLOT(actPluginsTriggered()));
 	ret = connect(actCommandRef,SIGNAL(triggered()),this,SLOT(actCommandRefTriggered()));
 	ret = connect(actNew,SIGNAL(triggered()),this,SLOT(actNewTriggered()));
+	ret = connect(actOpen,SIGNAL(triggered()),this,SLOT(actOpenTriggered()));
+	ret = connect(actSave,SIGNAL(triggered()),this,SLOT(actSaveTriggered()));
+	ret = connect(actSaveAs,SIGNAL(triggered()),this,SLOT(actSaveAsTriggered()));
 	ret = connect(actQuit,SIGNAL(triggered()),this,SLOT(actQuitTriggered()));
 	ret = connect(actStart,SIGNAL(triggered()),this,SLOT(actStartTriggered()));
 	ret = connect(actStop,SIGNAL(triggered()),this,SLOT(actStopTriggered()));
@@ -631,35 +699,26 @@ TriXMainWindow::TriXMainWindow()
 	toolbar->insertAction(actStart,actOutput);
 	toolbar->insertSeparator(actStart);
 
-
 	// simulate "New" action
 	actNewTriggered();
 
-	editScriptBox->setPlainText( QString ( DEFAULT_SCRIPT ) );
-	cmbFileType->setCurrentIndex(1);
-	cmbFileTypeActivated(1);
-
-	btnScriptsManual->setDisabled ( false );
-	btnScriptsManual->setText ( QString ( "Reload" ) );
-
-	modeless_mem_win = new MemoryViewer ( );
-	modeless_mem_win->setVisible ( false );
-	modeless_mem_win->setModal ( false );
-	modeless_mem_win->Stop ();
-
-
 	// options
 	options_add_core_option ( OPT_BOOL, "util", mem_checking, "Check+Dump memory after script exits" );
-
-
 }
+
+
 //---------------------------------------------------------------------------
 void TriXMainWindow::evtTimerElapsed()
 {
 	int pos = 0;
-	char buf[TRIX_PRINTF_BUFSIZE];
+	static char * buf = NULL;
+	
+	if ( !buf )
+		buf = (char*)malloc (TRIX_PRINTF_BUFSIZE);
 
 	qt_dlg_box_process ();
+	qt_dlg_memviewer_process ();
+	qt_dlg_workspace_process ();
 
 	if ( modeless_plug_win )
 		modeless_plug_win->update_timer();
@@ -702,25 +761,54 @@ void TriXMainWindow::evtTimerElapsed()
 		mutex_unlock (trix_dialog_lock);
 	}
 
-	if ( trix_out_buffer && (trix_out_buffer_updated > 0)  )
+	if ( trix_out_buffer && trix_out_buffer_updated )
 	{
 		int len = 0;
 		mutex_lock ( trix_thread_lock );
-
-		pos = strlen ( trix_out_buffer );
+/*
+		pos = trix_out_buffer_length;
 		while ( pos && (trix_out_buffer[pos] != '\n') )
+		{
+			pos--;
+		}
+*/
+		pos = trix_out_buffer_length;
+		while ( pos > 0 )
+		{
 			pos--;
 
-		if ( (trix_out_buffer[pos] == '\n') || trix_output_pause || trix_output_flush )
+			if(trix_out_buffer[pos] == '\r')
+			{
+				trix_out_buffer[pos] = ' ';
+			}
+		}
+
+		if ( true /*(trix_out_buffer[pos] == '\n') || trix_output_pause || trix_output_flush*/ )
 		{
 			trix_output_flush = 0;
 //			buf = (char*)strdup ( trix_out_buffer );
-			memcpy ( buf, trix_out_buffer, strlen ( trix_out_buffer ) );
-			buf[pos] = '\000';
+			//memcpy ( buf, trix_out_buffer, strlen ( trix_out_buffer ) );
+			//buf[pos] = '\000';
 			if ( !trix_output_pause )
-				_textOutput->append ( buf );
+			{           
+				QTextCursor cursor(_textOutput->textCursor());
+				cursor.movePosition(QTextCursor::End);
+				_textOutput->setTextCursor(cursor);
+				_textOutput->ensureCursorVisible();
+
+				_textOutput->insertPlainText ( trix_out_buffer );
+				
+				QScrollBar *sb = _textOutput->verticalScrollBar();
+				sb->setValue(sb->maximum());
+
+				cursor.movePosition(QTextCursor::End);
+				_textOutput->setTextCursor(cursor);
+				_textOutput->ensureCursorVisible();
+			}
 //			free ( buf );
-			memmove ( trix_out_buffer, trix_out_buffer+pos+1, strlen ( trix_out_buffer ) - pos );
+			//memmove ( trix_out_buffer, trix_out_buffer+pos+1, strlen ( trix_out_buffer ) - pos );
+			*trix_out_buffer = 0;
+			trix_out_buffer_length = strlen ( trix_out_buffer );
 		}
 
 		trix_out_buffer_updated = 0;
@@ -734,7 +822,6 @@ void TriXMainWindow::evtTimerElapsed()
 		actStart->setEnabled ( true );
 		actStop->setEnabled ( false );
 	}
-
 }
 
 void TriXMainWindow::txtEnterPressed ( )
@@ -742,7 +829,7 @@ void TriXMainWindow::txtEnterPressed ( )
 	if ( mutex_locked(trix_dialog_lock ) )
 	{
 		CHECK_AND_FREE ( dialog_text );
-		dialog_text = (char*)strdup(textInput->text().toAscii().data());
+		dialog_text = (char*)strdup(textInput->text().toLocal8Bit().data());
 		mutex_unlock ( trix_dialog_lock );
 
 		textInput->selectAll(); 
@@ -768,134 +855,103 @@ void TriXMainWindow::cmbSaveModeActivated ( int Pos )
 	else if ( Pos == 2 )
 		file_set_options ( FILE_DIFF );
 
-   PROJ_ASSIGN_INT(savemode, Pos);
+	PROJ_ASSIGN_INT(savemode, Pos);
 }
 
 void TriXMainWindow::cmbFileTypeActivated(int Pos)
 {
 
-   if ( Pos == 0 ) 
-   {
-       frmSimple->hide();
-       frmDCT4->hide();
-       frmDCT3->hide();
-	   tabWidget->widget(1)->setEnabled(false);
-	   tabWidget->widget(2)->setEnabled(false);
-   }
-   else if ( Pos == 1 )  
-   {
-       frmDCT3->hide();
-       frmDCT4->hide();
-       frmSimple->show();
-	   tabWidget->widget(1)->setEnabled(true);
-	   tabWidget->widget(2)->setEnabled(true);
-   }
-   else if ( Pos == 2 )
-   {
-       frmSimple->hide();
-       frmDCT4->hide();
-       frmDCT3->show();
-	   tabWidget->widget(1)->setEnabled(true);
-	   tabWidget->widget(2)->setEnabled(true);
-   }
-   else if ( Pos == 3 )
-   {
-       frmSimple->hide();
-       frmDCT3->hide();
-       frmDCT4->show();
-	   tabWidget->widget(1)->setEnabled(true);
-	   tabWidget->widget(2)->setEnabled(true);
-   }
+	if ( Pos == 0 )
+	{
+		frmSimple->hide();
+		frmDCT4->hide();
+		frmDCT3->hide();
+		tabWidget->widget(1)->setEnabled(false);
+		tabWidget->widget(2)->setEnabled(false);
+	}
+	else if ( Pos == 1 )
+	{
+		frmDCT3->hide();
+		frmDCT4->hide();
+		frmSimple->show();
+		tabWidget->widget(1)->setEnabled(true);
+		tabWidget->widget(2)->setEnabled(true);
+	}
+	else if ( Pos == 2 )
+	{
+		frmSimple->hide();
+		frmDCT4->hide();
+		frmDCT3->show();
+		tabWidget->widget(1)->setEnabled(true);
+		tabWidget->widget(2)->setEnabled(true);
+	}
+	else if ( Pos == 3 )
+	{
+		frmSimple->hide();
+		frmDCT3->hide();
+		frmDCT4->show();
+		tabWidget->widget(1)->setEnabled(true);
+		tabWidget->widget(2)->setEnabled(true);
+	}
 
-   PROJ_ASSIGN_INT(operationmode, Pos);
+	PROJ_ASSIGN_INT(operationmode, Pos);
 }
 //---------------------------------------------------------------------------
 void TriXMainWindow::grpDCT3InputToggled(bool Checked)
 {
-   PROJ_ASSIGN_BOOL(dct3_in, Checked);
+	PROJ_ASSIGN_BOOL(dct3_in, Checked);
 }
 
 //---------------------------------------------------------------------------
 void TriXMainWindow::grpDCT3OutputToggled(bool Checked)
 {
-   PROJ_ASSIGN_BOOL(dct3_out, Checked);
+	PROJ_ASSIGN_BOOL(dct3_out, Checked);
 }
 
 //---------------------------------------------------------------------------
 void TriXMainWindow::grpDCT4InputToggled(bool Checked)
 {
-   PROJ_ASSIGN_BOOL(dct4_in, Checked);
+	PROJ_ASSIGN_BOOL(dct4_in, Checked);
 }
 
 //---------------------------------------------------------------------------
 void TriXMainWindow::grpDCT4OutputToggled(bool Checked)
 {
-   PROJ_ASSIGN_BOOL(dct4_out, Checked);
+	PROJ_ASSIGN_BOOL(dct4_out, Checked);
 }
 
 //---------------------------------------------------------------------------
 void TriXMainWindow::grpSimpleInputToggled(bool Checked)
 {
-   PROJ_ASSIGN_BOOL(simple_in, Checked);
+	PROJ_ASSIGN_BOOL(simple_in, Checked);
 }
 
 //---------------------------------------------------------------------------
 void TriXMainWindow::grpSimpleOutputToggled(bool Checked)
 {
-   PROJ_ASSIGN_BOOL(simple_out, Checked);
+	PROJ_ASSIGN_BOOL(simple_out, Checked);
 }
 
 //---------------------------------------------------------------------------
 
 void TriXMainWindow::boxDCT3CustomPPMToggled(bool Checked)
 {
-   PROJ_ASSIGN_BOOL(dct3_ppm_address, Checked);
+	PROJ_ASSIGN_BOOL(dct3_ppm_address, Checked);
 }
 
 //---------------------------------------------------------------------------
 
 void TriXMainWindow::boxDCT3SeparatePPMToggled(bool Checked)
 {
-   if ( Checked && boxDCT3CustomPPM->isChecked() )
+	if ( Checked && boxDCT3CustomPPM->isChecked() )
 		editDCT3CustomPPM->setEnabled(true);
-   else
+	else
 		editDCT3CustomPPM->setEnabled(false);
 
-   PROJ_ASSIGN_BOOL(dct3_seperate_ppm, Checked);
+	PROJ_ASSIGN_BOOL(dct3_seperate_ppm, Checked);
 }
 
 //---------------------------------------------------------------------------
-
-void TriXMainWindow::btnSimpleInputClicked()
-{
-   QString name=QFileDialog::getOpenFileName(
-      this,
-      QString(),
-      editSimpleInput->text(),
-      "Any file (*.*)",
-	  0,
-	  0 );
-
-   if(!name.isNull()) 
-		editSimpleInput->setText(name);
-
-}
-//---------------------------------------------------------------------------
-
-void TriXMainWindow::btnSimpleOutputClicked()
-{
-   QString name=QFileDialog::getSaveFileName(
-      this,
-      QString(),
-      editSimpleOutput->text(),
-      "Any file (*.*)");
-
-   if(!name.isNull()) 
-		editSimpleOutput->setText(name);
-}
-//
-//
-//
 
 void TriXMainWindow::editSimpleInputEdited ( const QString & text )
 {
@@ -946,153 +1002,213 @@ void TriXMainWindow::editDCT4OutputPPMEdited ( const QString & text )
 
 //---------------------------------------------------------------------------
 
+void TriXMainWindow::btnSimpleInputClicked()
+{
+	QString name = QFileDialog::getOpenFileName ( this, "", editSimpleInput->text(), "Any file (*.*)" );
+
+	if ( !name.isNull() )
+	{
+		editSimpleInput->setText ( name );
+		editSimpleInputEdited ( name );
+	}
+
+}
+//---------------------------------------------------------------------------
+
+void TriXMainWindow::btnSimpleOutputClicked()
+{
+	QString name = QFileDialog::getSaveFileName ( this, "", editSimpleOutput->text(), "Any file (*.*)" );
+
+	if ( !name.isNull() )
+	{
+		editSimpleOutput->setText ( name );
+		editSimpleOutputEdited ( name );
+	}
+}
+//---------------------------------------------------------------------------
+
 void TriXMainWindow::btnDCT3InputMCUClicked()
 {
-   QString name=QFileDialog::getOpenFileName(
-      this,
-      QString(),
-      editDCT3InputMCU->text(),
-      "DCT3 Phone MCU (*.*)");
+	QString name = QFileDialog::getOpenFileName ( this, "", editDCT3InputMCU->text(), "DCT3 Phone MCU (*.*)" );
 
-   if(!name.isNull()) 
-   {
-	   editDCT3InputMCU->setText(name);
-		if ( project )
-			project->dct3_mcu_input = (char*)strdup ( name.toAscii().data () );
-   }
+	if ( !name.isNull() )
+	{
+		editDCT3InputMCU->setText ( name );
+		editDCT3InputMCUEdited ( name );
+	}
 }
 //---------------------------------------------------------------------------
 
 void TriXMainWindow::btnDCT3InputPPMClicked()
 {
-   QString name=QFileDialog::getOpenFileName(
-      this,
-      QString(),
-      editDCT3InputPPM->text(),
-      "DCT3 Phone PPM (*.*)");
+	QString name = QFileDialog::getOpenFileName ( this, "", editDCT3InputPPM->text(), "DCT3 Phone PPM (*.*)" );
 
-   if(!name.isNull()) 
-   {
-	    editDCT3InputPPM->setText(name);
-		if ( project )
-			project->dct3_ppm_input = (char*)strdup ( name.toAscii().data () );
-   }
+	if ( !name.isNull() )
+	{
+		editDCT3InputPPM->setText ( name );
+		editDCT3InputPPMEdited ( name );
+	}
 }
 //---------------------------------------------------------------------------
 
 void TriXMainWindow::btnDCT3OutputMCUClicked()
 {
-   QString name=QFileDialog::getSaveFileName(
-      this,
-      QString(),
-      editDCT3OutputMCU->text(),
-      "DCT3 Phone MCU (*.*)");
+	QString name = QFileDialog::getSaveFileName ( this, "", editDCT3OutputMCU->text(), "DCT3 Phone MCU (*.*)" );
 
-   if(!name.isNull()) 
-   {
-	   editDCT3OutputMCU->setText(name);
-		if ( project )
-			project->dct3_mcu_output = (char*)strdup ( name.toAscii().data () );
-   }
+	if ( !name.isNull() )
+	{
+		editDCT3OutputMCU->setText ( name );
+		editDCT3OutputMCUEdited ( name );
+	}
 }
 //---------------------------------------------------------------------------
 
 void TriXMainWindow::btnDCT3OutputPPMClicked()
 {
-   QString name=QFileDialog::getSaveFileName(
-      this,
-      QString(),
-      editDCT3OutputPPM->text(),
-      "DCT3 Phone PPM (*.*)");
+	QString name = QFileDialog::getSaveFileName ( this, "", editDCT3OutputPPM->text(), "DCT3 Phone PPM (*.*)" );
 
-   if(!name.isNull()) 
-   {
-	   editDCT3OutputPPM->setText(name);
-		if ( project )
-			project->dct3_ppm_output = (char*)strdup ( name.toAscii().data () );
-   }
+	if ( !name.isNull() )
+	{
+		editDCT3OutputPPM->setText ( name );
+		editDCT3OutputPPMEdited ( name );
+	}
 }
 //---------------------------------------------------------------------------
 
 void TriXMainWindow::btnDCT4InputMCUClicked()
 {
-   QString name=QFileDialog::getOpenFileName(
-      this,
-      QString(),
-      editDCT4InputMCU->text(),
-      "DCT4 Phone MCU (*.*)");
+	QString name = QFileDialog::getOpenFileName ( this, "", editDCT4InputMCU->text(), "DCT4 Phone MCU (*.*)" );
 
-   if(!name.isNull()) 
-   {
-	   editDCT4InputMCU->setText(name);
-		if ( project )
-			project->dct4_mcu_input = (char*)strdup ( name.toAscii().data () );
-   }
+	if ( !name.isNull() )
+	{
+		editDCT4InputMCU->setText ( name );
+		editDCT4InputMCUEdited ( name );
+	}
 }
 //---------------------------------------------------------------------------
 
 void TriXMainWindow::btnDCT4InputPPMClicked()
 {
-   QString name=QFileDialog::getOpenFileName(
-      this,
-      QString(),
-      editDCT4InputPPM->text(),
-      "DCT4 Phone PPM (*.*)");
+	QString name = QFileDialog::getOpenFileName ( this, "", editDCT4InputPPM->text(), "DCT4 Phone PPM (*.*)" );
 
-   if(!name.isNull()) 
-   {
-	   editDCT4InputPPM->setText(name);
-		if ( project )
-			project->dct4_ppm_input = (char*)strdup ( name.toAscii().data () );
-   }
+	if ( !name.isNull() )
+	{
+		editDCT4InputPPM->setText ( name );
+		editDCT4InputPPMEdited ( name );
+	}
 }
 //---------------------------------------------------------------------------
 
 void TriXMainWindow::btnDCT4OutputMCUClicked()
 {
-   QString name=QFileDialog::getSaveFileName(
-      this,
-      QString(),
-      editDCT4OutputMCU->text(),
-      "DCT4 Phone MCU (*.*)");
+	QString name = QFileDialog::getSaveFileName ( this, "", editDCT4OutputMCU->text(), "DCT4 Phone MCU (*.*)" );
 
-   if(!name.isNull()) 
-   {
-	   editDCT4OutputMCU->setText(name);
-		if ( project )
-			project->dct4_mcu_output = (char*)strdup ( name.toAscii().data () );
-   }
+	if ( !name.isNull() )
+	{
+		editDCT4OutputMCU->setText ( name );
+		editDCT4OutputMCUEdited ( name );
+	}
 }
 //---------------------------------------------------------------------------
 
 void TriXMainWindow::btnDCT4OutputPPMClicked()
 {
-   QString name=QFileDialog::getSaveFileName(
-      this,
-      QString(),
-      editDCT4OutputPPM->text(),
-      "DCT4 Phone PPM (*.*)");
+	QString name = QFileDialog::getSaveFileName ( this, "", editDCT4OutputPPM->text(), "DCT4 Phone PPM (*.*)" );
 
-   if(!name.isNull()) 
-   {
-	   editDCT4OutputPPM->setText(name);
-		if ( project )
-			project->dct4_ppm_output = (char*)strdup ( name.toAscii().data () );
-   }
+	if ( !name.isNull() )
+	{
+		editDCT4OutputPPM->setText ( name );
+		editDCT4OutputPPMEdited ( name );
+	}
 }
 //---------------------------------------------------------------------------
 
 void TriXMainWindow::actNewTriggered()
 {
-   cmbFileType->setCurrentIndex(0); // Simple
-   cmbFileTypeActivated(cmbFileType->currentIndex());
+	editScriptBox->setPlainText( QString ( DEFAULT_SCRIPT ) );
 
+	cmbFileType->setCurrentIndex(1); // Simple
+	cmbFileTypeActivated(1);
+
+	btnScriptsManual->setDisabled ( false );
+	btnScriptsManual->setText ( QString ( "Reload" ) );
+
+	modeless_mem_win = new MemoryViewer ( );
+	modeless_mem_win->setVisible ( false );
+//	modeless_mem_win->setVisible ( true );
+	modeless_mem_win->setModal ( false );
+	modeless_mem_win->Stop ();
+
+}
+//---------------------------------------------------------------------------
+
+void TriXMainWindow::projectLoad ( char *path )
+{
+	t_project *p = project_load ( path );
+	if ( !p )
+		return;
+
+	project_free ( project );
+	project = p;
+
+	editSimpleInput->setText ( QString::fromLocal8Bit ( p->simple_input ) );
+	editSimpleOutput->setText ( QString::fromLocal8Bit ( p->simple_output ) );
+	grpSimpleInput->setChecked ( p->simple_in );
+	grpSimpleOutput->setChecked ( p->simple_out );
+
+	update_scriptlist ( );
+	btnScriptsRemove->setEnabled ( p->num_files != 0 );
+}
+
+void TriXMainWindow::actOpenTriggered()
+{
+	QString name, path;
+	t_project *p;
+
+	if ( project && project->filename )
+		path = QString::fromLocal8Bit ( project->filename );
+
+	name = QFileDialog::getOpenFileName ( this, "Open project", path, "TriX projects (*.txj)" );
+
+	if ( !name.isNull() )
+		projectLoad ( name.toLocal8Bit().data () );
+}
+//---------------------------------------------------------------------------
+
+void TriXMainWindow::actSaveTriggered()
+{
+	if ( project )
+	{
+		if ( project->filename && project->filename[0] )
+			project_save ( project, project->filename );
+		else
+			actSaveAsTriggered ( );
+	}
+}
+//---------------------------------------------------------------------------
+
+void TriXMainWindow::actSaveAsTriggered()
+{
+	if ( project  )
+	{
+		QString path, name;
+
+		if ( project->filename && project->filename[0] )
+			path = QString::fromLocal8Bit(project->filename);
+		else
+			path = QFileInfo ( editSimpleInput->text() ).dir().dirName();
+
+		name = QFileDialog::getSaveFileName ( this, "Save project as...", path, "TriX project (*.txj)" );
+
+		if ( !name.isNull() )
+			project_save ( project, name.toLocal8Bit().data() );
+	}
 }
 //---------------------------------------------------------------------------
 
 void TriXMainWindow::actQuitTriggered()
 {
-   QCoreApplication::exit(0);
+	QCoreApplication::exit(0);
 }
 //---------------------------------------------------------------------------
 
@@ -1149,7 +1265,7 @@ void TriXMainWindow::update_scriptlist()
 		else
 			item->setIcon ( QIcon(QString::fromUtf8(":/icons/icons/22x22-gartoon/choice-no.png")) );
 
-		item->setText ( pfile->filename );
+		item->setText ( QString::fromLocal8Bit(pfile->filename) );
 		listScripts->addItem ( item );
 
 		pos++;
@@ -1170,14 +1286,19 @@ void TriXMainWindow::btnScriptsAddClicked()
 	t_scriptlist *scr = NULL;
 	int symbol = 0;
 
-	if ( strlen ( (lineScriptsName->text()).toAscii().data() ) > 0 )
+	// lock the dialog mutex, so the ui routines will directly display the message
+	mutex_lock ( trix_dialog_lock );
+
+	if ( strlen ( (lineScriptsName->text()).toLocal8Bit().data() ) > 0 )
 	{
-		project_add_file ( project, lineScriptsName->text().toAscii().data() );
+		project_add_file ( project, lineScriptsName->text().toLocal8Bit().data() );
 
 		update_scriptlist ();
 		lineScriptsName->setText ( QString ( "" ) );
 		btnScriptsRemove->setEnabled(true);
 	}
+
+	mutex_unlock ( trix_dialog_lock );
 }
 //---------------------------------------------------------------------------
 
@@ -1228,7 +1349,7 @@ void TriXMainWindow::btnScriptsManualClicked()
 
 	while ( pos < original_script_count )
 	{
-		project_add_file ( project, listScripts->item(pos)->text().toAscii().data() );
+		project_add_file ( project, listScripts->item(pos)->text().toLocal8Bit().data() );
 		pos++;
 	}
 
@@ -1327,33 +1448,32 @@ void TriXMainWindow::btnScriptsOptionsClicked()
 
 void TriXMainWindow::btnScriptsLoadClicked()
 {
-   QString name=QFileDialog::getOpenFileName(
-      this,
-      QString("Load Script from"),
-      "scripts\\standalone",
-      "TriX Script File (*.trx);;Compressed TriX Script File (*.trz);;All Files (*)");
+	QString name = QFileDialog::getOpenFileName (
+		this, "Load Script from",
+		"scripts\\standalone",
+		"TriX Script Files (*.trx *.trz);;All Files (*.*)" );
 
-   if(!name.isNull()) 
-   {
-	   lineScriptsName->setText ( name );
-   }
+	if ( !name.isNull() )
+	{
+		lineScriptsName->setText ( name );
+	}
 }
 //---------------------------------------------------------------------------
 
 
 void TriXMainWindow::btnEditImportClicked()
 {
-   QString name=QFileDialog::getOpenFileName(
-      this,
-      QString("Load Script from"),
-      "scripts\\standalone",
-      "TriX Script Files (*.trx *.trz);;All Files (*)");
+	QString name = QFileDialog::getOpenFileName (
+		this,
+		"Load Script from",
+		"scripts\\standalone",
+		"TriX Script Files (*.trx *.trz);;All Files (*.*)" );
 
-   if(!name.isNull()) 
-   {
+	if ( !name.isNull() )
+	{
 		t_workspace *ws = NULL;
 
-		ws = workspace_startup ( (char*)(name.toAscii().constData()) );
+		ws = workspace_startup ( (char*)(name.toLocal8Bit().constData()) );
 		if ( !ws )
 		{
 			ui_dlg_msg ( "Script loading failed", 0 );
@@ -1361,42 +1481,41 @@ void TriXMainWindow::btnEditImportClicked()
 		}
 		editScriptBox->setPlainText( QString ( (const char*)v_get_str ( ws, 0 ) ) );
 		workspace_release ( ws );
-   }
+	}
 }
 //---------------------------------------------------------------------------
 
 void TriXMainWindow::btnEditExportClicked()
 {
 	int state = E_OK;
-	char *filename = NULL;
 	QFileDialog dlg;
-    QString name = dlg.getSaveFileName( this, 
-		QString("Save this script as"),
-		"",
-		"TriX Script File (*.trx);;Compressed TriX Script File (*.trz);;All Files (*)");
 
-   if ( !name.isNull() )
-   {
+	QString name = dlg.getSaveFileName (
+		this,
+		"Save this script as",
+		"scripts",
+		"TriX Script File (*.trx);;Compressed TriX Script File (*.trz);;All Files (*.*)" );
+
+	if ( !name.isNull() )
+	{
 		t_workspace *ws = NULL;
 		char *buffer = NULL; 
 
-		filename = (char*)strdup(name.toAscii().data());
-		buffer = (char*)strdup(editScriptBox->toPlainText().toAscii().data());
+		buffer = (char*)strdup ( editScriptBox->toPlainText().toAscii().data() );
 
 		ws = workspace_create_file_from_buffer ( (unsigned char*)buffer, strlen ( buffer ) );
 
-		if ( ws && (strlen (filename) > 3) && !strncasecmp ( filename+strlen(filename)-4, ".trz", 4 ) )
+		if ( ws && name.endsWith ( ".trz" ) )
 			state = file_format ( ws->fileinfo, "BZ2" );
 
-		if ( ws && (state == E_OK) )
+		if ( ws && ( state == E_OK ) )
 		{
 			/* override the DRYMODE options */
 			int old_options = file_set_options ( FILE_NORMAL );
 
-			state = file_write ( filename, ws->fileinfo );
+			state = file_write ( name.toLocal8Bit().data (), ws->fileinfo );
 			file_set_options ( old_options );
 		}
-		free ( filename );
 
 		if ( !ws || (state != E_OK) )
 		{
@@ -1405,8 +1524,7 @@ void TriXMainWindow::btnEditExportClicked()
 		}
 
 		workspace_release ( ws );
-
-   }
+	}
 }
 //---------------------------------------------------------------------------
 void TriXMainWindow::actDebugInfoTriggered()
@@ -1477,7 +1595,6 @@ void TriXMainWindow::actStopTriggered()
 		_textOutput->append ( "####" );
 		free ( buffer );
 	}
-
 }
 
 void TriXMainWindow::actStartTriggered()
@@ -1501,12 +1618,12 @@ void TriXMainWindow::actStartTriggered()
 	}
 	else if ( cmbFileType->currentIndex() == 1 )
 	{
-		if ( grpSimpleInput->isChecked() && (strlen ( editSimpleInput->text().toAscii().data() ) == 0) )
+		if ( grpSimpleInput->isChecked() && (strlen ( editSimpleInput->text().toLocal8Bit().data() ) == 0) )
 		{
 			ui_dlg_msg ( "No input file specified\nPlease Select one in the 'General' tab\n", 0 );
 			return;
 		}
-		if ( grpSimpleInput->isChecked() && grpSimpleOutput->isChecked() && (strlen ( editSimpleOutput->text().toAscii().data()) == 0) )
+		if ( grpSimpleInput->isChecked() && grpSimpleOutput->isChecked() && (strlen ( editSimpleOutput->text().toLocal8Bit().data()) == 0) )
 		{
 			ui_dlg_msg ( "No output file specified\nPlease Select one in the 'General' tab\n", 0 );
 			return;
@@ -1514,79 +1631,79 @@ void TriXMainWindow::actStartTriggered()
 
 		if ( grpSimpleInput->isChecked() )
 		{
-			trix_script_filenames[0][file_pos] = (char*)strdup(editSimpleInput->text().toAscii().data());
+			trix_script_filenames[0][file_pos] = (char*)strdup(editSimpleInput->text().toLocal8Bit().data());
 			if ( grpSimpleOutput->isChecked() )
-				trix_script_filenames[1][file_pos] = (char*)strdup(editSimpleOutput->text().toAscii().data());
+				trix_script_filenames[1][file_pos] = (char*)strdup(editSimpleOutput->text().toLocal8Bit().data());
 			file_pos++;
 		}
 	}
 	else if ( cmbFileType->currentIndex() == 2 )
 	{
-		if ( grpDCT3Input->isChecked() && (strlen ( editDCT3InputMCU->text().toAscii().data()) == 0) )
+		if ( grpDCT3Input->isChecked() && (strlen ( editDCT3InputMCU->text().toLocal8Bit().data()) == 0) )
 		{
 			ui_dlg_msg ( "No MCU input file specified\nPlease Select one in the 'General' tab\n", 0 );
 			return;
 		}
-		if ( grpDCT3Input->isChecked() && grpDCT3Output->isChecked() && (strlen ( editDCT3OutputMCU->text().toAscii().data()) == 0) )
+		if ( grpDCT3Input->isChecked() && grpDCT3Output->isChecked() && (strlen ( editDCT3OutputMCU->text().toLocal8Bit().data()) == 0) )
 		{
 			ui_dlg_msg ( "No MCU output file specified\nPlease Select one in the 'General' tab\n", 0 );
 			return;
 		}
-		if ( grpDCT3Input->isChecked() && boxDCT3SeparatePPM->isChecked() && (strlen ( editDCT3InputPPM->text().toAscii().data()) == 0) )
+		if ( grpDCT3Input->isChecked() && boxDCT3SeparatePPM->isChecked() && (strlen ( editDCT3InputPPM->text().toLocal8Bit().data()) == 0) )
 		{
 			ui_dlg_msg ( "No PPM input file specified\nPlease Select one in the 'General' tab\n", 0 );
 			return;
 		}
-		if ( grpDCT3Input->isChecked() && !boxDCT3SeparatePPM->isChecked() && (strlen ( editDCT3OutputPPM->text().toAscii().data()) != 0) )
+		if ( grpDCT3Input->isChecked() && !boxDCT3SeparatePPM->isChecked() && (strlen ( editDCT3OutputPPM->text().toLocal8Bit().data()) != 0) )
 		{
 			ui_dlg_msg ( "No PPM output file specified\nPlease Select one in the 'General' tab\n", 0 );
 			return;
 		}
-		if ( grpDCT3Input->isChecked() && (strlen(editDCT3InputMCU->text().toAscii().data())) )
+		if ( grpDCT3Input->isChecked() && (strlen(editDCT3InputMCU->text().toLocal8Bit().data())) )
 		{
-			trix_script_filenames[0][file_pos] = (char*)strdup(editDCT3InputMCU->text().toAscii().data() );
-			if ( grpDCT3Output->isChecked() && (strlen(editDCT3OutputMCU->text().toAscii().data())) )
-				trix_script_filenames[1][file_pos] = (char*)strdup(editDCT3OutputMCU->text().toAscii().data() );
+			trix_script_filenames[0][file_pos] = (char*)strdup(editDCT3InputMCU->text().toLocal8Bit().data() );
+			if ( grpDCT3Output->isChecked() && (strlen(editDCT3OutputMCU->text().toLocal8Bit().data())) )
+				trix_script_filenames[1][file_pos] = (char*)strdup(editDCT3OutputMCU->text().toLocal8Bit().data() );
 			file_pos++;
 		}
-		if ( grpDCT3Input->isChecked() && (strlen(editDCT3InputPPM->text().toAscii().data())) )
+		if ( grpDCT3Input->isChecked() && (strlen(editDCT3InputPPM->text().toLocal8Bit().data())) )
 		{
-			trix_script_filenames[0][file_pos] = (char*)strdup(editDCT3InputPPM->text().toAscii().data() );
-			if ( grpDCT3Output->isChecked() && (strlen(editDCT3OutputPPM->text().toAscii().data())) )
-				trix_script_filenames[1][file_pos] = (char*)strdup(editDCT3OutputPPM->text().toAscii().data() );
+			trix_script_filenames[0][file_pos] = (char*)strdup(editDCT3InputPPM->text().toLocal8Bit().data() );
+			if ( grpDCT3Output->isChecked() && (strlen(editDCT3OutputPPM->text().toLocal8Bit().data())) )
+				trix_script_filenames[1][file_pos] = (char*)strdup(editDCT3OutputPPM->text().toLocal8Bit().data() );
 			file_pos++;
 		}
 	}
 	else if ( cmbFileType->currentIndex() == 3 )
 	{
-		if ( grpDCT4Input->isChecked() && (strlen ( editDCT4InputMCU->text().toAscii().data()) == 0) )
+		if ( grpDCT4Input->isChecked() && (strlen ( editDCT4InputMCU->text().toLocal8Bit().data()) == 0) )
 		{
 			ui_dlg_msg ( "No MCU input file specified\nPlease Select one in the 'General' tab\n", 0 );
 			return;
 		}
-		if ( grpDCT4Input->isChecked() && grpDCT4Output->isChecked() && (strlen ( editDCT4OutputMCU->text().toAscii().data()) == 0) )
+		if ( grpDCT4Input->isChecked() && grpDCT4Output->isChecked() && (strlen ( editDCT4OutputMCU->text().toLocal8Bit().data()) == 0) )
 		{
 			ui_dlg_msg ( "No MCU output file specified\nPlease Select one in the 'General' tab\n", 0 );
 			return;
 		}
-		if ( grpDCT4Input->isChecked() && (strlen ( editDCT4InputPPM->text().toAscii().data()) == 0) && (strlen ( editDCT4OutputPPM->text().toAscii().data()) != 0) )
+		if ( grpDCT4Input->isChecked() && (strlen ( editDCT4InputPPM->text().toLocal8Bit().data()) == 0) && (strlen ( editDCT4OutputPPM->text().toLocal8Bit().data()) != 0) )
 		{
 			ui_dlg_msg ( "No PPM input file specified\nPlease Select one in the 'General' tab\n", 0 );
 			return;
 		}
 
-		if ( grpDCT4Input->isChecked() && (strlen(editDCT4InputMCU->text().toAscii().data())) )
+		if ( grpDCT4Input->isChecked() && (strlen(editDCT4InputMCU->text().toLocal8Bit().data())) )
 		{
-			trix_script_filenames[0][file_pos] = (char*)strdup(editDCT4InputMCU->text().toAscii().data() );
-			if ( grpDCT4Output->isChecked() && (strlen(editDCT4OutputMCU->text().toAscii().data())) )
-				trix_script_filenames[1][file_pos] = (char*)strdup(editDCT4OutputMCU->text().toAscii().data() );
+			trix_script_filenames[0][file_pos] = (char*)strdup(editDCT4InputMCU->text().toLocal8Bit().data() );
+			if ( grpDCT4Output->isChecked() && (strlen(editDCT4OutputMCU->text().toLocal8Bit().data())) )
+				trix_script_filenames[1][file_pos] = (char*)strdup(editDCT4OutputMCU->text().toLocal8Bit().data() );
 			file_pos++;
 		}
-		if ( grpDCT4Input->isChecked() && (strlen(editDCT4InputPPM->text().toAscii().data())) )
+		if ( grpDCT4Input->isChecked() && (strlen(editDCT4InputPPM->text().toLocal8Bit().data())) )
 		{
-			trix_script_filenames[0][file_pos] = (char*)strdup(editDCT4InputPPM->text().toAscii().data() );
-			if ( grpDCT4Output->isChecked() && (strlen(editDCT4OutputPPM->text().toAscii().data())) )
-				trix_script_filenames[1][file_pos] = (char*)strdup(editDCT4OutputPPM->text().toAscii().data() );
+			trix_script_filenames[0][file_pos] = (char*)strdup(editDCT4InputPPM->text().toLocal8Bit().data() );
+			if ( grpDCT4Output->isChecked() && (strlen(editDCT4OutputPPM->text().toLocal8Bit().data())) )
+				trix_script_filenames[1][file_pos] = (char*)strdup(editDCT4OutputPPM->text().toLocal8Bit().data() );
 			file_pos++;
 		}
 	}
@@ -1648,7 +1765,7 @@ void TriXMainWindow::actStartTriggered()
 		entry->title = (char*)strdup("NeTriX");
 		entry->options = NULL;
 		entry->settings = NULL;
-		entry->content = (char*)strdup ((char*)v_get_str ( ws, 0 ));
+		entry->content = (char*)strdup ( (char*)v_get_str ( ws, 0 ) );
 
 		workspace_release ( ws );
 	}
@@ -1702,10 +1819,10 @@ void TriXMainWindow::actStartTriggered()
 			if ( !entries )
 				entries = entry;
 
-			entry->title = (char*)strdup("EditorTab");
+			entry->title = (char*)strdup ( "EditorTab" );
 			entry->options = NULL;
 			entry->settings = NULL;
-			entry->content = (char*)strdup(editScriptBox->toPlainText().toAscii().data());
+			entry->content = (char*)strdup ( editScriptBox->toPlainText().toAscii().data() );
 
 		}
 		else
@@ -1731,7 +1848,7 @@ void TriXMainWindow::actStartTriggered()
 // normal bool dialog
 unsigned int __cdecl qt_dlg_bool_dlg ( char *string )
 {
-	QMessageBox mb ( "TriX", QString( string ), QMessageBox::Question, QMessageBox::Yes, QMessageBox::No, 0, 0 );
+	QMessageBox mb ( "TriX", string, QMessageBox::Question, QMessageBox::Yes, QMessageBox::No, 0, 0 );
 	mb.focusWidget();
 
 	switch ( mb.exec() )
@@ -1739,10 +1856,12 @@ unsigned int __cdecl qt_dlg_bool_dlg ( char *string )
 		case QMessageBox::Yes:
 			return E_OK;
 			break;
+
 		case QMessageBox::No:
 			return E_FAIL;
 			break;
 	}
+
 	return E_FAIL;
 }
 
@@ -1750,7 +1869,7 @@ unsigned int __cdecl qt_dlg_bool_dlg ( char *string )
 unsigned int __cdecl qt_dlg_bool ( char *string )
 {
 	// fallback to normal dialog
-	if ( dlg_locked || mutex_locked ( trix_dialog_lock ))
+	if ( mutex_locked ( trix_dialog_lock ))
 		return qt_dlg_bool_dlg ( string );
 
 	mutex_lock ( trix_dialog_lock );
@@ -1769,10 +1888,11 @@ char * __cdecl qt_dlg_string_dlg ( char *def, char *string )
 	bool ok;
 	if ( !def )
 		def = "";
-	QString text = QInputDialog::getText ( NULL, "TriX", QString ( string ), QLineEdit::Normal, QString ( def ), &ok);
 
-	if ( ok && !text.isEmpty())
-		return (char*)strdup ( text.toAscii().data());
+	QString text = QInputDialog::getText ( NULL, "TriX", string, QLineEdit::Normal, def, &ok);
+
+	if ( ok && !text.isEmpty() )
+		return (char*)strdup ( text.toLocal8Bit().data() );
 
 	return NULL;
 }
@@ -1780,7 +1900,7 @@ char * __cdecl qt_dlg_string_dlg ( char *def, char *string )
 // string dialog answered by UI thread
 char * __cdecl qt_dlg_string ( char *def, char *string )
 {
-	if ( dlg_locked || mutex_locked ( trix_dialog_lock ) )
+	if ( mutex_locked ( trix_dialog_lock ) )
 		return qt_dlg_string_dlg ( def, string );
 
 	mutex_lock ( trix_dialog_lock );
@@ -1805,9 +1925,29 @@ char * __cdecl qt_dlg_string ( char *def, char *string )
 	return (char*)strdup (dialog_text);
 }
 
+char * __cdecl qt_dlg_load_file ( const char *msg, const char *ext )
+{
+	QString name = QFileDialog::getOpenFileName ( NULL, msg ? msg : "", "", ext ? ext : "All Files (*.*)" );
+
+	if ( name.isNull() )
+		return NULL;
+
+	return (char *)strdup ( ( char *) name.toLocal8Bit().constData() );
+}
+
+char * __cdecl qt_dlg_save_file ( const char *msg, const char *ext )
+{
+	QString name = QFileDialog::getSaveFileName ( NULL, msg ? msg : "", "", ext ? ext : "All Files (*.*)" );
+
+	if ( name.isNull() )
+		return NULL;
+
+	return (char *)strdup ( ( char *) name.toLocal8Bit().constData() );
+}
+
 unsigned int __cdecl qt_dlg_msg ( char *string, int type )
 {
-	QMessageBox::warning(NULL, "TriX", QString(string), "Ok", 0, 0, 0, 1);
+	QMessageBox::warning ( NULL, "TriX", QString ( string ), "Ok", 0, 0, 0, 1 );
 	return E_OK;
 }
 
@@ -1830,8 +1970,11 @@ unsigned int __cdecl qt_dlg_dumpmem ( t_workspace *ws, int address )
 	modeless_mem_win->SetCallbackPriv ( (void*) ws );
 	modeless_mem_win->SetAddress ( address );
 
-	modeless_mem_win->setVisible ( true );
-	modeless_mem_win->Start ();
+//	modeless_mem_win->setVisible ( true );
+//	modeless_mem_win->Start ();
+
+	qt_dlg_memviewer_cmd = QT_MEMVIEWER_OPEN;
+	while ( qt_dlg_memviewer_cmd == QT_MEMVIEWER_OPEN );
 
 	return E_OK;
 }
@@ -1857,7 +2000,9 @@ unsigned int __cdecl qt_dlg_dumpmem_finish (  )
 	if ( !modeless_mem_win )
 		return E_FAIL;
 
-	modeless_mem_win->setVisible ( false );
+	qt_dlg_memviewer_cmd = QT_MEMVIEWER_CLOSE;
+	while ( qt_dlg_memviewer_cmd == QT_MEMVIEWER_CLOSE );
+
 	return E_OK;
 }
 
@@ -2004,7 +2149,7 @@ unsigned int qt_dlg_box_clear ( unsigned int id )
 }
 
 
-unsigned int qt_dlg_box_msg ( unsigned int id, unsigned char *msg )
+unsigned int qt_dlg_box_set_keypress_ptr ( unsigned int id, int *ptr)
 {
 	t_qt_box_entry *boxentry = NULL;
 	t_qt_box_queue *queue = NULL;
@@ -2020,10 +2165,46 @@ unsigned int qt_dlg_box_msg ( unsigned int id, unsigned char *msg )
 	}
 
 	queue = LIST_MALLOC ( t_qt_box_queue );
-	queue->type = QT_BOX_APPEND;
+	queue->type = QT_BOX_KEYPRESSPTR;
+	queue->message = (unsigned char*)ptr;
+
+	if ( boxentry->queue )
+		LIST_ADD ( boxentry->queue, queue );
+	else
+		boxentry->queue = queue;
+
+	mutex_unlock ( qt_box_mutex );
+	//
+	//
+	return E_OK;
+}
+
+
+unsigned int qt_dlg_box_msg ( unsigned int id, unsigned char *msg )
+{
+	t_qt_box_entry *boxentry = NULL;
+	t_qt_box_queue *queue = NULL;
+	unsigned int type = QT_BOX_APPENDLINE;
+
+	if(id & UI_OPT_DLG_CHAR)
+	{
+		id &= ~UI_OPT_DLG_CHAR;
+		type = QT_BOX_APPENDCHAR;
+	}
+
+	//
+	//
+	mutex_lock ( qt_box_mutex );
+	boxentry = qt_dlg_box_get_by_id ( id );
+	if ( !boxentry )
+	{
+		mutex_unlock ( qt_box_mutex );
+		return E_FAIL;
+	}
+
+	queue = LIST_MALLOC ( t_qt_box_queue );
+	queue->type = type;
 	queue->message = (unsigned char*)strdup ( (char*)msg );
-
-
 
 	if ( boxentry->queue )
 		LIST_ADD ( boxentry->queue, queue );
@@ -2175,11 +2356,17 @@ unsigned int qt_dlg_box_process ( )
 					case QT_BOX_CLEAR:
 						boxentry->box->Clear ();
 						break;
-					case QT_BOX_APPEND:
-						boxentry->box->Append ( queue->message );
+					case QT_BOX_APPENDLINE:
+						boxentry->box->AppendLine ( queue->message );
+						break;
+					case QT_BOX_APPENDCHAR:
+						boxentry->box->AppendChar ( queue->message );
 						break;
 					case QT_BOX_RELEASE:
 						boxentry->release = 1;
+						break;
+					case QT_BOX_KEYPRESSPTR:
+						boxentry->box->SetKeypressPtr((int*)queue->message);
 						break;
 				}
 				LIST_NEXT(queue);
@@ -2212,15 +2399,52 @@ unsigned int qt_dlg_box_process ( )
 	return E_OK;
 }
 
+unsigned int qt_dlg_workspace_process ( ) 
+{
+	if ( modeless_ws_win )
+	{
+		if ( qt_dlg_workspace_cmd == QT_WORKSPACE_UPDATE )
+			modeless_ws_win->Update ( trix_workspace );
+	}
+	qt_dlg_workspace_cmd = QT_WORKSPACE_NONE;
 
+	return E_OK;
+}
+
+unsigned int qt_dlg_memviewer_process ( ) 
+{
+	if ( !modeless_mem_win )
+		return E_FAIL;
+
+	if ( qt_dlg_memviewer_cmd == QT_MEMVIEWER_OPEN )
+	{
+		modeless_mem_win->setVisible ( true );
+		modeless_mem_win->Start ( );
+	}
+	else if ( qt_dlg_memviewer_cmd == QT_MEMVIEWER_CLOSE )
+	{
+		modeless_mem_win->Stop ( );
+		modeless_mem_win->setVisible ( false );
+	}
+
+	qt_dlg_memviewer_cmd = QT_MEMVIEWER_NONE;
+
+	return E_OK;
+}
 
 #ifdef WIN32
-int WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,LPSTR szCmdLine,int iCmdShow)
+int WINAPI WinMain ( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR szCmdLine, int iCmdShow )
 {
 	char *argv[1] = { "TriX.exe" };
 	int argc = 1;
+
+	if ( szCmdLine[0] ) // project file
+	{
+		argv[1] = (char *)szCmdLine;
+		argc = 2;
+	}
 #else
-int main(int argc, char **argv)
+int main ( int argc, char **argv )
 {
 #endif
 	int ret, r;
@@ -2229,7 +2453,7 @@ int main(int argc, char **argv)
 	** Create the Qt application object.
 	**
 	*/
-	QApplication app ( argc,argv );
+	QApplication app ( argc, argv );
 	TriXMainWindow win;
 
 	trix_main_app = &app;
@@ -2240,33 +2464,48 @@ int main(int argc, char **argv)
 	**  savage and restoration.
 	**
 	*/
-	app.setOrganizationDomain( ORG_DOMAIN );
-	app.setApplicationName(    APP_NAME   );
+	app.setOrganizationDomain ( ORG_DOMAIN );
+	app.setApplicationName ( APP_NAME );
 
+	// restore windows size and position
+	QSettings settings ( ORG_DOMAIN, APP_NAME );
+	win.restoreGeometry(settings.value("geometry").toByteArray());
 	win.show();
-
 
 	/*
 	** Initialize TriX core.
 	**
 	*/
-    strcpy ( trix_out_buffer, "" );
+	strcpy ( trix_out_buffer, "" );
 
-	ret = main_setup();
+	ret = main_setup ( );
 	if( ret == E_OK )
 	{
+		if ( argc > 1 )
+		{
+			char *path = argv[1];
+
+			if ( path[0] == '\"' )
+			{
+				path++;
+				path[strlen ( path ) -1] = 0;
+			}
+
+			trix_main_win->projectLoad ( path );
+		}
+
 	/*
 	** Main loop.
 	**
 	*/
-	ret = app.exec();
+	ret = app.exec ( );
 	}
 
 	/*
 	** Deinitialize TriX core.
 	**
 	*/
-	r = main_cleanup();
+	r = main_cleanup ( );
 	if ( ret == E_OK && r != E_OK ) ret = r;
 
 	return ret;
@@ -2276,56 +2515,73 @@ int main(int argc, char **argv)
 /* Replacement for standard vprintf(), outputs to TriX's Output dock */
 int __cdecl	qt_vprintf ( const char *format, va_list args )
 {
-	static char buffer[TRIX_PRINTF_BUFSIZE] = "";
 	char *ptr;
 	int done = 0;
-	int buflength = 0;
 	int loops = 0;
+	unsigned int new_length = 0;
+	char vsprintf_buf[8192];
 
-	// just some security
-	if ( strlen(buffer) >= TRIX_PRINTF_BUFSIZE/2 )
-		sprintf ( buffer, "" );
-
-	vsprintf ( buffer + strlen(buffer), format, args);
-
-	ptr = strrchr ( buffer, '\n' );
-	if( ptr )
+	static char * buffer = NULL;
+	static int buflength = 0;
+	
+	if ( !buffer )
 	{
-		*ptr='\0';
-		if ( trix_output_pause )
-		{
-			strcpy ( buffer, "" );
-			return 0;
-		}
-
-		buflength = strlen ( buffer );
-		while ( !done && !trix_output_pause )
-		{
-			mutex_lock(trix_thread_lock);
-
-			if ( strlen ( trix_out_buffer ) + buflength < TRIX_PRINTF_BUFSIZE-10 )
-			{
-				strcat ( trix_out_buffer, buffer );
-				strcat ( trix_out_buffer, "\n" );
-				trix_out_buffer_updated++;
-				done = 1;
-//				trix_thread_timer->setInterval (200);
-			}
-			else
-				trix_output_flush = 1;
-//				trix_thread_timer->setInterval (100);
-
-
-			mutex_unlock (trix_thread_lock);
-			if ( !done )
-				Sleep ( 100 );
-
-			if ( ++loops > 10 )
-				done = 1;
-		}
-		memmove ( buffer, ptr+1, strlen(ptr+1)+1 );
+		buffer = (char*)malloc ( TRIX_PRINTF_BUFSIZE );
+		buflength = 0;
+		strcpy ( buffer, "" );
 	}
 
+	vsprintf(vsprintf_buf, format, args);
+	new_length = strlen(vsprintf_buf);
+
+	memcpy(buffer + buflength, vsprintf_buf, new_length + 1);
+	buflength += new_length;
+
+	if ( trix_output_pause )
+	{
+		*buffer = 0;
+		buflength = 0;
+		return 0;
+	}
+
+	while ( !done && !trix_output_pause )
+	{
+		mutex_lock ( trix_thread_lock );
+
+		if ( trix_out_buffer_length + buflength < TRIX_PRINTF_BUFSIZE - 10 )
+		{
+			memcpy ( trix_out_buffer + trix_out_buffer_length, buffer, buflength + 1);
+
+			trix_out_buffer_length += buflength;
+			trix_out_buffer_updated++;
+
+			if(trix_out_buffer_length > 1000000)
+			{
+				strcpy ( trix_out_buffer, "(pausing text update, content too long)" );
+				trix_out_buffer_length = strlen(buffer);
+				trix_output_pause = 1;
+				return 0;
+			}
+			done = 1;
+		}
+		else
+		{
+			trix_output_flush = 1;
+		}
+
+		mutex_unlock ( trix_thread_lock );
+
+		if ( !done )
+		{
+			Sleep ( 100 );
+		}
+		if ( ++loops > 10 )
+		{
+			done = 1;
+		}
+	}
+	*buffer = 0;
+	buflength = 0;
 	return 0;
 }
 //---------------------------------------------------------------------------

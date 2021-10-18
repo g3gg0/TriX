@@ -1,5 +1,5 @@
 /*
- * $Id: dialog.c,v 1.1 2006/06/28 13:53:39 geggo Exp $
+ * $Id: dialog.c 1521 2006-06-28 13:53:39Z geggo $
  *
  *  cdialog - Display simple dialog boxes from shell scripts
  *

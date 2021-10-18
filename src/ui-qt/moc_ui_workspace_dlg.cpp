@@ -1,7 +1,7 @@
 /****************************************************************************
 ** Meta object code from reading C++ file 'ui_workspace_dlg.h'
 **
-** Created: Fri 7. Mar 21:45:30 2008
+** Created: Sun 3. Aug 23:18:29 2014
 **      by: The Qt Meta Object Compiler version 59 (Qt 4.3.2)
 **
 ** WARNING! All changes made in this file will be lost!
@@ -22,22 +22,24 @@ static const uint qt_meta_data_WorkspaceWindow[] = {
        1,       // revision
        0,       // classname
        0,    0, // classinfo
-       4,   10, // methods
+       5,   10, // methods
        0,    0, // properties
        0,    0, // enums/sets
 
  // slots: signature, parameters, type, tag, flags
       17,   16,   16,   16, 0x08,
       36,   16,   16,   16, 0x08,
-      69,   57,   53,   16, 0x08,
-     112,   16,   16,   16, 0x08,
+      55,   16,   16,   16, 0x08,
+      88,   76,   72,   16, 0x08,
+     131,   16,   16,   16, 0x08,
 
        0        // eod
 };
 
 static const char qt_meta_stringdata_WorkspaceWindow[] = {
     "WorkspaceWindow\0\0btnExportClicked()\0"
-    "btnEditClicked()\0int\0item,column\0"
+    "btnImportClicked()\0btnEditClicked()\0"
+    "int\0item,column\0"
     "treeWorkspaceClicked(QTreeWidgetItem*,int)\0"
     "treeWorkspaceChanged()\0"
 };
@@ -68,12 +70,13 @@ int WorkspaceWindow::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_c == QMetaObject::InvokeMetaMethod) {
         switch (_id) {
         case 0: btnExportClicked(); break;
-        case 1: btnEditClicked(); break;
-        case 2: { int _r = treeWorkspaceClicked((*reinterpret_cast< QTreeWidgetItem*(*)>(_a[1])),(*reinterpret_cast< int(*)>(_a[2])));
+        case 1: btnImportClicked(); break;
+        case 2: btnEditClicked(); break;
+        case 3: { int _r = treeWorkspaceClicked((*reinterpret_cast< QTreeWidgetItem*(*)>(_a[1])),(*reinterpret_cast< int(*)>(_a[2])));
             if (_a[0]) *reinterpret_cast< int*>(_a[0]) = _r; }  break;
-        case 3: treeWorkspaceChanged(); break;
+        case 4: treeWorkspaceChanged(); break;
         }
-        _id -= 4;
+        _id -= 5;
     }
     return _id;
 }

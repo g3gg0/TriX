@@ -22,20 +22,20 @@ unsigned int fmt_pdb_enabled = 0;
 #define dmDBNameLength    32 /* 31 chars + 1 null terminator */
 
 typedef struct {       /* 78 bytes total */
-	char	 name[ dmDBNameLength ];
-	unsigned int	 attributes;
-	unsigned short	 version;
-	unsigned int	 create_time;
-	unsigned int	 modify_time;
-	unsigned int	 backup_time;
-	unsigned int	 modificationNumber;
-	unsigned int	 appInfoID;
-	unsigned int	 sortInfoID;
-	char	 type[4];
-	char	 creator[4];
-	unsigned int	 id_seed;
-	unsigned int	 nextRecordList;
-	unsigned short	 numRecords;
+	char     name[ dmDBNameLength ];
+	unsigned int     attributes;
+	unsigned short   version;
+	unsigned int     create_time;
+	unsigned int     modify_time;
+	unsigned int     backup_time;
+	unsigned int     modificationNumber;
+	unsigned int     appInfoID;
+	unsigned int     sortInfoID;
+	char     type[4];
+	char     creator[4];
+	unsigned int     id_seed;
+	unsigned int     nextRecordList;
+	unsigned short   numRecords;
 } t_pdb_priv;
 
 
@@ -58,15 +58,15 @@ typedef struct  {   /* 8 bytes total	*/
 unsigned int
 fmt_pdb_free ( t_stage * s )
 {
-    if ( !s )
-        return E_OK;
+	if ( !s )
+		return E_OK;
 
-    segment_release_all ( s->segments );
-    s->segments = NULL;
+	segment_release_all ( s->segments );
+	s->segments = NULL;
 	CHECK_AND_FREE ( s->priv );
 
 
-    return E_OK;
+	return E_OK;
 }
 
 
@@ -123,7 +123,7 @@ fmt_pdb_parse_records ( t_stage *source, t_stage *target )
 		seg->priv->struct_refs++;
 		((t_pdb_rec_header*)seg->priv)->attributes = GET_BYTE ( source, 78 + pos * 8 + 4 );
 		memcpy (((t_pdb_rec_header*)seg->priv)->uniqueID, GET_PTR ( source, 78 + pos * 8 + 5 ), 3 );
-	    seg->name = "DATA";
+		seg->name = "DATA";
 		seg->start = 0;
 		seg->end = lengths[pos];
 		seg->data = malloc ( lengths[pos] );
@@ -196,55 +196,55 @@ fmt_pdb_decode_header ( t_stage *source )
 unsigned int
 fmt_pdb_decode ( t_stage * source, t_stage * target )
 {
-    char *decoded = NULL;
-    int length = 0;
+	char *decoded = NULL;
+	int length = 0;
 	t_pdb_priv *priv = NULL;
 
 	if ( !fmt_pdb_enabled )
 	{
-	    DBG ( DEBUG_FMT, " -> %s ( ) disabled !!\n", __FUNCTION__ );
-        return E_FAIL;
+		DBG ( DEBUG_FMT, " -> %s ( ) disabled !!\n", __FUNCTION__ );
+		return E_FAIL;
 	}
 	
 	DBG ( DEBUG_FMT, " => %s ( ) called\n", __FUNCTION__ );
 
-    if ( !target )
-        target = source->next;
+	if ( !target )
+		target = source->next;
 
 	if ( !source || !target || !source->segments || !source->segments->data  )
-    {
-	    DBG ( DEBUG_FMT, " -> %s ( ) failed !!\n", __FUNCTION__ );
-        return E_FAIL;
-    }
+	{
+		DBG ( DEBUG_FMT, " -> %s ( ) failed !!\n", __FUNCTION__ );
+		return E_FAIL;
+	}
 
-    if ( segment_count ( source->segments ) != 1 )
-    {
-	    DBG ( DEBUG_FMT, " -> %s ( %s, %s ) failed (need one segment)!!\n", __FUNCTION__, source->name, target->name );
-        return E_FAIL;
-    }
+	if ( segment_count ( source->segments ) != 1 )
+	{
+		DBG ( DEBUG_FMT, " -> %s ( %s, %s ) failed (need one segment)!!\n", __FUNCTION__, source->name, target->name );
+		return E_FAIL;
+	}
 
 	priv = fmt_pdb_decode_header ( source );
 	if ( priv == NULL )
-    {
+	{
 		DBG ( DEBUG_FMT, " -> %s ( %s, %s ) failed !!\n", __FUNCTION__, source->name, target->name );
-        return E_FAIL;
-    }
+		return E_FAIL;
+	}
 
-    target->name = "DECODED";
-    target->length = length;
-    target->parser = "PDB";
-    target->type = "PDB";
-    target->flags = S_MODIFIED;
+	target->name = "DECODED";
+	target->length = length;
+	target->parser = "PDB";
+	target->type = "PDB";
+	target->flags = S_MODIFIED;
 	target->priv = priv;
 
 	if ( fmt_pdb_parse_records ( source, target ) != E_OK )
-    {
+	{
 		DBG ( DEBUG_FMT, " -> %s ( %s, %s ) failed !!\n", __FUNCTION__, source->name, target->name );
-        return E_FAIL;
-    }
+		return E_FAIL;
+	}
 
 	DBG ( DEBUG_FMT, " ## %s ( %s, %s ) done\n", __FUNCTION__, source->name, target->name );
-    return E_OK;
+	return E_OK;
 }
 
 
@@ -260,7 +260,8 @@ fmt_pdb_encode_data ( t_stage * source, t_stage * target )
 	int pos = 0;
 
 	if ( !source || !source->priv )
-		return NULL;
+		return E_FAIL;
+
 	priv = (t_pdb_priv *)source->priv;
 
 	seg = source->segments;
@@ -275,12 +276,12 @@ fmt_pdb_encode_data ( t_stage * source, t_stage * target )
 	buffer = malloc ( buffer_length );
 	memset ( buffer, 0x00, buffer_length );
 
-    target->segments = segment_create (  );
-    target->segments->name = "DATA";
-    target->segments->start = 0;
-    target->segments->end = buffer_length;
-    target->segments->length = buffer_length;
-    target->segments->data = buffer;
+	target->segments = segment_create (  );
+	target->segments->name = "DATA";
+	target->segments->start = 0;
+	target->segments->end = buffer_length;
+	target->segments->length = buffer_length;
+	target->segments->data = buffer;
 
 	startpos = 78 + 8 * priv->numRecords + 2;
 	seg = source->segments;
@@ -326,48 +327,52 @@ fmt_pdb_encode ( t_stage * source, t_stage * target )
 
 	if ( !fmt_pdb_enabled )
 	{
-	    DBG ( DEBUG_FMT, " -> %s ( ) disabled !!\n", __FUNCTION__ );
-        return E_FAIL;
+		DBG ( DEBUG_FMT, " -> %s ( ) disabled !!\n", __FUNCTION__ );
+		return E_FAIL;
 	}
 
 	DBG ( DEBUG_FMT, " => %s ( ) called\n", __FUNCTION__ );
-    if ( !target )
-        target = source->next;
+	if ( !target )
+		target = source->next;
 
 	if ( !source || !target || !source->segments )
-    {
-	    DBG ( DEBUG_FMT, " -> %s ( ) failed !!\n", __FUNCTION__ );
-        return E_FAIL;
-    }
+	{
+		DBG ( DEBUG_FMT, " -> %s ( ) failed !!\n", __FUNCTION__ );
+		return E_FAIL;
+	}
 
-    if ( segment_count ( source->segments ) < 1 )
-    {
-	    DBG ( DEBUG_FMT, " -> %s ( %s, %s ) failed !!\n", __FUNCTION__, source->name, target->name );
-        return E_FAIL;
-    }
+	if ( segment_count ( source->segments ) < 1 )
+	{
+		DBG ( DEBUG_FMT, " -> %s ( %s, %s ) failed !!\n", __FUNCTION__, source->name, target->name );
+		return E_FAIL;
+	}
 
 	if ( fmt_pdb_encode_data ( source, target ) != E_OK )
-        return E_FAIL;
+		return E_FAIL;
 
 	target->name = "RAW";
-    target->length = length;
-    target->parser = "PDB";
-    target->type = "PDB";
+	target->length = length;
+	target->parser = "PDB";
+	target->type = "PDB";
+
+
+	/* set the parser again (see file_format() ). all parsers should do this. shouldn't they? */
+	source->parser = "PDB";
+	source->type = "PDB";
 
 	DBG ( DEBUG_FMT, " ## %s ( %s, %s ) done\n", __FUNCTION__, source->name, target->name );
-    return E_OK;
-
+	return E_OK;
 }
 
 t_fmt_handler pdb_handler = {
-    "PDB",
-    "PARSER",
+	"PDB",
+	"PARSER",
 	"fmt_pdb_decode",
-    fmt_pdb_decode,
+	fmt_pdb_decode,
 	"fmt_pdb_encode",
 	fmt_pdb_encode,
 	"fmt_pdb_free",
-    fmt_pdb_free,
+	fmt_pdb_free,
 	NULL,
 	NULL
 };

@@ -1,7 +1,7 @@
 /********************************************************************************
 ** Form generated from reading ui file 'MainWindow.ui'
 **
-** Created: Thu 21. Feb 15:53:13 2008
+** Created: Sun 3. Aug 23:16:31 2014
 **      by: Qt User Interface Compiler version 4.3.2
 **
 ** WARNING! All changes made in this file will be lost when recompiling ui file!
@@ -140,12 +140,9 @@ public:
     QPushButton *btnEditExport;
     QMenuBar *menubar;
     QMenu *menuProject;
-    QMenu *menuNew;
-    QMenu *menuView;
     QMenu *menuEdit;
     QMenu *menuHelp;
     QMenu *menuProcessing;
-    QMenu *menuVerbose;
     QStatusBar *statusbar;
     QToolBar *toolbar;
     QDockWidget *dockOutput;
@@ -161,8 +158,8 @@ public:
     {
     if (MainWindow->objectName().isEmpty())
         MainWindow->setObjectName(QString::fromUtf8("MainWindow"));
-    MainWindow->resize(912, 608);
-    QSizePolicy sizePolicy(static_cast<QSizePolicy::Policy>(1), static_cast<QSizePolicy::Policy>(1));
+    MainWindow->resize(982, 818);
+    QSizePolicy sizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
     sizePolicy.setHorizontalStretch(0);
     sizePolicy.setVerticalStretch(0);
     sizePolicy.setHeightForWidth(MainWindow->sizePolicy().hasHeightForWidth());
@@ -172,22 +169,20 @@ public:
     MainWindow->setToolButtonStyle(Qt::ToolButtonIconOnly);
     actOpen = new QAction(MainWindow);
     actOpen->setObjectName(QString::fromUtf8("actOpen"));
-    actOpen->setEnabled(false);
     actOpen->setIcon(QIcon(QString::fromUtf8(":/icons/icons/22x22-gartoon/folder-open.png")));
     actSave = new QAction(MainWindow);
     actSave->setObjectName(QString::fromUtf8("actSave"));
-    actSave->setEnabled(false);
+    actSave->setEnabled(true);
     actSave->setIcon(QIcon(QString::fromUtf8(":/icons/icons/22x22-gartoon/disk-floppy.png")));
     actSaveAs = new QAction(MainWindow);
     actSaveAs->setObjectName(QString::fromUtf8("actSaveAs"));
-    actSaveAs->setEnabled(false);
+    actSaveAs->setEnabled(true);
     actSaveAs->setIcon(QIcon(QString::fromUtf8(":/icons/icons/22x22-gartoon/disk.png")));
     actQuit = new QAction(MainWindow);
     actQuit->setObjectName(QString::fromUtf8("actQuit"));
     actQuit->setIcon(QIcon(QString::fromUtf8(":/icons/icons/22x22-gartoon/quit.png")));
     actNew = new QAction(MainWindow);
     actNew->setObjectName(QString::fromUtf8("actNew"));
-    actNew->setEnabled(false);
     actNew->setIcon(QIcon(QString::fromUtf8(":/icons/icons/22x22-gartoon/file.png")));
     actAbout = new QAction(MainWindow);
     actAbout->setObjectName(QString::fromUtf8("actAbout"));
@@ -385,7 +380,7 @@ public:
     editDCT3CustomPPM = new QLineEdit(grpDCT3Input);
     editDCT3CustomPPM->setObjectName(QString::fromUtf8("editDCT3CustomPPM"));
     editDCT3CustomPPM->setEnabled(false);
-    QSizePolicy sizePolicy1(static_cast<QSizePolicy::Policy>(0), static_cast<QSizePolicy::Policy>(0));
+    QSizePolicy sizePolicy1(QSizePolicy::Fixed, QSizePolicy::Fixed);
     sizePolicy1.setHorizontalStretch(0);
     sizePolicy1.setVerticalStretch(0);
     sizePolicy1.setHeightForWidth(editDCT3CustomPPM->sizePolicy().hasHeightForWidth());
@@ -569,7 +564,7 @@ public:
     tabWidget->addTab(tab, QIcon(QString::fromUtf8(":/icons/icons/22x22-gartoon/configuration.png")), QString());
     tab_2 = new QWidget();
     tab_2->setObjectName(QString::fromUtf8("tab_2"));
-    tab_2->setCursor(QCursor(static_cast<Qt::CursorShape>(0)));
+    tab_2->setCursor(QCursor(Qt::ArrowCursor));
     vboxLayout8 = new QVBoxLayout(tab_2);
     vboxLayout8->setSpacing(6);
     vboxLayout8->setMargin(9);
@@ -686,21 +681,15 @@ public:
     MainWindow->setCentralWidget(centralwidget);
     menubar = new QMenuBar(MainWindow);
     menubar->setObjectName(QString::fromUtf8("menubar"));
-    menubar->setGeometry(QRect(0, 0, 912, 24));
+    menubar->setGeometry(QRect(0, 0, 982, 21));
     menuProject = new QMenu(menubar);
     menuProject->setObjectName(QString::fromUtf8("menuProject"));
-    menuNew = new QMenu(menuProject);
-    menuNew->setObjectName(QString::fromUtf8("menuNew"));
-    menuView = new QMenu(menubar);
-    menuView->setObjectName(QString::fromUtf8("menuView"));
     menuEdit = new QMenu(menubar);
     menuEdit->setObjectName(QString::fromUtf8("menuEdit"));
     menuHelp = new QMenu(menubar);
     menuHelp->setObjectName(QString::fromUtf8("menuHelp"));
     menuProcessing = new QMenu(menubar);
     menuProcessing->setObjectName(QString::fromUtf8("menuProcessing"));
-    menuVerbose = new QMenu(menuProcessing);
-    menuVerbose->setObjectName(QString::fromUtf8("menuVerbose"));
     MainWindow->setMenuBar(menubar);
     statusbar = new QStatusBar(MainWindow);
     statusbar->setObjectName(QString::fromUtf8("statusbar"));
@@ -709,7 +698,7 @@ public:
     toolbar->setObjectName(QString::fromUtf8("toolbar"));
     toolbar->setOrientation(Qt::Horizontal);
     toolbar->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
-    MainWindow->addToolBar(static_cast<Qt::ToolBarArea>(4), toolbar);
+    MainWindow->addToolBar(Qt::TopToolBarArea, toolbar);
     dockOutput = new QDockWidget(MainWindow);
     dockOutput->setObjectName(QString::fromUtf8("dockOutput"));
     dockOutput->setWindowIcon(QIcon(QString::fromUtf8(":/icons/icons/22x22-gartoon/chat.png")));
@@ -723,7 +712,7 @@ public:
     vboxLayout10->setContentsMargins(0, 0, 0, 0);
     textOutput = new QTextEdit(dockWidgetContents);
     textOutput->setObjectName(QString::fromUtf8("textOutput"));
-    QSizePolicy sizePolicy2(static_cast<QSizePolicy::Policy>(1), static_cast<QSizePolicy::Policy>(7));
+    QSizePolicy sizePolicy2(QSizePolicy::Minimum, QSizePolicy::Expanding);
     sizePolicy2.setHorizontalStretch(0);
     sizePolicy2.setVerticalStretch(0);
     sizePolicy2.setHeightForWidth(textOutput->sizePolicy().hasHeightForWidth());
@@ -742,19 +731,18 @@ public:
     hboxLayout6->setObjectName(QString::fromUtf8("hboxLayout6"));
     textInputSymbol = new QLabel(dockWidgetContents);
     textInputSymbol->setObjectName(QString::fromUtf8("textInputSymbol"));
-    QSizePolicy sizePolicy3(static_cast<QSizePolicy::Policy>(5), static_cast<QSizePolicy::Policy>(0));
+    QSizePolicy sizePolicy3(QSizePolicy::Preferred, QSizePolicy::Fixed);
     sizePolicy3.setHorizontalStretch(0);
     sizePolicy3.setVerticalStretch(0);
     sizePolicy3.setHeightForWidth(textInputSymbol->sizePolicy().hasHeightForWidth());
     textInputSymbol->setSizePolicy(sizePolicy3);
     textInputSymbol->setMinimumSize(QSize(0, 24));
-    textInputSymbol->setPixmap(QPixmap());
 
     hboxLayout6->addWidget(textInputSymbol);
 
     textInputMessage = new QLabel(dockWidgetContents);
     textInputMessage->setObjectName(QString::fromUtf8("textInputMessage"));
-    QSizePolicy sizePolicy4(static_cast<QSizePolicy::Policy>(7), static_cast<QSizePolicy::Policy>(0));
+    QSizePolicy sizePolicy4(QSizePolicy::Expanding, QSizePolicy::Fixed);
     sizePolicy4.setHorizontalStretch(0);
     sizePolicy4.setVerticalStretch(0);
     sizePolicy4.setHeightForWidth(textInputMessage->sizePolicy().hasHeightForWidth());
@@ -879,12 +867,15 @@ public:
     MainWindow->setWindowTitle(QApplication::translate("MainWindow", "TriX", 0, QApplication::UnicodeUTF8));
     MainWindow->setStatusTip(QString());
     actOpen->setText(QApplication::translate("MainWindow", "Open...", 0, QApplication::UnicodeUTF8));
+    actOpen->setShortcut(QApplication::translate("MainWindow", "Ctrl+O", 0, QApplication::UnicodeUTF8));
     actSave->setText(QApplication::translate("MainWindow", "Save", 0, QApplication::UnicodeUTF8));
+    actSave->setShortcut(QApplication::translate("MainWindow", "Ctrl+S", 0, QApplication::UnicodeUTF8));
     actSaveAs->setText(QApplication::translate("MainWindow", "Save As...", 0, QApplication::UnicodeUTF8));
     actQuit->setText(QApplication::translate("MainWindow", "Quit", 0, QApplication::UnicodeUTF8));
     actQuit->setShortcut(QApplication::translate("MainWindow", "Alt+F4", 0, QApplication::UnicodeUTF8));
     actNew->setText(QApplication::translate("MainWindow", "New", 0, QApplication::UnicodeUTF8));
     actNew->setStatusTip(QApplication::translate("MainWindow", "Creates a new project", 0, QApplication::UnicodeUTF8));
+    actNew->setShortcut(QApplication::translate("MainWindow", "Ctrl+N", 0, QApplication::UnicodeUTF8));
     actAbout->setText(QApplication::translate("MainWindow", "About", 0, QApplication::UnicodeUTF8));
     actStart->setText(QApplication::translate("MainWindow", "Start", 0, QApplication::UnicodeUTF8));
     actStop->setText(QApplication::translate("MainWindow", "Stop", 0, QApplication::UnicodeUTF8));
@@ -956,15 +947,16 @@ public:
     btnEditExport->setText(QApplication::translate("MainWindow", "Export...", "Save the Script to a File", QApplication::UnicodeUTF8));
     tabWidget->setTabText(tabWidget->indexOf(tab_3), QApplication::translate("MainWindow", "Editor", 0, QApplication::UnicodeUTF8));
     menuProject->setTitle(QApplication::translate("MainWindow", "Project", 0, QApplication::UnicodeUTF8));
-    menuNew->setTitle(QApplication::translate("MainWindow", "New", 0, QApplication::UnicodeUTF8));
-    menuView->setTitle(QApplication::translate("MainWindow", "View", 0, QApplication::UnicodeUTF8));
     menuEdit->setTitle(QApplication::translate("MainWindow", "Edit", 0, QApplication::UnicodeUTF8));
     menuHelp->setTitle(QApplication::translate("MainWindow", "Help", 0, QApplication::UnicodeUTF8));
     menuProcessing->setTitle(QApplication::translate("MainWindow", "Processing", 0, QApplication::UnicodeUTF8));
-    menuVerbose->setTitle(QApplication::translate("MainWindow", "Verbose", 0, QApplication::UnicodeUTF8));
     toolbar->setWindowTitle(QApplication::translate("MainWindow", "Toolbar", 0, QApplication::UnicodeUTF8));
     dockOutput->setWindowTitle(QApplication::translate("MainWindow", "Output", 0, QApplication::UnicodeUTF8));
-    textOutput->setHtml(QApplication::translate("MainWindow", "<html><head><meta name=\"qrichtext\" content=\"1\" /></head><body style=\" white-space: pre-wrap; font-family:Lucida Console; font-size:8pt; font-weight:400; font-style:normal; text-decoration:none;\"><p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"></p></body></html>", 0, QApplication::UnicodeUTF8));
+    textOutput->setHtml(QApplication::translate("MainWindow", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
+"<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
+"p, li { white-space: pre-wrap; }\n"
+"</style></head><body style=\" font-family:'Lucida Console'; font-size:8pt; font-weight:400; font-style:normal;\">\n"
+"<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"></p></body></html>", 0, QApplication::UnicodeUTF8));
     textInputSymbol->setText(QString());
     textInputMessage->setText(QString());
     } // retranslateUi

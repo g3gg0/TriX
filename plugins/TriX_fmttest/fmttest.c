@@ -1,6 +1,4 @@
 
-#define TRIXPLUG_MODE
-
 #include "defines.h"
 #include "seer.h"
 #include "segment.h"

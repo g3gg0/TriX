@@ -7,9 +7,14 @@ TRIXPLUGIN_API unsigned int trixplugin_init ( struct trix_functions *callbacks )
 TRIXPLUGIN_API char *trixplugin_name ( void );
 TRIXPLUGIN_API unsigned int trixplugin_vers ( void );
 
+#define TYPE_DIR  0
+#define TYPE_FILE 1
 
 
 #define FATE_HEADERS \
+	"#define TYPE_DIR  0\n"\
+	"#define TYPE_FILE 1\n"\
+	"\n"\
 	"#define PART_TYPE_UNKNOWN		0x00\n"\
 	"#define PART_TYPE_FAT12		0x01\n"\
 	"#define PART_TYPE_XENIX		0x02\n"\
@@ -37,7 +42,7 @@ TRIXPLUGIN_API unsigned int trixplugin_vers ( void );
 	"\n"\
 	"import unsigned int __fate_test ( t_workspace *ws );\n"\
 	"import unsigned int __fate_dir ( t_fat_info *info );\n"\
-	"import t_fat_info *__fate_open ( t_workspace *ws, unsigned char fat_type );\n"\
+	"import t_fat_info *__fate_open ( t_workspace *ws, unsigned int start_address );\n"\
 	"import TFILE *__fate_fcreate ( t_fat_info *info, unsigned char *name );\n"\
 	"import TFILE *__fate_fopen ( t_fat_info *info, unsigned char *name );\n"\
 	"import unsigned int __fate_unlink ( t_fat_info *info, unsigned char *name );\n"\
@@ -50,9 +55,11 @@ TRIXPLUGIN_API unsigned int trixplugin_vers ( void );
 	"import unsigned int __fate_fwrite ( unsigned char * ptr, unsigned int size, unsigned int count, TFILE *fp );\n"\
 	"import unsigned int __fate_cd (  t_fat_info *info, unsigned char *name );\n"\
 	"import unsigned int __fate_rename ( t_fat_info *info, char *old_name, char *new_name );\n"\
+	"import unsigned char *__fate_get_name( t_fat_info *info, unsigned char type, unsigned int entry_index );\n"\
+	"import void __fate_free_name( unsigned char *name );\n"\
+
 
 #define FATE_SYMBOLS \
-	REGISTER_SYMBOL ( fate_test );\
 	REGISTER_SYMBOL ( fate_open );\
 	REGISTER_SYMBOL ( fate_fcreate );\
 	REGISTER_SYMBOL ( fate_fopen );\
@@ -67,10 +74,13 @@ TRIXPLUGIN_API unsigned int trixplugin_vers ( void );
 	REGISTER_SYMBOL ( fate_cd );\
 	REGISTER_SYMBOL ( fate_rename );\
 	REGISTER_SYMBOL ( fate_unlink );\
+	REGISTER_SYMBOL ( fate_get_name );\
+	REGISTER_SYMBOL ( fate_free_name );\
+
 
 unsigned int fate_test ( t_workspace *ws );
 unsigned int fate_init ( );
-t_fat_info *fate_open ( t_workspace *ws, unsigned char fat_type );
+t_fat_info *fate_open ( t_workspace *ws, unsigned int start_address );
 TFILE *fate_fcreate ( t_fat_info *info, unsigned char *name );
 TFILE *fate_fopen ( t_fat_info *info, unsigned char *name );
 unsigned int fate_unlink ( t_fat_info *info, unsigned char *name );
@@ -84,6 +94,9 @@ unsigned int fate_fwrite ( unsigned char * ptr, unsigned int size, unsigned int 
 unsigned int fate_dir ( t_fat_info *info );
 unsigned int fate_cd (  t_fat_info *info, unsigned char *name );
 unsigned int fate_rename ( t_fat_info *info, char *old_name, char *new_name );
+unsigned char *fate_get_name( t_fat_info *info, unsigned char type, unsigned int entry_index );
+void fate_free_name( unsigned char *name );
+
 
 #endif
 

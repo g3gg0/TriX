@@ -599,7 +599,7 @@ FixUp_Opcode ( int opcode, _value * v1, _value * v2 )
                         case opvcpuDCMPNG:
                             v1->adr.flags = adrREGISTER;
                             v1->type.flags = typPREDEFINED;
-                            ( valTYPE ) v1->type.main = valINT;
+                            v1->type.main = valINT;
 //DELS         pv1.type=v1->type;
 
 //         v1->sym=NULL;

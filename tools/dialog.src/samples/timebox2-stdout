@@ -1,5 +1,5 @@
 #!/bin/sh
-# $Id: timebox2-stdout,v 1.1 2006/06/28 13:53:39 geggo Exp $
+# $Id: timebox2-stdout 1521 2006-06-28 13:53:39Z geggo $
 : ${DIALOG=dialog}
 
 USERTIME=`$DIALOG --stdout --title "TIMEBOX" --timebox "Please set the time..." 0 0`

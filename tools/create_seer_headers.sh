@@ -108,11 +108,11 @@ for file in $FILES; do
 
 
 	if [ "x$removed_diff" != "x" ]; then
-	    echo "  changed:"
+	    echo "  changed/removed:"
 	    echo "$removed_diff"
 	    echo ""
-    	    if [ "x$added_diff" != "x" ]; then
-    		echo "  added:"
+		if [ "x$added_diff" != "x" ]; then
+		echo "  added:"
 		echo "$added_diff"
 	    fi
 	    echo "yes" > header_definition/update_mainversion

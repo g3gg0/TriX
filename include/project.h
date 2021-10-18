@@ -7,7 +7,7 @@ struct s_project_files
 {
 	STRUCT_HEADER_LIST(t_project_files);
 	char *title;
-    char *filename;
+	char *filename;
 	char *content;
 	char *settings;
 	t_options *options;
@@ -19,11 +19,11 @@ struct s_project_files
 typedef struct s_project t_project;
 struct s_project
 {
-	char *projectname;		// a freely definable name for the project
-    char *filename;			// the .txj project filename
-	char *settings;			// global option set
-	int savemode;			// the file savemode (dry, partial, normal)
-	int operationmode;		// the operation mode (simple, dct3, dct4)
+	char *projectname;      // a freely definable name for the project
+	char *filename;         // the .txj project filename
+	char *settings;         // global option set
+	int savemode;           // the file savemode (dry, partial, normal)
+	int operationmode;      // the operation mode (simple, dct3, dct4)
 
 	int simple_in;
 	char *simple_input;
@@ -49,13 +49,13 @@ struct s_project
 	char *dct4_ppm_input;
 	char *dct4_ppm_output;
 
-	int num_files;			// number of loaded scripts
-	t_project_files *files;	// loaded scripts
+	int num_files;          // number of loaded scripts
+	t_project_files *files; // loaded scripts
 };
 
-#define PROJ_FILE_OK		0
-#define PROJ_FILE_SIGNED	1
-#define PROJ_FILE_FAILED	2
+#define PROJ_FILE_OK        0
+#define PROJ_FILE_SIGNED    1
+#define PROJ_FILE_FAILED    2
 
 
 #define PROJ_ASSIGN_STR(field, str) \
@@ -64,7 +64,7 @@ struct s_project
 		{\
 			if ( project->field )\
 				free ( project->field );\
-			project->field = (char*)strdup ( str.toAscii().data () );\
+			project->field = (char*)strdup ( str.toLocal8Bit().data () );\
 		}\
 	}
 
@@ -86,6 +86,8 @@ unsigned int project_save ( t_project *p, char *file );
 t_project *project_load ( char *file );
 unsigned int project_del_file ( t_project *p, unsigned int pos );
 unsigned int project_add_file ( t_project *p, char *file );
+unsigned int project_free ( t_project *p );
+t_project *project_create ( );
 unsigned int project_init ( );
 t_project_files *project_get_file ( t_project *p, unsigned int pos );
 

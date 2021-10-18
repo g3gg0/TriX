@@ -1,5 +1,5 @@
 #!/bin/bash
-# $Id: copi.funcs,v 1.1 2006/06/28 13:54:32 geggo Exp $
+# $Id: copi.funcs 1522 2006-06-28 13:54:32Z geggo $
 #  ComeOn Point Functions! v0.9.2
 #  - usate da vari altri moduli ComeOn Point...
 #
@@ -244,7 +244,7 @@ create_innconf_newsfeeds_distrib() {
   save $INNCONF
 
   cat <<EOF >$INNCONF
-##  $Revision: 1.1 $
+##  $Revision: 1522 $
 ##  inn.conf -- inn configuration data
 ##  Format:
 ##	<parameter>:<whitespace><value>
@@ -350,7 +350,7 @@ create_nnrpaccess() {
   save $NNRPACCESS
 
   cat <<EOF >$NNRPACCESS
-##  $Revision: 1.1 $
+##  $Revision: 1522 $
 ##  nnrp.access - access file for on-campus NNTP sites
 ##  Format:
 ##	<host>:<perm>:<user>:<pass>:<groups>
@@ -386,7 +386,7 @@ create_hostsnntp() {
   save $HOSTSNNTP
 
   cat <<EOF >$HOSTSNNTP
-##  $Revision: 1.1 $
+##  $Revision: 1522 $
 ##  hosts.nntp - names and addresses that feed us news
 ##  Format
 ##      <host>:

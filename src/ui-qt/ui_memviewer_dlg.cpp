@@ -233,11 +233,11 @@ void MemoryViewer::update ()
 
 		return;
 	}
-	if ( this->timer_delay != 100 )
+	if ( this->timer_delay != 50 )
 	{
 		this->update_timer->stop ();
-		this->update_timer->start ( 100 );
-		this->timer_delay = 100;
+		this->update_timer->start ( 50 );
+		this->timer_delay = 50;
 	}
 
 	if ( !this->callbacks || !this->callbacks->read_callback )
@@ -360,6 +360,7 @@ void MemoryViewer::update ()
 
 	this->last_addr = address;
 	memcpy ( old_data, data, this->disp_bytes );
+	
 	return;
 }
 

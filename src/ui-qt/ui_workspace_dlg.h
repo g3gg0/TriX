@@ -5,12 +5,12 @@
 ** Include any stock Qt files here...
 **
 */
-#include <Qt/qapplication.h>
+#include <QtGui/QApplication>
 #include <QtGui/QtGui>
-#include <Qt/qdialog.h>
-#include <Qt/qtreewidget.h>
-#include <Qt/qdebug.h>
-#include <Qt/qobject.h>
+#include <QtGui/QDialog>
+#include <QtGui/QTreeWidget>
+#include <QtCore/QDebug>
+#include <QtCore/QObject>
 //---------------------------------------------------------------------------
  
 /*
@@ -71,6 +71,7 @@ public:
 
 private slots:
 	void btnExportClicked (  );
+	void btnImportClicked (  );
 	void btnEditClicked ( );
 	int  treeWorkspaceClicked ( QTreeWidgetItem * item, int column );
 	void treeWorkspaceChanged (  );

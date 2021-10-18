@@ -1,14 +1,16 @@
-/// ui_main.cpp
+/// ui_ppmodd_main.cpp
  
+#ifndef PPMODD_EMBEDDED_VERSION
 #include "ui_build_ppm_progress.h"
+#endif
 #include "ui_ppmodd_main.h"
-#include "ui_commandref.h"
 #include "ui_object_tree.h"
 #include "ui_plug.h"
 #include "ui_opt.h"
 #include "ui_workspace_dlg.h"
 #include "ui_text_box.h"
 #include "ui_text_edit.h"
+#include "ui_font_view.h"
 
 #ifdef WIN32
 #include <Windows.h>
@@ -42,15 +44,6 @@ extern "C"
 
 #include "mem.h"
 
-#define DEFAULT_SCRIPT \
-	"#include trix\n" \
-	"\n" \
-	"int main ( )\n" \
-	"{\n"\
-	"   char *buffer = NULL;\n"\
-	"	UiDlgString ( \"Just press enter if you're bored ;).\", &buffer );\n" \
-	"}\n"
-
 
 unsigned int seer_run ( char *script );
 int qInitResources();
@@ -72,17 +65,19 @@ QTreeWidgetItem *current_item = NULL;
 t_treenode *copied_treenode = NULL;
 QTreeWidgetItem *copied_item = NULL;
 
-unsigned char *server_username = NULL;
-unsigned char *server_password = NULL;
+#ifndef PPMODD_EMBEDDED_VERSION
+char *server_username = NULL;
+char *server_password = NULL;
+#endif
 
-unsigned char *last_filename = NULL;
+char *last_filename = NULL;
 //
 //
 //
 
-#define QT_BOX_CLEAR   0
-#define QT_BOX_APPEND  1
-#define QT_BOX_RELEASE 2
+#define QT_BOX_CLEAR		0
+#define QT_BOX_APPEND	1
+#define QT_BOX_RELEASE	2
 
 typedef struct s_qt_box_queue t_qt_box_queue;
 struct s_qt_box_queue
@@ -136,6 +131,7 @@ char errstring[1024];
 #ifdef TRIX_THREADED
 char trix_out_buffer[TRIX_PRINTF_BUFSIZE+10];
 QTimer *trix_thread_timer = NULL;
+int trix_out_buffer_length = 0;
 int trix_out_buffer_updated = 0;
 int trix_output_pause = 0;
 int trix_output_flush = 0;
@@ -154,7 +150,7 @@ int dialog_type = DLG_NONE;
 char *dialog_default = NULL;
 
 t_mutex *trix_dialog_lock = NULL;
-int dlg_locked = 0;
+
 
 //------------------------------------------
 
@@ -166,19 +162,26 @@ int dlg_locked = 0;
 #endif
 
 #define E_FAIL (-1)
-#define E_OK    0
+#define E_OK	0
 
-#define MENU_EXPORT_XML  1
-#define MENU_IMPORT_XML  2
-#define MENU_CUT         3
-#define MENU_COPY        4
-#define MENU_PASTE       5
-#define MENU_DELETE      6
-#define MENU_HEXEDIT     7
-#define MENU_EXPORT_BIN  8
-#define MENU_IMPORT_BIN  9
-#define MENU_UP          10
-#define MENU_DOWN        11
+#define MENU_EXPORT_XML     1
+#define MENU_IMPORT_XML     2
+#define MENU_CUT            3
+#define MENU_COPY           4
+#define MENU_PASTE          5
+#define MENU_DELETE         6
+#define MENU_HEXEDIT        7
+#define MENU_EXPORT_BIN     8
+#define MENU_IMPORT_BIN     9
+#define MENU_UP             10
+#define MENU_DOWN           11
+
+
+#define BIN_TYPE_DEFAULT    0
+#define BIN_TYPE_ANIM       1
+#define BIN_TYPE_FONT       2
+#define BIN_TYPE_TONE       3
+#define BIN_TYPE_VFNT       4
 
 
 typedef struct s_scriptlist t_scriptlist;
@@ -207,7 +210,6 @@ t_scriptlist *scriptlist = NULL;
 WorkspaceWindow *modeless_ws_win = NULL;
 options *opts = NULL;
 PluginWindow *modeless_plug_win = NULL;
-CommandReference *modeless_ref_win = NULL;
 
 
 unsigned int execute_scripts ( t_script_entry *script_entries )
@@ -261,13 +263,13 @@ class TriX_Script_Thread : public QThread
 {
 public:
 	TriX_Script_Thread ();
-    virtual void prepare ( char *script, t_workspace *ws );
-    virtual void prepare_multi ( t_script_entry *scripts, t_workspace *ws );
-    virtual int is_active ();
-    virtual int is_finished ();
-    virtual void run ();
-    virtual void reset ();
-    virtual void abort ();
+	virtual void prepare ( char *script, t_workspace *ws );
+	virtual void prepare_multi ( t_script_entry *scripts, t_workspace *ws );
+	virtual int is_active ();
+	virtual int is_finished ();
+	virtual void run ();
+	virtual void reset ();
+	virtual void abort ();
 private:
 	int thread_active;
 	int thread_finished;
@@ -426,10 +428,16 @@ static TriX_Script_Thread script_thread;
 
 static QTextEdit *_textOutput;
 
+void PPModdMainWindow::closeEvent(QCloseEvent *event)
+{
+	QSettings settings( ORG_DOMAIN, APP_NAME );
+	settings.setValue("geometry", saveGeometry());
+	QWidget::closeEvent(event);
+}
 
 void PPModdMainWindow::dragEnterEvent(QDragEnterEvent *event)
 {
-    event->acceptProposedAction();
+	event->acceptProposedAction();
 }
 
 void PPModdMainWindow::dropEvent(QDropEvent *event)
@@ -437,7 +445,7 @@ void PPModdMainWindow::dropEvent(QDropEvent *event)
 	QString name = event->mimeData()->urls().first().toString();
 	event->acceptProposedAction();
 
-	LoadFile ( (char*)(name.toAscii().constData()) );
+	LoadFile ( (char*)(name.toLocal8Bit().constData()) );
 }
 /*
 //---------------------------------------------------------------------------
@@ -470,17 +478,17 @@ void PPModdMainWindow::setVisible (bool visible)
 PPModdMainWindow::PPModdMainWindow()
 {
 	int ret = 0;
-   /*
-   ** Build the ui component
-   **
-   */
-   setupUi(this);
-   _textOutput = textOutput; // save as global variable to make it accessible by qt_vprintf()
+	/*
+	** Build the ui component
+	**
+	*/
+	setupUi(this);
+	_textOutput = textOutput; // save as global variable to make it accessible by qt_vprintf()
 
-   /*
-   ** Connect custom slots to signals
-   **
-   */
+	/*
+	** Connect custom slots to signals
+	**
+	*/
 #ifdef TRIX_THREADED
 	trix_thread_lock = mutex_create();
 	trix_dialog_lock = mutex_create();
@@ -578,9 +586,10 @@ PPModdMainWindow::PPModdMainWindow()
 	ret = connect(actionCreate_PPM,SIGNAL(triggered()),this,SLOT(actBuildPPMTriggered()));
 
 	ret = connect ( treeWidget, SIGNAL( itemClicked(QTreeWidgetItem *, int) ), this, SLOT ( treeItemClicked (QTreeWidgetItem *, int) ) );
-	ret = connect ( treeWidget, SIGNAL( itemSelectionChanged() ), SLOT( treeItemChanged() ) );
+//	ret = connect ( treeWidget, SIGNAL( itemSelectionChanged() ), SLOT( treeItemChanged() ) );
 	ret = connect ( treeWidget, SIGNAL( customContextMenuRequested ( const QPoint & ) ), SLOT( treeItemContext(const QPoint &) ) );
 
+//	ret = connect ( treeWidget, SIGNAL( itemClicked ( QTreeWidgetItem *, int  ) ), SLOT( treeItemClicked ( QTreeWidgetItem *, int ) ) );
 	ret = connect ( treeWidget, SIGNAL( currentItemChanged ( QTreeWidgetItem *, QTreeWidgetItem * ) ), SLOT( treeCurrentItemChanged( QTreeWidgetItem *, QTreeWidgetItem *) ) );
 
 /*
@@ -616,67 +625,33 @@ PPModdMainWindow::PPModdMainWindow()
 void PPModdMainWindow::evtTimerElapsed()
 {
 	int pos = 0;
-	char buf[TRIX_PRINTF_BUFSIZE];
+	static char * buf = NULL;
+	
+	if ( !buf )
+		buf = (char*)malloc (TRIX_PRINTF_BUFSIZE);
+
 #ifdef TRIX_THREADED
-/*
-	if ( modeless_plug_win )
-		modeless_plug_win->update_timer();
-	if ( opts )
-		opts->update_timer();
-*/
-	/*
-	if ( dialog_type == DLG_STR )
-	{
-		dialog_type = DLG_NONE;
 
-		textInputSymbol->setPixmap ( QPixmap(QString::fromUtf8(":/icons/icons/22x22-gartoon/chat.png")) );
-		textInputMessage->setText ( dialog_message );
-		if ( dialog_default )
-			textInput->setText ( dialog_default );
-		textInput->selectAll(); 
-		textInput->setFocus ( Qt::OtherFocusReason );
-	}
-	if ( dialog_type == DLG_BOOL )
+	if ( trix_out_buffer && (trix_out_buffer_updated > 0)  )
 	{
-		dialog_type = DLG_NONE;
-
-		QMessageBox mb ( "TriX", QString( dialog_message ), QMessageBox::Question, QMessageBox::Yes, QMessageBox::No, 0, 0 );
-		mb.setIcon ( QMessageBox::Warning );
-		mb.setWindowIcon ( QIcon(QString::fromUtf8(":/icons/icons/22x22-gartoon/calculator.png")) );
-		mb.focusWidget();
-
-		switch ( mb.exec() )
-		{
-			case QMessageBox::Yes:
-				dialog_bool = E_OK;
-				break;
-			case QMessageBox::No:
-				dialog_bool = E_FAIL;
-				break;
-			default:
-				dialog_bool = E_FAIL;
-		}
-		mutex_unlock (trix_dialog_lock);
-	}
-*/
-	if ( trix_out_buffer && trix_out_buffer_updated > 0  )
-	{
+		int len = 0;
 		mutex_lock ( trix_thread_lock );
 
-		pos = strlen ( trix_out_buffer );
-		if ( pos >= TRIX_PRINTF_BUFSIZE - 1 )
-			pos = TRIX_PRINTF_BUFSIZE - 2;
-		while ( pos && trix_out_buffer[pos] != '\n' )
+		pos = trix_out_buffer_length;
+		while ( pos && (trix_out_buffer[pos] != '\n') )
 			pos--;
 
-		if ( trix_out_buffer[pos] == '\n' || trix_output_pause || trix_output_flush )
+		if ( (trix_out_buffer[pos] == '\n') || trix_output_pause || trix_output_flush )
 		{
 			trix_output_flush = 0;
-			memcpy ( buf, trix_out_buffer, strlen ( trix_out_buffer ) );
+//			buf = (char*)strdup ( trix_out_buffer );
+			memcpy ( buf, trix_out_buffer, pos );
 			buf[pos] = '\000';
 			if ( !trix_output_pause )
 				_textOutput->append ( buf );
-			memmove ( trix_out_buffer, trix_out_buffer+pos+1, strlen ( trix_out_buffer+pos+1 ) + 1 );
+//			free ( buf );
+			trix_out_buffer_length -= pos;
+			memmove ( trix_out_buffer, trix_out_buffer+pos+1, trix_out_buffer_length );
 		}
 
 		trix_out_buffer_updated = 0;
@@ -699,7 +674,7 @@ void PPModdMainWindow::txtEnterPressed ( )
 	/*
 	if ( mutex_locked(trix_dialog_lock ) )
 	{
-		dialog_text = (char*)strdup(textInput->text().toAscii().data());
+		dialog_text = (char*)strdup(textInput->text().toLocal8Bit().data());
 		mutex_unlock ( trix_dialog_lock );
 
 		textInput->selectAll(); 
@@ -713,13 +688,30 @@ void PPModdMainWindow::txtEnterPressed ( )
 
 void PPModdMainWindow::btnEditClicked()
 {
-	TextEdit dlg( current_treenode );
+	t_treenode *datanode = NULL;
+	const char*name = NULL;
 
-	dlg.exec ();
+	datanode = treenode_get_byname ( treenode_children ( current_treenode ), (unsigned char*)"NAME" );
+	name = (const char*)treenode_get_content_ascii ( datanode );
 
-	SetData ( ppm_data );
+	if ( !strncmp ( name, "TEXT", 4 ) )
+	{
+		TextEdit dlg ( current_treenode );
+
+		dlg.exec ( );
+
+		SetData ( ppm_data );
+	}
+	else if ( !strncmp ( name, "FONT", 4 ) )
+	{
+		FontView dlg;
+
+		dlg.setTreeNode ( current_treenode );
+
+		dlg.exec ( );
+	}
+
 //	UpdatePPMData ( ppm_data );
-
 }
 
 //---------------------------------------------------------------------------
@@ -742,6 +734,7 @@ unsigned int PPModdMainWindow::SetDataSubcall ( t_treenode *treenode, QTreeWidge
 {
 	QTreeWidgetItem *item;
 	t_treenode *infonode = NULL;
+	t_treenode *datanode = NULL;
 
 	while ( treenode )
 	{
@@ -784,7 +777,15 @@ unsigned int PPModdMainWindow::SetDataSubcall ( t_treenode *treenode, QTreeWidge
 			if ( strlen ( (const char*)treenode_get_content_ascii ( infonode ) ) )
 				item->setText ( 0, QString((char*)treenode_get_content_ascii ( infonode )) );
 			else
-				item->setText ( 0, tr("(unnamed)") );
+			{
+				infonode = treenode_get_byname ( treenode_children ( treenode ), (unsigned char*)"INFORMATION" );
+				infonode = treenode_get_byname ( treenode_children ( infonode ), (unsigned char*)"LENGTH" );
+
+				if ( treenode_get_content_data_hexval ( infonode ) == 0x24 )
+					item->setText ( 0, tr("----end----") );
+				else
+					item->setText ( 0, tr("(unnamed)") );
+			}
 
 			if ( treenode_children ( treenode ) )
 				SetDataSubcall ( treenode_children ( treenode ), item );
@@ -793,13 +794,18 @@ unsigned int PPModdMainWindow::SetDataSubcall ( t_treenode *treenode, QTreeWidge
 		if ( treenode_get_name ( treenode ) && !strcmp (  (const char*)treenode_get_name ( treenode ), "SUBCHUNK" ) )
 		{
 			infonode = treenode_get_byname ( treenode_children ( treenode ), (unsigned char*)"INFORMATION" );
-			infonode = treenode_get_byname ( treenode_children ( infonode ), (unsigned char*)"NAME" );
+
+			// PLMN subchunk
+			if ( treenode_get_byname ( treenode_children ( infonode ), (unsigned char*)"MCC" ) )
+				infonode = treenode_get_byname ( treenode_children ( infonode ), (unsigned char*)"COUNTRY" );
+			else
+				infonode = treenode_get_byname ( treenode_children ( infonode ), (unsigned char*)"NAME" );
 
 			if ( tree )
 				item = new QTreeWidgetItem ( tree );
 			else
 				item = new QTreeWidgetItem ( treeWidget );
-				
+
 			QVariant user_data;
 			qVariantSetValue ( user_data, (void*)treenode );
 			item->setData ( 1, Qt::UserRole, user_data );
@@ -807,7 +813,15 @@ unsigned int PPModdMainWindow::SetDataSubcall ( t_treenode *treenode, QTreeWidge
 			if ( strlen ( (const char*)treenode_get_content_ascii ( infonode ) ) )
 				item->setText ( 0, QString((char*)treenode_get_content_ascii ( infonode )) );
 			else
-				item->setText ( 0, tr("(unnamed)") );
+			{
+				infonode = treenode_get_byname ( treenode_children ( treenode ), (unsigned char*)"INFORMATION" );
+				infonode = treenode_get_byname ( treenode_children ( infonode ), (unsigned char*)"LENGTH" );
+
+				if ( treenode_get_content_data_hexval ( infonode ) == 0x10 )
+					item->setText ( 0, tr("----end----") );
+				else
+					item->setText ( 0, tr("(unnamed)") );
+			}
 
 			if ( treenode_children ( treenode ) )
 				SetDataSubcall ( treenode_children ( treenode ), item );
@@ -838,6 +852,111 @@ unsigned int PPModdMainWindow::SetDataSubcall ( t_treenode *treenode, QTreeWidge
 				SetDataSubcall ( treenode_children ( treenode ), item );
 		}
 
+		if ( treenode_get_name ( treenode ) && !strcmp (  (const char*)treenode_get_name ( treenode ), "ANIMS" ) )
+		{
+			if ( treenode_children ( treenode ) )
+				SetDataSubcall ( treenode_children ( treenode ), tree );
+		}
+
+		if ( treenode_get_name ( treenode ) && !strcmp (  (const char*)treenode_get_name ( treenode ), "ANIM" ) )
+		{
+			char tmp[64];
+			infonode = treenode_get_byname ( treenode_children ( treenode ), (unsigned char*)"ID" );
+			sprintf ( tmp, "%04i" , treenode_get_content_data_hexval( infonode ) );
+
+			if ( tree )
+				item = new QTreeWidgetItem ( tree );
+			else
+				item = new QTreeWidgetItem ( treeWidget );
+				
+			QVariant user_data;
+			qVariantSetValue ( user_data, (void*)treenode );
+			item->setData ( 1, Qt::UserRole, user_data );
+
+			item->setText ( 0, QString ( tmp ) );
+
+			if ( treenode_children ( treenode ) )
+				SetDataSubcall ( treenode_children ( treenode ), item );
+		}
+
+		if ( treenode_get_name ( treenode ) && !strcmp (  (const char*)treenode_get_name ( treenode ), "FONTS" ) )
+		{
+			if ( treenode_children ( treenode ) )
+				SetDataSubcall ( treenode_children ( treenode ), tree );
+		}
+
+		if ( treenode_get_name ( treenode ) && !strcmp (  (const char*)treenode_get_name ( treenode ), "FONT" ) )
+		{
+			char tmp[64];
+			infonode = treenode_get_byname ( treenode_children ( treenode ), (unsigned char*)"SIZE" );
+			if ( infonode ) // DCT-3
+			{
+				strcpy ( tmp, (const char *)treenode_get_content_ascii( infonode ) );
+				strcat ( tmp, "/" );
+				infonode = treenode_get_byname ( treenode_children ( treenode ), (unsigned char*)"WEIGHT" );
+				strcat ( tmp, (const char *)treenode_get_content_ascii( infonode ) );
+			}
+			else
+			{
+				infonode = treenode_get_byname ( treenode_children ( treenode ), (unsigned char*)"ID1" );
+				sprintf ( tmp, "%04X/" , treenode_get_content_data_hexval( infonode ) );
+				infonode = treenode_get_byname ( treenode_children ( treenode ), (unsigned char*)"ID2" );
+				sprintf ( tmp + 5, "%04X" , treenode_get_content_data_hexval( infonode ) );
+			}
+
+			if ( tree )
+				item = new QTreeWidgetItem ( tree );
+			else
+				item = new QTreeWidgetItem ( treeWidget );
+				
+			QVariant user_data;
+			qVariantSetValue ( user_data, (void*)treenode );
+			item->setData ( 1, Qt::UserRole, user_data );
+
+			item->setText ( 0, QString ( tmp ) );
+
+			if ( treenode_children ( treenode ) )
+				SetDataSubcall ( treenode_children ( treenode ), item );
+		}
+
+		if ( treenode_get_name ( treenode ) && !strcmp (  (const char*)treenode_get_name ( treenode ), "VFNT" ) )
+		{
+			infonode = treenode_get_byname ( treenode_children ( treenode ), (unsigned char*)"NAME" );
+
+			if ( tree )
+				item = new QTreeWidgetItem ( tree );
+			else
+				item = new QTreeWidgetItem ( treeWidget );
+
+			QVariant user_data;
+			qVariantSetValue ( user_data, (void*)treenode );
+			item->setData ( 1, Qt::UserRole, user_data );
+
+			item->setText ( 0, QString::fromAscii( (char *)treenode_get_content_ascii ( infonode ) ) );
+
+			if ( treenode_children ( treenode ) )
+				SetDataSubcall ( treenode_children ( treenode ), item );
+		}
+
+		if ( treenode_get_name ( treenode ) && !strcmp (  (const char*)treenode_get_name ( treenode ), "TONE" ) )
+		{
+			infonode = treenode_get_byname ( treenode_children ( treenode ), (unsigned char*)"NAME" );
+
+			if ( tree )
+				item = new QTreeWidgetItem ( tree );
+			else
+				item = new QTreeWidgetItem ( treeWidget );
+
+			QVariant user_data;
+			qVariantSetValue ( user_data, (void*)treenode );
+			item->setData ( 1, Qt::UserRole, user_data );
+
+			item->setText ( 0, QString::fromAscii( (char *)treenode_get_content_ascii ( infonode ) ) );
+
+			if ( treenode_children ( treenode ) )
+				SetDataSubcall ( treenode_children ( treenode ), item );
+		}
+
 		treenode = treenode_next ( treenode );
 	}
 
@@ -852,8 +971,8 @@ unsigned int PPModdMainWindow::SetData ( t_treenode *data )
 
 	QStringList sl; 
 	sl << tr( "Tree" );
-    treeWidget->setHeaderLabels( sl );
-    treeWidget->setColumnCount( 1 );
+	 treeWidget->setHeaderLabels( sl );
+	 treeWidget->setColumnCount( 1 );
 
 	treeWidget->clear ();
 	SetDataSubcall ( ppm_data, NULL );
@@ -861,22 +980,11 @@ unsigned int PPModdMainWindow::SetData ( t_treenode *data )
 	return E_OK;
 }
 
-//---------------------------------------------------------------------------
-void PPModdMainWindow::treeItemChanged (  )
-{
-	return;
-}
 
 //---------------------------------------------------------------------------
 void PPModdMainWindow::treeCurrentItemChanged ( QTreeWidgetItem * current, QTreeWidgetItem * previous )
 {
-	if ( !current ) 
-		current_treenode = NULL;
-	else
-		current_treenode = (t_treenode *)qVariantValue <void *>( current->data ( 1, Qt::UserRole) );
-
-	current_item = current;
-	return;
+	treeItemClicked ( current, 0 );
 }
 
 
@@ -885,26 +993,71 @@ void PPModdMainWindow::treeCurrentItemChanged ( QTreeWidgetItem * current, QTree
 t_treenode *PPModdMainWindow::LoadFromXML ()
 {
 	t_treenode *node = NULL;
-	QString name=QFileDialog::getOpenFileName(
-		this,
-		QString("Load Tree from"),
-		"", 
-		"XML File (*.xml);;Compressed XML File (*.xml.bz2);;All Files (*.*)", 0, 0 );
+	t_treenode *multinode = NULL;
+	t_treenode *current_node = NULL;
+	t_treenode *infonode = NULL;
+	t_treenode *datanode = NULL;
+	QString path, filename;
 
-   if(!name.isNull()) 
-   {
+	QString name = QFileDialog::getOpenFileName (
+							this,
+							QString ( "Load Tree from" ),
+							"",
+							"XML File (*.xml);;Compressed XML File (*.xml.bz2);;All Files (*.*)" );
+
+	if(!name.isNull())
+	{
 		t_workspace *ws = NULL;
-
-		ws = workspace_startup ( (char*)(name.toAscii().constData()) );
+		ws = workspace_startup ( (char*)(name.toLocal8Bit().constData()) );
 		if ( !ws )
 		{
 			ui_dlg_msg ( "Script loading failed", 0 );
 			return NULL;
 		}
 		node = xml_connector_parse ( v_get_str ( ws, 0 ) );
+
+		multinode = treenode_children ( node );
+		multinode = treenode_children ( multinode );
+		multinode = treenode_next ( multinode );
+		multinode = treenode_children ( multinode );
+		multinode = treenode_next ( multinode );
+		if ( treenode_get_name ( multinode ) && !strcmp (  (const char*)treenode_get_name ( multinode ), "ANIMS" ) )
+		{
+			path = name.section('/',0,-2);
+			path.append ( "/" );
+
+			current_node = treenode_children ( multinode );
+			while ( current_node )
+			{
+				infonode = treenode_get_byname ( treenode_children ( current_node ), (unsigned char *)"FILE" );
+				filename.append ( path );
+				filename.append ( (char *)treenode_get_content_data ( infonode ) );
+				datanode = treenode_addchild ( current_node );
+				treenode_set_name ( datanode, (unsigned char*)"DUMP" );
+				t_workspace *ws_anim = NULL;
+				ws_anim = workspace_startup ( (char *)(filename.toLocal8Bit().constData()) );
+				if ( !ws_anim )
+				{
+					ui_dlg_msg ( "Script loading failed", 0 );
+					return NULL;
+				}
+				if ( treenode_set_content_data_binary ( datanode, v_get_ptr (ws_anim,0), v_get_size ( ws_anim ) ) != E_OK )
+				{
+					workspace_release ( ws_anim );
+					ui_dlg_msg ( "Error reading data", 0 );
+					return NULL;
+				}
+				treenode_release ( infonode );
+				workspace_release ( ws_anim );
+
+				filename = "";
+				current_node = treenode_next ( current_node );
+			}
+		}
+
 		workspace_release ( ws );
-   }
-   return node;
+	}
+	return node;
 }
 
 //---------------------------------------------------------------------------
@@ -913,13 +1066,14 @@ unsigned int PPModdMainWindow::SaveAsXML ( t_treenode *node )
 	int state = E_OK;
 	char *filename = NULL;
 	QFileDialog dlg;
-    QString name = dlg.getSaveFileName( this, 
-		QString("Save this Tree as"),
+	QString name = dlg.getSaveFileName (
+		this,
+		QString ( "Save this Tree as" ),
 		"",
-		"XML File (*.xml);;Compressed XML File (*.xml.bz2);;All Files (*.*)", 0, 0);
+		"XML File (*.xml);;Compressed XML File (*.xml.bz2);;All Files (*.*)" );
 
-   if ( !name.isNull() )
-   {
+	if ( !name.isNull() )
+	{
 		t_workspace *ws = NULL;
 		unsigned char *buffer = NULL; 
 
@@ -927,11 +1081,11 @@ unsigned int PPModdMainWindow::SaveAsXML ( t_treenode *node )
 		if ( !buffer )
 			return E_FAIL;
 
-		filename = (char*)strdup(name.toAscii().data());
+		filename = (char*)strdup ( name.toLocal8Bit().data() );
 
 		ws = workspace_create_file_from_buffer ( (unsigned char*)buffer, strlen ( (char*)buffer ) );
 
-		if ( ws && (strlen (filename) > 4) && !strncasecmp ( filename+strlen(filename)-4, ".bz2", 4 ) )
+		if ( ws && (strlen (filename) > 4) && !strncasecmp ( filename + strlen ( filename ) - 4, ".bz2", 4 ) )
 			state = file_format ( ws->fileinfo, "BZ2" );
 
 		if ( ws && (state == E_OK) )
@@ -946,49 +1100,184 @@ unsigned int PPModdMainWindow::SaveAsXML ( t_treenode *node )
 
 		if ( !ws || (state != E_OK) )
 		{
-			ui_dlg_msg ( "Failed saving the script", 0 );
+			ui_dlg_msg ( "Failed saving the file", 0 );
 			return E_FAIL;
 		}
 
 		workspace_release ( ws );
-
-   }
+	}
 
 	return E_OK;
 }
 //---------------------------------------------------------------------------
 
+unsigned int update_vfnt_info ( t_workspace *ws, t_treenode *node )
+{
+	unsigned int tab_count = 0;
+	unsigned int len = 0;
+	unsigned int str_pos = 0;
+	unsigned int nam_pos = 0;
+	unsigned int pos = 0;
+	char *ttf_name = NULL;
+	char *ttf_version = NULL;
+	char *ttf_copyrights = NULL;
+	t_treenode *worknode = NULL;
+
+
+	if ( !ws || !node || strcmp ( (const char*)treenode_get_name ( node ), "VFNT" ) )
+		return E_FAIL;
+
+	tab_count = v_get_h ( ws, 4 );
+	pos = 12;
+
+	while ( tab_count && v_valid ( ws, pos ) )
+	{
+		if ( v_get_w ( ws, pos ) == 0x6E616D65 )
+			break;
+
+		pos += 16;
+		tab_count--;
+	}
+
+	pos = v_get_w ( ws, pos + 8 );
+	tab_count = v_get_h ( ws, pos + 2 );
+	str_pos = pos + v_get_h ( ws, pos + 4 );
+
+	pos += 6;
+	while ( tab_count && v_valid ( ws, pos ) )
+	{
+		if ( v_get_b ( ws, pos + 1 ) == 1 )
+		{
+			len = v_get_h ( ws, pos + 8 );
+			nam_pos = str_pos + v_get_h ( ws, pos + 10 );
+
+			switch ( v_get_b ( ws, pos + 7 ) )
+			{
+				case 0:
+				{
+					ttf_copyrights = (char *)malloc ( len + 1 );
+					v_memcpy_get ( ws, (unsigned char *)ttf_copyrights, nam_pos, len );
+					ttf_copyrights[len] = 0;
+				}
+				break;
+
+				case 4:
+				{
+					ttf_name = (char *)malloc ( len + 1 );
+					v_memcpy_get ( ws, (unsigned char *)ttf_name, nam_pos, len );
+					ttf_name[len] = 0;
+				}
+				break;
+
+				case 5:
+				{
+					ttf_version = (char *)malloc ( len + 1 );
+					v_memcpy_get ( ws, (unsigned char *)ttf_version, nam_pos, len );
+					ttf_version[len] = 0;
+				}
+				break;
+			}
+		}
+
+		pos += 12;
+		tab_count--;
+	}
+
+	worknode = treenode_get_byname ( treenode_children ( node ), (unsigned char*)"NAME" );
+	treenode_set_content_data ( worknode, (unsigned char *)ttf_name );
+
+	worknode = treenode_get_byname ( treenode_children ( node ), (unsigned char*)"VERSION" );
+	treenode_set_content_data ( worknode, (unsigned char *)ttf_version );
+
+	worknode = treenode_get_byname ( treenode_children ( node ), (unsigned char*)"COPYRIGHTS" );
+	treenode_set_content_data ( worknode, (unsigned char *)ttf_copyrights );
+
+	return E_OK;
+}
+
 unsigned int PPModdMainWindow::LoadFromBIN ( t_treenode *node )
 {
-	int length = 0;
 	t_treenode *datanode = NULL;
-	unsigned char *buffer = NULL; 
+	unsigned char *buffer = NULL;
+	const char *node_name = NULL;
+	int length = 0;
+	unsigned int bin_type = BIN_TYPE_DEFAULT;
+
 
 	datanode = treenode_get_byname ( treenode_children ( node ), (unsigned char*)"DUMP" );
+	if ( treenode_parent ( datanode ) != node )
+		return E_FAIL;
+
 	buffer = treenode_get_content_data_binary ( datanode, &length );
 
 	if ( !buffer )
 		return E_FAIL;
 
 	free ( buffer );
+
 	//
 	// supports DUMPs, proceed
 	//
+	QString name;
+	node_name = (const char *)treenode_get_name ( node );
 
-	QString name=QFileDialog::getOpenFileName(
-		this,
-		QString("Load subchunk data from"),
-		"", 
-		"BIN File (*.bin);;Compressed BIN File (*.bin.bz2);;All Files (*.*)", 0, 0);
+	if ( !strcmp ( node_name, "ANIM" ) )
+	{
+      bin_type = BIN_TYPE_ANIM;
 
-   if(!name.isNull()) 
-   {
+		name = QFileDialog::getOpenFileName (
+					this,
+					QString ( "Load image from" ),
+					"",
+					"Image File (*.png *.gif *.jpg *.bmp *.m3g *.3gp *.nif);;All Files (*.*)" );
+	}
+	else if ( !strcmp ( node_name, "FONT" ) )
+	{
+      bin_type = BIN_TYPE_FONT;
+
+		name = QFileDialog::getOpenFileName (
+					this,
+					QString ( "Load font from" ),
+					"",
+					"Nokia Font File (*.font);;All Files (*.*)" );
+	}
+	else if ( !strcmp ( node_name, "TONE" ) )
+	{
+      bin_type = BIN_TYPE_TONE;
+
+		name = QFileDialog::getOpenFileName (
+					this,
+					QString ( "Load tone from" ),
+					"",
+					"Tone File (*.aac *.wav *.mid *.re);;All Files (*.*)" );
+	}
+	else if ( !strcmp ( node_name, "VFNT" ) )
+	{
+      bin_type = BIN_TYPE_VFNT;
+
+		name = QFileDialog::getOpenFileName (
+					this,
+					QString ( "Load font from" ),
+					"",
+					"TrueType Font File (*.ttf);;All Files (*.*)" );
+	}
+	else
+	{
+		name = QFileDialog::getOpenFileName (
+					this,
+					QString ( "Load subchunk data from" ),
+					"",
+					"BIN File (*.bin);;Compressed BIN File (*.bin.bz2);;All Files (*.*)" );
+	}
+
+	if ( !name.isNull() )
+	{
 		t_workspace *ws = NULL;
 
-		ws = workspace_startup ( (char*)(name.toAscii().constData()) );
+		ws = workspace_startup ( (char*)(name.toLocal8Bit().constData()) );
 		if ( !ws )
 		{
-			ui_dlg_msg ( "Script loading failed", 0 );
+			ui_dlg_msg ( "File loading failed", 0 );
 			return E_FAIL;
 		}
 		if ( treenode_set_content_data_binary ( datanode, v_get_ptr (ws,0), v_get_size ( ws ) ) != E_OK )
@@ -997,13 +1286,56 @@ unsigned int PPModdMainWindow::LoadFromBIN ( t_treenode *node )
 			ui_dlg_msg ( "Error reading that data", 0 );
 			return E_FAIL;
 		}
+
+		switch ( bin_type )
+		{
+			case BIN_TYPE_ANIM:
+				break;
+
+			case BIN_TYPE_FONT:
+			{
+				// free obsolete subnodes
+				treenode_release ( treenode_get_byname ( treenode_children ( node ), (unsigned char*)"INFORMATION" ) );
+				treenode_release ( treenode_get_byname ( treenode_children ( node ), (unsigned char*)"CMAPS" ) );
+				treenode_release ( treenode_get_byname ( treenode_children ( node ), (unsigned char*)"TRACS" ) );
+				treenode_release ( treenode_get_byname ( treenode_children ( node ), (unsigned char*)"GLYPHS" ) );
+			}
+			break;
+
+			case BIN_TYPE_TONE:
+			{
+				QFileInfo fi( name.toLocal8Bit().constData() );
+
+				datanode = treenode_get_byname ( treenode_children ( node ), (unsigned char*)"NAME" );
+				treenode_set_content_data ( datanode, (unsigned char *)fi.baseName().toAscii().constData() );
+				datanode = treenode_get_byname ( treenode_children ( node ), (unsigned char*)"TYPE" );
+
+				if ( !strncmp ( "MThd", (const char *)v_get_ptr ( ws, 0 ), 4 ) ) // MIDI
+					treenode_set_content_data ( datanode, (unsigned char *)"MIDI" );
+				else if ( v_get_b ( ws, 0 ) == 0xFF ) // AAC
+					treenode_set_content_data ( datanode, (unsigned char *)"AAC" );
+				else if ( 0 ) // WAV
+					treenode_set_content_data ( datanode, (unsigned char *)"WAV" );
+				else // RE
+					treenode_set_content_data ( datanode, (unsigned char *)"RE" );
+			}
+			break;
+
+			case BIN_TYPE_VFNT:
+            update_vfnt_info ( ws, node );
+				break;
+
+			default:
+				break;
+		}
+
 //		datanode = treenode_get_byname ( treenode_children ( node ), (unsigned char*)"INFORMATION" );
 //		datanode = treenode_get_byname ( treenode_children ( datanode ), (unsigned char*)"LENGTH" );
 //		treenode_set_content_data_hexval ( datanode, v_get_size ( ws ) );
 
 		workspace_release ( ws );
-   }
-   return E_OK;
+	}
+	return E_OK;
 }
 
 //---------------------------------------------------------------------------
@@ -1016,6 +1348,7 @@ unsigned int PPModdMainWindow::SaveAsBIN ( t_treenode *node )
 	char *filename_template = NULL;
 	char *filename = NULL;
 	t_treenode *datanode = NULL;
+	t_treenode *infonode = NULL;
 	t_treenode *current_node = NULL;
 	t_treenode *multinode = NULL;
 	unsigned char *buffer = NULL; 
@@ -1037,14 +1370,25 @@ unsigned int PPModdMainWindow::SaveAsBIN ( t_treenode *node )
 		//
 		// supports DUMPs, proceed
 		//
-		QString name = dlg.getSaveFileName( this, 
-			QString("Save these subchunks as"),
-			"chunk.bin",
-			"BIN File (*.bin);;Compressed BIN File (*.bin.bz2);;All Files (*.*)", 0, 0);
+		QString name;
+		if(!strcmp ( (const char*)treenode_get_name ( multinode ), "ANIM" ))
+		{
+			name = dlg.getSaveFileName( this,
+				QString("Save these animations as"),
+				"anim",
+				"All Files (*.*)", 0, 0);
+		}
+		else
+		{
+			name = dlg.getSaveFileName( this,
+				QString("Save these subchunks as"),
+				"chunk.bin",
+				"BIN File (*.bin);;Compressed BIN File (*.bin.bz2);;All Files (*.*)", 0, 0);
+		}
 
 		if ( !name.isNull() )
 		{
-			filename_template = (char*)strdup(name.toAscii().data());
+			filename_template = (char*)strdup(name.toLocal8Bit().data());
 			filename = (char*)malloc ( 8192 );
 
 			//
@@ -1077,9 +1421,37 @@ unsigned int PPModdMainWindow::SaveAsBIN ( t_treenode *node )
 			{
 				datanode = treenode_get_byname ( treenode_children ( current_node ), (unsigned char*)"DUMP" );
 
-				sprintf ( filename, filename_template, loop++ );
+				if ( !strcmp ( (const char*)treenode_get_name ( current_node ), "ANIM" ))
+				{
+					infonode = treenode_get_byname ( treenode_children ( current_node ), (unsigned char*)"ID" );
+					sprintf ( filename, filename_template, treenode_get_content_data_hexval( infonode ) );
+				}
+				else
+					sprintf ( filename, filename_template, loop++ );
+
 				buffer = treenode_get_content_data_binary ( datanode, &length );
 				ws = workspace_create_file_from_buffer ( (unsigned char*)buffer, length );
+
+				if ( !strcmp ( (const char*)treenode_get_name ( current_node ), "ANIM" ))
+				{
+					treenode_release ( datanode );
+					infonode = treenode_get_byname ( treenode_children ( current_node ), (unsigned char*)"TYPE" );
+					char *type = (char *)treenode_get_content_ascii ( infonode );
+					if ( !strcmp ( type, "GIF" ) )
+						strcat ( filename, ".gif" );
+					else  if ( !strcmp ( type, "PNG" ) )
+						strcat ( filename, ".png" );
+					else  if ( !strcmp ( type, "JPG" ) )
+						strcat ( filename, ".jpg" );
+					else  if ( !strcmp ( type, "BMP" ) )
+						strcat ( filename, ".bmp" );
+					else  if ( !strcmp ( type, "M3G" ) )
+						strcat ( filename, ".m3g" );
+					else  if ( !strcmp ( type, "3GP" ) )
+						strcat ( filename, ".3gp" );
+					else
+						strcat ( filename, ".nif" );
+				}
 
 				if ( ws && (strlen (filename) > 4) && !strncasecmp ( filename+strlen(filename)-4, ".bz2", 4 ) )
 					state = file_format ( ws->fileinfo, "BZ2" );
@@ -1112,9 +1484,8 @@ unsigned int PPModdMainWindow::SaveAsBIN ( t_treenode *node )
 				} while ( pos >= 0 && filename[pos] != '\\' && filename[pos] != '/' );
 
 				datanode = treenode_addchild ( current_node );
-				treenode_set_name ( datanode, (unsigned char*)"FILE" );
+				treenode_set_name ( datanode, (unsigned char *)"FILE" );
 				treenode_set_content_data ( datanode, (unsigned char*)&filename[pos+1] );
-
 
 				workspace_release ( ws );
 
@@ -1129,7 +1500,7 @@ unsigned int PPModdMainWindow::SaveAsBIN ( t_treenode *node )
 				return E_FAIL;
 			}
 
-			strcpy ( filename, name.toAscii().data() );
+			strcpy ( filename, name.toLocal8Bit().data() );
 			strcat ( filename, ".xml" );
 
 			ws = workspace_create_file_from_buffer ( (unsigned char*)buffer, strlen ( (char*)buffer ) );
@@ -1171,14 +1542,99 @@ unsigned int PPModdMainWindow::SaveAsBIN ( t_treenode *node )
 	//
 	// supports DUMPs, proceed
 	//
-	QString name = dlg.getSaveFileName( this, 
-		QString("Save this subchunk data as"),
-		"chunk.bin",
-		"BIN File (*.bin);;Compressed BIN File (*.bin.bz2);;All Files (*.*)", 0, 0);
+	QString name;
+	if(!strcmp ( (const char*)treenode_get_name ( node ), "ANIM" ))
+	{
+		char tmpname[64];
+		QString filename;
+		char *type = NULL;
+
+		infonode = treenode_get_byname ( treenode_children ( node ), (unsigned char*)"ID" );
+		sprintf ( tmpname, "ID_%04i." , treenode_get_content_data_hexval( infonode ) );
+		filename = QString(tmpname);
+
+		infonode = treenode_get_byname ( treenode_children ( node ), (unsigned char*)"TYPE" );
+		type = (char *)treenode_get_content_ascii ( infonode );
+		filename += QString::fromAscii(type).toLower();
+
+		name = dlg.getSaveFileName( this,
+			QString("Save these animation as"),
+			filename.toLocal8Bit(),
+			"Images (*.png *.gif *.jpg *.bmp *.m3g *.3gp *.nif);;All Files (*.*)", 0, 0);
+	}
+	else if(!strcmp ( (const char*)treenode_get_name ( node ), "FONT" ))
+	{
+
+		char filename[256];
+
+		infonode = treenode_get_byname ( treenode_children ( node ), (unsigned char*)"SIZE" );
+		if ( infonode ) // dct3
+		{
+			sprintf ( filename, "%s_" , treenode_get_content_ascii( infonode ) );
+         infonode = treenode_get_byname ( treenode_children ( node ), (unsigned char*)"WEIGHT" );
+         sprintf ( filename + strlen ( filename ), "%s" , treenode_get_content_ascii( infonode ) );
+		}
+		else
+		{
+			infonode = treenode_get_byname ( treenode_children ( node ), (unsigned char*)"ID1" );
+         sprintf ( filename, "%04X_", treenode_get_content_data_hexval ( infonode ) );
+			infonode = treenode_get_byname ( treenode_children ( node ), (unsigned char*)"ID2" );
+         sprintf ( filename + 5, "%04X", treenode_get_content_data_hexval ( infonode ) );
+		}
+
+		name = dlg.getSaveFileName( this,
+			QString("Save these font as"),
+			filename,
+			"Font Files (*.font);;All Files (*.*)", 0, 0);
+	}
+	else if ( !strcmp ( (const char*)treenode_get_name ( node ), "TONE" ) )
+	{
+		char filename[256];
+
+		infonode = treenode_get_byname ( treenode_children ( node ), (unsigned char*)"NAME" );
+		sprintf ( filename, "%s" , treenode_get_content_ascii( infonode ) );
+
+		infonode = treenode_get_byname ( treenode_children ( node ), (unsigned char*)"TYPE" );
+		char *type = (char *)treenode_get_content_ascii ( infonode );
+		if ( !strcmp ( type, "RE" ) )
+			strcat ( filename, ".re" );
+		else  if ( !strcmp ( type, "MIDI" ) )
+			strcat ( filename, ".mid" );
+		else  if ( !strcmp ( type, "AAC" ) )
+			strcat ( filename, ".aac" );
+		else  if ( !strcmp ( type, "WAV" ) )
+			strcat ( filename, ".wav" );
+		else
+			strcat ( filename, ".bin" );
+
+		name = dlg.getSaveFileName( this,
+			QString("Save these tone as"),
+			filename,
+			"Tones (*.re *.mid *.aac *.wav);;All Files (*.*)", 0, 0);
+	}
+	else if(!strcmp ( (const char*)treenode_get_name ( node ), "VFNT" ))
+	{
+		char filename[256];
+
+		infonode = treenode_get_byname ( treenode_children ( node ), (unsigned char*)"NAME" );
+		sprintf ( filename, "%s" , treenode_get_content_ascii( infonode ) );
+
+		name = dlg.getSaveFileName( this,
+			QString("Save these font as"),
+			filename,
+			"TrueType Font Files (*.ttf);;All Files (*.*)", 0, 0);
+	}
+	else
+	{
+		name = dlg.getSaveFileName( this,
+			QString("Save this subchunk data as"),
+			"chunk",
+			"BIN File (*.bin);;Compressed BIN File (*.bin.bz2);;All Files (*.*)", 0, 0);
+	}
 
 	if ( !name.isNull() )
 	{
-		filename = (char*)strdup(name.toAscii().data());
+		filename = (char*)strdup(name.toLocal8Bit().data());
 
 		buffer = treenode_get_content_data_binary ( datanode, &length );
 		ws = workspace_create_file_from_buffer ( (unsigned char*)buffer, length );
@@ -1225,7 +1681,7 @@ void PPModdMainWindow::treeItemContext ( const QPoint &pos )
 
 	menuMap[menu.addAction("Export to XML...")] = MENU_EXPORT_XML;
 	menuMap[menu.addAction("Import from XML...")] = MENU_IMPORT_XML;
-	if ( strcmp ( (const char*)treenode_get_name ( current_treenode ), "PPM" ))
+	if ( treenode_get_name ( current_treenode ) && strcmp ( (const char*)treenode_get_name ( current_treenode ), "PPM" ))
 	{
 		menu.addSeparator ();
 		menuMap[menu.addAction("Export to Binary...")] = MENU_EXPORT_BIN;
@@ -1234,21 +1690,21 @@ void PPModdMainWindow::treeItemContext ( const QPoint &pos )
 	}
 	menu.addSeparator ();
 
-	if ( strcmp ( (const char*)treenode_get_name ( current_treenode ), "PPM" ) )
+	if ( treenode_get_name ( current_treenode ) && strcmp ( (const char*)treenode_get_name ( current_treenode ), "PPM" ) )
 		menuMap[menu.addAction("Cut")] = MENU_CUT;
 	menuMap[menu.addAction("Copy")] = MENU_COPY;
 	menuMap[menu.addAction("Paste")] = MENU_PASTE;
-	if ( strcmp ( (const char*)treenode_get_name ( current_treenode ), "PPM" ) )
+	if ( treenode_get_name ( current_treenode ) && strcmp ( (const char*)treenode_get_name ( current_treenode ), "PPM" ) )
 	{
 		menu.addSeparator ();
 		menuMap[menu.addAction("Delete")] = MENU_DELETE;
+		menu.addSeparator ();
+		menuMap[menu.addAction("Up")] = MENU_UP;
+		menuMap[menu.addAction("Down")] = MENU_DOWN;
 	}
 
-	menu.addSeparator ();
-	menuMap[menu.addAction("Up")] = MENU_UP;
-	menuMap[menu.addAction("Down")] = MENU_DOWN;
 
-	if ( !strcmp ( (const char*)treenode_get_name ( current_treenode ), "SUBCHUNK" ) )
+	if ( treenode_get_name ( current_treenode ) && !strcmp ( (const char*)treenode_get_name ( current_treenode ), "SUBCHUNK" ) )
 	{
 		menu.addSeparator ();
 		menuMap[menu.addAction("Hex-Edit")] = MENU_HEXEDIT;
@@ -1292,11 +1748,17 @@ void PPModdMainWindow::treeItemContext ( const QPoint &pos )
 						!strcmp (  (const char*)treenode_get_name ( copied_treenode ), "SUBCHUNK" )
 					) 
 				)
-			   )
+				)
 			{
 
 				if ( copied_treenode )
-					treenode_append_child ( current_treenode, copied_treenode );
+				{
+					unsigned int pos = treenode_count ( treenode_children ( current_treenode ) ) - 1; // insert before terminator
+					treenode_insert_at ( current_treenode, copied_treenode, pos );
+				}
+
+				// unlink termiantor
+				current_item->takeChild ( current_item->childCount() - 1 );
 
 				// rebuild that pasted item tree
 				SetDataSubcall ( copied_treenode, current_item );
@@ -1320,24 +1782,52 @@ void PPModdMainWindow::treeItemContext ( const QPoint &pos )
 		case MENU_IMPORT_BIN:
 			if ( LoadFromBIN ( current_treenode ) )
 				ui_dlg_msg ( "Sorry, this chunk does not support binary dumping.", 0 );
+
+
+			if ( !current_treenode || !current_item || ( strcmp ( (const char*)treenode_get_name ( current_treenode ), "VFNT" ) &&
+																		strcmp ( (const char*)treenode_get_name ( current_treenode ), "TONE" ) ) )
+				break;
+
+			// rebuild item tree
+			SetDataSubcall ( current_treenode, current_item->parent() );
+
+			if ( current_item )
+			{
+				delete current_item;
+				current_item = NULL;
+			}
+
+			treeWidget->clearSelection();
+			treeWidget->update ();
 			break;
 
 		case MENU_CUT:
-			if ( !current_treenode || !current_item )
-				break;
 
-			if ( !strcmp (  (const char*)treenode_get_name ( current_treenode ), "PPM" ) )
 			{
-				ui_dlg_msg ( "You cannot delete that item", 0 );
-				break;
+//				QTreeWidgetItem *parent = current_item->parent();
+//				int itemIndex = parent->indexOfChild ( current_item );
+
+				if ( !current_treenode || !current_item )
+					break;
+
+				if ( !strcmp (  (const char*)treenode_get_name ( current_treenode ), "PPM" ) )
+				{
+					ui_dlg_msg ( "You cannot delete that item", 0 );
+					break;
+				}
+
+				copied_treenode = treenode_clone ( current_treenode );
+				treenode_release ( current_treenode );
+				current_treenode = NULL;
+
+				if ( current_item )
+				{
+					delete current_item;
+					current_item = NULL;
+				}
+				treeWidget->clearSelection();
+				treeWidget->update ();
 			}
-
-			copied_treenode = treenode_clone ( current_treenode );
-			treenode_release ( current_treenode );
-			current_treenode = NULL;
-
-			delete current_item;
-			current_item = NULL;
 			break;
 
 		case MENU_COPY:
@@ -1377,18 +1867,24 @@ void PPModdMainWindow::treeItemContext ( const QPoint &pos )
 					(
 						!strcmp (  (const char*)treenode_get_name ( current_treenode ), "PPM" ) &&
 						!strcmp (  (const char*)treenode_get_name ( copied_treenode ), "CHUNK" )
-					) 
+					)
 				||
 					(
 						!strcmp (  (const char*)treenode_get_name ( current_treenode ), "CHUNK" ) &&
 						!strcmp (  (const char*)treenode_get_name ( copied_treenode ), "SUBCHUNK" )
-					) 
+					)
 				)
 				)
 			{
 
 				if ( copied_treenode )
-					treenode_append_child ( current_treenode, copied_treenode );
+				{
+					unsigned int pos = treenode_count ( treenode_children ( current_treenode ) ) - 1; // insert before terminator
+					treenode_insert_at ( current_treenode, copied_treenode, pos );
+				}
+
+				// unlink termiantor
+				current_item->takeChild ( current_item->childCount() - 1 );
 
 				// rebuild that pasted item tree
 				SetDataSubcall ( copied_treenode, current_item );
@@ -1399,18 +1895,29 @@ void PPModdMainWindow::treeItemContext ( const QPoint &pos )
 			else
 				ui_dlg_msg ( "You cannot copy that item there", 0 );
 
-			break;
+	break;
 
 		case MENU_DELETE:
-			if ( !strcmp ( (const char*)treenode_get_name ( current_treenode ), "PPM" ) )
 			{
-				ui_dlg_msg ( "You cannot delete that item", 0 );
-				break;
+//				QTreeWidgetItem *parent = current_item->parent();
+//				int itemIndex = parent->indexOfChild ( current_item );
+
+				if ( treenode_get_name ( current_treenode ) && !strcmp ( (const char*)treenode_get_name ( current_treenode ), "PPM" ) )
+				{
+					ui_dlg_msg ( "You cannot delete that item", 0 );
+					break;
+				}
+				treenode_release ( current_treenode );
+				current_treenode = NULL;
+				if ( current_item )
+				{
+					delete current_item;
+					current_item = NULL;
+				}
+//				current_item = parent->child ( itemIndex );
+				treeWidget->clearSelection();
+				treeWidget->update ();
 			}
-			treenode_release ( current_treenode );
-			current_treenode = NULL;
-			delete current_item;
-			current_item = NULL;
 			break;
 
 		case MENU_HEXEDIT:
@@ -1426,14 +1933,19 @@ void PPModdMainWindow::treeItemContext ( const QPoint &pos )
 				treenode_insert_at ( tempnode, current_treenode, pos-1 );
 			}
 
-
 			if ( current_item->parent()->indexOfChild(current_item) > 0 )
 			{
-				int pos = current_item->parent()->indexOfChild(current_item);
-				current_item->parent()->insertChild ( pos-1, current_item->parent()->takeChild ( pos ) ); 
+				QTreeWidgetItem *parent = current_item->parent();
+				int pos = parent->indexOfChild ( current_item );
+
+				// unlink
+				current_item = current_item->parent()->takeChild ( pos );
+				parent->insertChild ( pos-1, current_item ); 
 			}
-			treeWidget->setItemSelected ( current_item, true );
-			treeWidget->setCurrentItem ( current_item );
+			
+			current_treenode = NULL;
+			current_item = NULL;
+			treeWidget->clearSelection ();
 			treeWidget->update ();
 			break;
 
@@ -1448,11 +1960,17 @@ void PPModdMainWindow::treeItemContext ( const QPoint &pos )
 
 			if ( current_item->parent()->indexOfChild(current_item) < current_item->parent()->childCount() - 1 )
 			{
-				int pos = current_item->parent()->indexOfChild(current_item);
-				current_item->parent()->insertChild ( pos+1, current_item->parent()->takeChild ( pos ) ); 
+				QTreeWidgetItem *parent = current_item->parent();
+				int pos = parent->indexOfChild ( current_item );
+
+				// unlink
+				current_item = current_item->parent()->takeChild ( pos );
+				parent->insertChild ( pos+1, current_item ); 
 			}
-			treeWidget->setItemSelected ( current_item, true );
-			treeWidget->setCurrentItem ( current_item );
+
+			current_treenode = NULL;
+			current_item = NULL;
+			treeWidget->clearSelection ();
 			treeWidget->update ();
 			break;
 	}
@@ -1463,25 +1981,38 @@ void PPModdMainWindow::treeItemContext ( const QPoint &pos )
 
 
 //---------------------------------------------------------------------------
-int PPModdMainWindow::treeItemClicked ( QTreeWidgetItem * item, int column )
+void PPModdMainWindow::treeItemClicked ( QTreeWidgetItem * item, int column )
 {
 	t_treenode *infonode = NULL;
 	t_treenode *datanode = NULL;
-	t_treenode *treenode = (t_treenode *)qVariantValue <void *>( item->data ( 1, Qt::UserRole) );
+	t_treenode *treenode = NULL;
+   const char *treenode_name = NULL;
 
+	if ( !item )
+	{
+		current_treenode = NULL;
+		current_item = NULL;
+		return;
+	}
+	treenode = (t_treenode *)qVariantValue <void *>( item->data ( 1, Qt::UserRole) );
 
 	textEdit->clear ();
 	textEdit->append ( tr("Details of selected Item:") );
 	textEdit->append ( tr("") );
 
-	if ( treenode )
+	btnEdit->setEnabled ( false );
+
+	current_treenode = treenode;
+	current_item = item;
+
+   treenode_name = (const char *)treenode_get_name ( treenode );
+
+	if ( treenode_name )
 	{
-		if ( !strcmp ( (const char*)treenode_get_name ( treenode ), "PPM" ) )
+		infonode = treenode_get_byname ( treenode_children ( treenode ), (unsigned char*)"INFORMATION" );
+
+		if ( !strcmp ( treenode_name, "PPM" ) )
 		{
-			infonode = treenode_get_byname ( treenode_children ( treenode ), (unsigned char*)"INFORMATION" );
-
-			btnEdit->setEnabled ( false );
-
 			textEdit->append ( tr("PPM Version:") );
 			datanode = treenode_get_byname ( treenode_children ( infonode ), (unsigned char*)"VERSION" );
 			textEdit->append ( QString ( (char*)treenode_get_content_ascii ( datanode ) ) );
@@ -1491,93 +2022,179 @@ int PPModdMainWindow::treeItemClicked ( QTreeWidgetItem * item, int column )
 			datanode = treenode_get_byname ( treenode_children ( infonode ), (unsigned char*)"LANG" );
 			textEdit->append ( QString ( (char*)treenode_get_content_ascii ( datanode ) ) );
 			textEdit->append ( tr("") );
-
 		}
-		if ( !strcmp ( (const char*)treenode_get_name ( treenode ), "CHUNK" ) )
+		else if ( !strcmp ( treenode_name, "CHUNK" ) )
 		{
-			infonode = treenode_get_byname ( treenode_children ( treenode ), (unsigned char*)"INFORMATION" );
+			datanode = treenode_get_byname ( treenode_children ( treenode ), (unsigned char*)"SUBCHUNK" );
 
-			datanode = treenode_get_byname ( treenode_children ( infonode ), (unsigned char*)"NAME" );
-			if ( datanode && !strncmp ( (char*)treenode_get_content_ascii ( datanode ), "TEXT", 4 ) )
+			if ( treenode_get_byname ( treenode_children ( datanode ), (unsigned char*)"STRINGS" ) )
 				btnEdit->setEnabled ( true );
-			else
-				btnEdit->setEnabled ( false );
+			else if ( treenode_get_byname ( treenode_children ( datanode ), (unsigned char*)"FONTS" ) )
+				btnEdit->setEnabled ( true );
 
-			textEdit->append ( tr("CHUNK Version:") );
+			textEdit->append ( tr("Version:") );
 			datanode = treenode_get_byname ( treenode_children ( infonode ), (unsigned char*)"VERSION" );
 			textEdit->append ( QString ( (char*)treenode_get_content_ascii ( datanode ) ) );
 			textEdit->append ( tr("") );
 
-			textEdit->append ( tr("CHUNK Length:") );
+			textEdit->append ( tr("Length:") );
 			datanode = treenode_get_byname ( treenode_children ( infonode ), (unsigned char*)"LENGTH" );
 			textEdit->append ( QString ( (char*)treenode_get_content_ascii ( datanode ) ) );
 			textEdit->append ( tr("") );
 
-			textEdit->append ( tr("CHUNK Checksum:") );
+			textEdit->append ( tr("Checksum:") );
 			datanode = treenode_get_byname ( treenode_children ( infonode ), (unsigned char*)"CHECKSUM" );
 			textEdit->append ( QString ( (char*)treenode_get_content_ascii ( datanode ) ) );
 			textEdit->append ( tr("") );
-
 		}
-		if ( !strcmp ( (const char*)treenode_get_name ( treenode ), "SUBCHUNK" ) )
+		else if ( !strcmp ( treenode_name, "SUBCHUNK" ) )
 		{
-			infonode = treenode_get_byname ( treenode_children ( treenode ), (unsigned char*)"INFORMATION" );
+			// PLMN subchunk header values has different meaning
+			datanode = treenode_get_byname ( treenode_children ( infonode ), (unsigned char*)"MCC" );
+			if ( datanode )
+			{
+				textEdit->append ( tr("Country:") );
+				datanode = treenode_get_byname ( treenode_children ( infonode ), (unsigned char*)"NAME" );
+				textEdit->append ( QString ( (char*)treenode_get_content_ascii ( datanode ) ) );
+				textEdit->append ( tr("") );
 
-			btnEdit->setEnabled ( false );
+				textEdit->append ( tr("Length:") );
+				datanode = treenode_get_byname ( treenode_children ( infonode ), (unsigned char*)"LENGTH" );
+				textEdit->append ( QString ( (char*)treenode_get_content_ascii ( datanode ) ) );
+				textEdit->append ( tr("") );
 
-			textEdit->append ( tr("CHUNK ID:") );
-			datanode = treenode_get_byname ( treenode_children ( infonode ), (unsigned char*)"ID" );
+				textEdit->append ( tr("MCC:") );
+				datanode = treenode_get_byname ( treenode_children ( infonode ), (unsigned char*)"MCC" );
+				textEdit->append ( QString ( (char*)treenode_get_content_ascii ( datanode ) ) );
+				textEdit->append ( tr("") );
+
+				textEdit->append ( tr("Flags:") );
+				datanode = treenode_get_byname ( treenode_children ( infonode ), (unsigned char*)"FLAGS" );
+				textEdit->append ( QString ( (char*)treenode_get_content_ascii ( datanode ) ) );
+				textEdit->append ( tr("") );
+			}
+			else
+			{
+				textEdit->append ( tr("ID:") );
+				datanode = treenode_get_byname ( treenode_children ( infonode ), (unsigned char*)"ID" );
+				textEdit->append ( QString ( (char*)treenode_get_content_ascii ( datanode ) ) );
+				textEdit->append ( tr("") );
+
+				textEdit->append ( tr("Length:") );
+				datanode = treenode_get_byname ( treenode_children ( infonode ), (unsigned char*)"LENGTH" );
+				textEdit->append ( QString ( (char*)treenode_get_content_ascii ( datanode ) ) );
+				textEdit->append ( tr("") );
+
+				textEdit->append ( tr("Flags 1:") );
+				datanode = treenode_get_byname ( treenode_children ( infonode ), (unsigned char*)"FLAGS1" );
+				textEdit->append ( QString ( (char*)treenode_get_content_ascii ( datanode ) ) );
+				textEdit->append ( tr("") );
+
+				textEdit->append ( tr("Flags 2:") );
+				datanode = treenode_get_byname ( treenode_children ( infonode ), (unsigned char*)"FLAGS2" );
+				textEdit->append ( QString ( (char*)treenode_get_content_ascii ( datanode ) ) );
+				textEdit->append ( tr("") );
+
+				textEdit->append ( tr("Flags 3:") );
+				datanode = treenode_get_byname ( treenode_children ( infonode ), (unsigned char*)"FLAGS3" );
+				textEdit->append ( QString ( (char*)treenode_get_content_ascii ( datanode ) ) );
+				textEdit->append ( tr("") );
+
+				textEdit->append ( tr("Flags 4:") );
+				datanode = treenode_get_byname ( treenode_children ( infonode ), (unsigned char*)"FLAGS4" );
+				textEdit->append ( QString ( (char*)treenode_get_content_ascii ( datanode ) ) );
+				textEdit->append ( tr("") );
+			}
+		}
+		else if ( !strcmp ( treenode_name, "ANIM" ) )
+		{
+			textEdit->append ( tr("Animation type:") );
+			datanode = treenode_get_byname ( treenode_children ( treenode ), (unsigned char*)"TYPE" );
 			textEdit->append ( QString ( (char*)treenode_get_content_ascii ( datanode ) ) );
 			textEdit->append ( tr("") );
 
-			textEdit->append ( tr("CHUNK Length:") );
-			datanode = treenode_get_byname ( treenode_children ( infonode ), (unsigned char*)"LENGTH" );
+			textEdit->append ( tr("Length:") );
+			datanode = treenode_get_byname ( treenode_children ( treenode ), (unsigned char*)"DUMP" );
+			int length = strlen(datanode->content_data)/2;
+			unsigned char tmp_str[16];
+			sprintf ( (char*)tmp_str, "%i", length );
+
+			textEdit->append ( QString ( (char*)tmp_str ) );
+			textEdit->append ( tr("") );
+			textEdit->append ( tr("Flags 1:") );
+			datanode = treenode_get_byname ( treenode_children ( treenode ), (unsigned char*)"UNK1" );
 			textEdit->append ( QString ( (char*)treenode_get_content_ascii ( datanode ) ) );
 			textEdit->append ( tr("") );
 
-			textEdit->append ( tr("CHUNK Flags 1:") );
-			datanode = treenode_get_byname ( treenode_children ( infonode ), (unsigned char*)"FLAGS1" );
+			datanode = treenode_get_byname ( treenode_children ( treenode ), (unsigned char*)"UNK2" );
+			if ( datanode )
+			{
+				textEdit->append ( tr("Flags 2:") );
+				textEdit->append ( QString ( (char*)treenode_get_content_ascii ( datanode ) ) );
+				textEdit->append ( tr("") );
+			}
+
+		}
+		else if ( !strcmp ( treenode_name, "FONT" ) )
+		{
+			textEdit->append ( tr("Default height:") );
+			datanode = treenode_get_byname ( treenode_children ( treenode ), (unsigned char*)"DEFAULT_HEIGHT" );
 			textEdit->append ( QString ( (char*)treenode_get_content_ascii ( datanode ) ) );
 			textEdit->append ( tr("") );
 
-			textEdit->append ( tr("CHUNK Flags 2:") );
-			datanode = treenode_get_byname ( treenode_children ( infonode ), (unsigned char*)"FLAGS2" );
-			textEdit->append ( QString ( (char*)treenode_get_content_ascii ( datanode ) ) );
-			textEdit->append ( tr("") );
-
-			textEdit->append ( tr("CHUNK Flags 3:") );
-			datanode = treenode_get_byname ( treenode_children ( infonode ), (unsigned char*)"FLAGS3" );
-			textEdit->append ( QString ( (char*)treenode_get_content_ascii ( datanode ) ) );
-			textEdit->append ( tr("") );
-
-			textEdit->append ( tr("CHUNK Flags 4:") );
-			datanode = treenode_get_byname ( treenode_children ( infonode ), (unsigned char*)"FLAGS4" );
+			textEdit->append ( tr("Default char:") );
+			datanode = treenode_get_byname ( treenode_children ( treenode ), (unsigned char*)"DEFAULT_CHAR" );
 			textEdit->append ( QString ( (char*)treenode_get_content_ascii ( datanode ) ) );
 			textEdit->append ( tr("") );
 
 		}
+		else if ( !strcmp ( treenode_name, "VFNT" ) )
+		{
+			textEdit->append ( tr("Font name:") );
+			datanode = treenode_get_byname ( treenode_children ( treenode ), (unsigned char*)"NAME" );
+			textEdit->append ( QString ( (char*)treenode_get_content_ascii ( datanode ) ) );
+			textEdit->append ( tr("") );
 
+			textEdit->append ( tr("Version:") );
+			datanode = treenode_get_byname ( treenode_children ( treenode ), (unsigned char*)"VERSION" );
+			textEdit->append ( QString ( (char*)treenode_get_content_ascii ( datanode ) ) );
+			textEdit->append ( tr("") );
+
+			textEdit->append ( tr("Copyrights:") );
+			datanode = treenode_get_byname ( treenode_children ( treenode ), (unsigned char*)"COPYRIGHTS" );
+			textEdit->append ( QString ( (char*)treenode_get_content_ascii ( datanode ) ) );
+			textEdit->append ( tr("") );
+		}
+		else if ( !strcmp ( treenode_name, "TONE" ) )
+		{
+			textEdit->append ( tr("Tone name:") );
+			datanode = treenode_get_byname ( treenode_children ( treenode ), (unsigned char*)"NAME" );
+			textEdit->append ( QString ( (char*)treenode_get_content_ascii ( datanode ) ) );
+			textEdit->append ( tr("") );
+
+			textEdit->append ( tr("Tone type:") );
+			datanode = treenode_get_byname ( treenode_children ( treenode ), (unsigned char*)"TYPE" );
+			textEdit->append ( QString ( (char*)treenode_get_content_ascii ( datanode ) ) );
+			textEdit->append ( tr("") );
+		}
 	}
-	
-	return 0;
 }
 
 void PPModdMainWindow::actOpenTriggered()
 {
-	QString name=QFileDialog::getOpenFileName ( this,
-	QString("Load PPM File"),
-	"",
-	"All Files (*)");
+	QString name = QFileDialog::getOpenFileName (
+							this,
+							QString ( "Load PPM File" ),
+							"",
+							"All Files (*.*)" );
 
-	if(!name.isNull()) 
-		LoadFile ( (char*)(name.toAscii().constData()) );
-
+	if ( !name.isNull() )
+		LoadFile ( (char*)(name.toLocal8Bit().constData()) );
 }
 
 unsigned int PPModdMainWindow::LoadFile ( char *filename )
 {
 	int found = 0;
-	QString status_message;
 
 	ppm_start_address = E_FAIL;
 	SetData ( NULL );
@@ -1585,8 +2202,7 @@ unsigned int PPModdMainWindow::LoadFile ( char *filename )
 	//
 	// Open File
 	//
-	status_message = "Loading PPM";
-	statusbar->showMessage ( status_message );
+	statusbar->showMessage ( "Loading PPM" );
 
 	if( !filename ) 
 		return E_FAIL;
@@ -1595,15 +2211,13 @@ unsigned int PPModdMainWindow::LoadFile ( char *filename )
 	if ( !trix_workspace )
 	{
 		ui_dlg_msg ( "PPM loading failed", 0 );
-		status_message = "PPM Load Failed";
-		statusbar->showMessage ( status_message );
+		statusbar->showMessage ( "PPM Load Failed" );
 
 		workspace_release ( trix_workspace );
 		return E_FAIL;
 	}
 
-	status_message = "PPM loaded successfully, detecting type...";
-	statusbar->showMessage ( status_message );
+	statusbar->showMessage ( "PPM loaded successfully, detecting type..." );
 
 	//
 	// Check for PPM
@@ -1671,9 +2285,26 @@ unsigned int PPModdMainWindow::LoadFile ( char *filename )
 
 	if ( !found )
 	{
+		t_locator loc;
+
+		loc.func_name = (unsigned char*)"PPM Signature";
+		loc.length = 4;
+		loc.pattern = (unsigned char*)"PPM\x00";
+		loc.mask = (unsigned char*)"\xFF\xFF\xFF\xFF";
+
+		start = util_find_pattern ( trix_workspace, &loc, MEM_AUTO, MEM_AUTO, LOC_BACKWARD );
+
+		if ( start != E_FAIL )
+		{
+			printf ( "[i] PPM signature found at 0x%08X.\n", start );
+			found = 1;
+		}
+	}
+
+	if ( !found )
+	{
 		ui_dlg_msg ( "This is no PPM file. Maybe it's a file from a nokia model which has PPM not at 32k-boundary.\n\nIn this case first load the MCU file (!) and ignore the error message.\nThen open the options dialog and set 'core.fmt.dct4crypt.skip_autobasecode' to '1'\n\nNow try to load the PPM file again.", 0 );
-		status_message = "No PPM File";
-		statusbar->showMessage ( status_message );
+		statusbar->showMessage ( "No PPM File" );
 
 		workspace_release ( trix_workspace );
 		return E_FAIL;
@@ -1681,17 +2312,15 @@ unsigned int PPModdMainWindow::LoadFile ( char *filename )
 	//
 	// Parse PPM
 	//
-	status_message = "PPM loaded successfully, parsing...";
-	statusbar->showMessage ( status_message );
+	statusbar->showMessage ( "PPM loaded successfully, parsing..." );
 
 	t_treenode *mainnode = ppmodify_dump_xml ( trix_workspace, start );
 	
 	if ( !mainnode )
 	{
-		ui_dlg_msg ( "This is no PPM file. Maybe it's a file from a nokia model which has PPM not at 32k-boundary.\n\nIn this case first load the MCU file (!) and ignore the error message.\nThen open the options dialog and set 'core.fmt.dct4crypt.skip_autobasecode' to '1'\n\nNow try to load the PPM file again.", 0 );
+		ui_dlg_msg ( "This is no PPM file. Maybe it's a file from a nokia model which has PPM not at 32k-boundary.\n\nIn this case first load the MCU file (!) and ignore the error message.\nThen open the options dialog and set 'core.fmt.dct4crypt.skip_autobasecode' to '1'\n\nNow try to load the PPM file again.\n\nIt also may be a newer PPM Version. Try to set 'plugins.PPModify.ppm_header_ver' to a different value.", 0 );
 
-		status_message = "Invalid PPM File";
-		statusbar->showMessage ( status_message );
+		statusbar->showMessage ( "Invalid PPM File" );
 
 		workspace_release ( trix_workspace );
 		trix_workspace = NULL;
@@ -1699,16 +2328,14 @@ unsigned int PPModdMainWindow::LoadFile ( char *filename )
 		return E_FAIL;
 	}
 
-	status_message = "PPM loaded successfully, displaying...";
-	statusbar->showMessage ( status_message );
+	statusbar->showMessage ( "PPM loaded successfully, displaying..." );
 
 	SetData ( mainnode );
 
-	status_message = "PPM loaded successfully";
-	statusbar->showMessage ( status_message );
+	statusbar->showMessage ( "PPM loaded successfully" );
 
 	CHECK_AND_FREE(last_filename);
-	last_filename = (unsigned char*)strdup ( filename );
+	last_filename = (char*)strdup ( filename );
 	ppm_start_address = start;
 
 	actionExport_XML->setEnabled ( true );
@@ -1722,7 +2349,7 @@ unsigned int PPModdMainWindow::LoadFile ( char *filename )
 
 void PPModdMainWindow::actQuitTriggered()
 {
-   QCoreApplication::exit(0);
+	QCoreApplication::exit(0);
 }
 
 void PPModdMainWindow::actOptionsTriggered()
@@ -1771,11 +2398,20 @@ void PPModdMainWindow::actCloseTriggered()
 
 void PPModdMainWindow::actExportTriggered()
 {
+	t_treenode *copied_treenode = treenode_clone ( ppm_data );
+
+	SaveAsXML ( copied_treenode );
+
+	treenode_release ( copied_treenode );
 }
 
 
 void PPModdMainWindow::actBuildPPMTriggered()
 {
+	t_stage *current_stage = NULL;
+	t_segment *current_seg = NULL;
+	char *reload_filename = (char*)strdup ( last_filename );
+
 #ifdef PPMODD_EMBEDDED_VERSION
 	t_treenode *node = NULL;
 	t_treenode *datanode = NULL;
@@ -1784,7 +2420,7 @@ void PPModdMainWindow::actBuildPPMTriggered()
 	ppmodify_merge_ppm ( node );
 	datanode = node;
 #else
-	BuildPPMProgress *build = new BuildPPMProgress ( ppm_data, server_username, server_password );
+	BuildPPMProgress *build = new BuildPPMProgress ( ppm_data, (unsigned char*)server_username, (unsigned char*)server_password );
 
 	build->UploadPPM();
 
@@ -1796,81 +2432,100 @@ void PPModdMainWindow::actBuildPPMTriggered()
 	if ( !datanode )
 	{
 		ui_dlg_msg ( "Failed generating the PPM. Sorry.", 0 );
-		treenode_release ( node );
-		return;
+		goto final_block;
 	}
 
-	//
-	// proceed saving
-	//
-	int pos = 0;
-	int state = E_OK;
-	int length = 0;
-	int loop = 0;
-	char *filename_template = NULL;
-	char *filename = NULL;
-	t_treenode *current_node = NULL;
-	t_treenode *multinode = NULL;
-	unsigned char *buffer = NULL; 
-	t_workspace *ws = NULL;
-	QFileDialog dlg;
-
-	QString name = dlg.getSaveFileName( this, 
-		QString("Save this PPM as"),
-		QString::fromUtf8((const char*)(last_filename?(const char*)last_filename:(const char*)"generated.ppm")),
-		"PPM File (*.*);;Compressed PPM File (*.bz2);;All Files (*.*)", 0, 0);
-
-	if ( !name.isNull() )
 	{
-		filename = (char*)strdup(name.toAscii().data());
+		//
+		// proceed saving
+		//
+		int state = E_OK;
+		int length = 0;
+		char *filename = NULL;
+		unsigned char *buffer = NULL; 
+		QFileDialog dlg;
 
-		buffer = treenode_get_content_data_binary ( datanode, &length );
+		QString name = dlg.getSaveFileName( this, 
+			QString("Save this PPM as"),
+			QString::fromLocal8Bit((const char*)(last_filename?(const char*)last_filename:(const char*)"generated.ppm")),
+			"PPM File (*.*);;Compressed PPM File (*.bz2);;All Files (*.*)", 0, 0);
 
-		if ( !buffer || length < 0 )
+		if ( !name.isNull() )
 		{
-			ui_dlg_msg ( "Failed getting the PPM", 0 );
-			treenode_release ( node );
-			return ;
+			filename = (char*)strdup(name.toLocal8Bit().data());
+
+			buffer = treenode_get_content_data_binary ( datanode, &length );
+
+			if ( !buffer || length < 0 )
+			{
+				ui_dlg_msg ( "Failed getting the PPM", 0 );
+				goto final_block;
+			}
+
+			current_stage = stage_get_current ( trix_workspace->fileinfo->stages );
+			current_seg = segment_get_last ( current_stage->segments );
+
+			// resize down if needed
+			if ( current_seg->length > length )
+			{
+				// FLAGS_FREE_NAME indicates that it's not dct3 ppm, which shouldn't be truncated
+				if ( current_seg->flags & FLAGS_FREE_NAME )
+				{
+					current_seg->length = length;
+					current_seg->end += current_seg->start + length;
+					current_seg->data = (unsigned char *)realloc ( current_seg->data, current_seg->length );
+					workspace_update_memmap ( trix_workspace );
+				}
+				else // instead in dct3, wipe ppm free space
+					memset ( current_seg->data + ppm_start_address - current_seg->start, 0xFF, current_seg->end - ppm_start_address - 6 );
+			}
+
+			v_memcpy_put ( trix_workspace, ppm_start_address, buffer, length );
+
+			if ( trix_workspace && (strlen (filename) > 4) && !strncasecmp ( filename+strlen(filename)-4, ".bz2", 4 ) )
+				state = file_format ( trix_workspace->fileinfo, "BZ2" );
+
+			if ( trix_workspace && (state == E_OK) )
+			{
+				/* override the DRYMODE options */
+				int old_options = file_set_options ( FILE_NORMAL );
+
+				state = file_write ( filename, trix_workspace->fileinfo );
+				file_set_options ( old_options );
+			}
+
+			CHECK_AND_FREE ( buffer );
+
+			if ( !trix_workspace || (state != E_OK) )
+			{
+				CHECK_AND_FREE ( filename );
+				ui_dlg_msg ( "Failed saving the PPM", 0 );
+				goto final_block;
+			}
+
+			// reload the saved file
+			reload_filename = filename;
 		}
-
-
-		v_memcpy_put ( trix_workspace, ppm_start_address, buffer, length );
-//		ws = workspace_create_file_from_buffer ( (unsigned char*)buffer, length );
-
-		if ( trix_workspace && (strlen (filename) > 4) && !strncasecmp ( filename+strlen(filename)-4, ".bz2", 4 ) )
-			state = file_format ( trix_workspace->fileinfo, "BZ2" );
-
-		if ( trix_workspace && (state == E_OK) )
-		{
-			/* override the DRYMODE options */
-			int old_options = file_set_options ( FILE_NORMAL );
-
-			state = file_write ( filename, trix_workspace->fileinfo );
-			file_set_options ( old_options );
-		}
-		free ( filename );
-
-		if ( !trix_workspace || (state != E_OK) )
-		{
-			ui_dlg_msg ( "Failed saving the PPM", 0 );
-			treenode_release ( node );
-			return ;
-		}
-		workspace_release ( trix_workspace );
 	}
+
+	// the first goto in TriX iirc :)
+	// in this case its really useful for cleanup
+
+final_block:
+	workspace_release ( trix_workspace );
 	treenode_release ( node );
-
-
-	LoadFile ( (char*)last_filename );
+	LoadFile ( reload_filename );
+	CHECK_AND_FREE ( reload_filename );
 	return ;
 }
 
 void PPModdMainWindow::actImportTriggered()
 {
-	QString name=QFileDialog::getOpenFileName ( this,
-	QString("Load XML File"),
-	"",
-	"XML Files (*.xml);;All Files (*)");
+	QString name = QFileDialog::getOpenFileName (
+							this,
+							QString ( "Load XML File" ),
+							"",
+							"XML Files (*.xml);;All Files (*.*)" );
 
 	QString status_message;
 
@@ -1882,7 +2537,7 @@ void PPModdMainWindow::actImportTriggered()
 
 	if(!name.isNull()) 
 	{
-		trix_workspace = workspace_startup ( (char*)(name.toAscii().constData()) );
+		trix_workspace = workspace_startup ( (char*)(name.toLocal8Bit().constData()) );
 		if ( !trix_workspace )
 		{
 			ui_dlg_msg ( "XML loading failed", 0 );
@@ -1943,7 +2598,7 @@ unsigned int __cdecl qt_dlg_bool ( char *string )
 	return qt_dlg_bool_dlg ( string );
 #else
 	// fallback to normal dialog
-	if ( dlg_locked || mutex_locked ( trix_dialog_lock ))
+	if (  mutex_locked ( trix_dialog_lock ))
 		return qt_dlg_bool_dlg ( string );
 
 	mutex_lock ( trix_dialog_lock );
@@ -1966,7 +2621,7 @@ char * __cdecl qt_dlg_string_dlg ( char *def, char *string )
 	QString text = QInputDialog::getText ( NULL, "TriX", QString ( string ), QLineEdit::Normal, QString ( def ), &ok);
 
 	if ( ok && !text.isEmpty())
-		return (char*)strdup ( text.toAscii().data());
+		return (char*)strdup ( text.toLocal8Bit().data());
 
 	return NULL;
 }
@@ -1977,7 +2632,7 @@ char * __cdecl qt_dlg_string ( char *def, char *string )
 #ifndef TRIX_THREADED
 	return qt_dlg_string_dlg ( def, string );
 #else
-	if ( dlg_locked || mutex_locked ( trix_dialog_lock ) )
+	if (  mutex_locked ( trix_dialog_lock ) )
 		return qt_dlg_string_dlg ( def, string );
 
 	mutex_lock ( trix_dialog_lock );
@@ -1999,6 +2654,34 @@ char * __cdecl qt_dlg_string ( char *def, char *string )
 	return dialog_text;
 
 #endif
+}
+
+char * __cdecl qt_dlg_load_file ( const char *msg, const char *ext )
+{
+	QString name = QFileDialog::getOpenFileName (
+							NULL,
+							msg?QString ( msg ):QString ( "Open" ),
+							"",
+							ext?ext:"All Files (*.*)" );
+
+	if ( name.isNull() )
+		return NULL;
+
+	return ( char * ) strdup ( ( char *) name.toLocal8Bit().constData() );
+}
+
+char * __cdecl qt_dlg_save_file ( const char *msg, const char *ext )
+{
+	QString name = QFileDialog::getSaveFileName (
+							NULL,
+							msg ? QString ( msg ) : QString ( "Save file as" ),
+							"",
+							ext ? ext : "All Files (*.*)" );
+
+	if ( name.isNull() )
+		return NULL;
+
+	return ( char * ) strdup ( ( char *) name.toLocal8Bit().constData() );
 }
 
 unsigned int __cdecl qt_dlg_msg ( char *string, int type )
@@ -2323,7 +3006,7 @@ unsigned int qt_dlg_box_process ( )
 						boxentry->box->Clear ();
 						break;
 					case QT_BOX_APPEND:
-						boxentry->box->Append ( queue->message );
+						boxentry->box->AppendLine ( queue->message );
 						break;
 					case QT_BOX_RELEASE:
 						boxentry->release = 1;
@@ -2388,17 +3071,19 @@ int main(int argc, char **argv)
 	**
 	*/
 	app.setOrganizationDomain( ORG_DOMAIN );
-	app.setApplicationName(    APP_NAME   );
+	app.setApplicationName(	 APP_NAME	);
 
+	// restore windows size and position
+	QSettings settings( ORG_DOMAIN, APP_NAME );
+	win.restoreGeometry(settings.value("geometry").toByteArray());
 	win.show();
-
 
 	/*
 	** Initialize TriX core.
 	**
 	*/
 #ifdef TRIX_THREADED
-    strcpy ( trix_out_buffer, "" );
+	strcpy ( trix_out_buffer, "" );
 #endif
 
 	ret = main_setup();
@@ -2417,9 +3102,10 @@ int main(int argc, char **argv)
 		LOAD_PLUGIN_SYMBOL ( "XML", "xml_connector_create", win.xml_connector_create );
 		LOAD_PLUGIN_SYMBOL ( "XML", "xml_connector_create_file", win.xml_connector_create_file );
 
+#ifndef PPMODD_EMBEDDED_VERSION
 		options_add_core_option ( OPT_STR, "ppmodd", server_username, "PPModd User name" );
 		options_add_core_option ( OPT_STR, "ppmodd", server_password, "PPModd User password" );
-
+#endif
 		options_init ();
 
 		ret = app.exec();
@@ -2439,10 +3125,17 @@ int main(int argc, char **argv)
 /* Replacement for standard vprintf(), outputs to TriX's Output dock */
 int __cdecl	qt_vprintf ( const char *format, va_list args )
 {
-	static char buffer[TRIX_PRINTF_BUFSIZE] = "";
 	char *ptr;
 	int done = 0;
 	int buflength = 0;
+	int loop = 0;
+	static char * buffer = NULL;
+	
+	if ( !buffer )
+	{
+		buffer = (char*)malloc (TRIX_PRINTF_BUFSIZE);
+		strcpy ( buffer, "" );
+	}
 
 	vsprintf ( buffer + strlen(buffer), format, args);
 
@@ -2462,17 +3155,26 @@ int __cdecl	qt_vprintf ( const char *format, va_list args )
 		{
 			mutex_lock(trix_thread_lock);
 
-			if ( strlen ( trix_out_buffer ) + buflength < TRIX_PRINTF_BUFSIZE-10 )
+			if ( trix_out_buffer_length + buflength < TRIX_PRINTF_BUFSIZE-10 )
 			{
 				strcat ( trix_out_buffer, buffer );
 				strcat ( trix_out_buffer, "\n" );
+				trix_out_buffer_length += strlen (buffer) + 1;
 				trix_out_buffer_updated++;
 				done = 1;
 //				trix_thread_timer->setInterval (200);
 			}
 			else
+			{
 				trix_output_flush = 1;
+				if ( loop++ > 10 )
+				{
+					strcpy ( trix_out_buffer, "There was an internal error with qt_vprintf - buffer too full!\n" );
+					mutex_unlock(trix_thread_lock);
+					return 0;
+				}
 //				trix_thread_timer->setInterval (100);
+			}
 
 
 			mutex_unlock(trix_thread_lock);

@@ -1,5 +1,5 @@
 #!/bin/sh
-# $Id: inputbox7,v 1.1 2006/06/28 13:53:39 geggo Exp $
+# $Id: inputbox7 1521 2006-06-28 13:53:39Z geggo $
 # An example which produces two widget outputs.
 : ${DIALOG=dialog}
 

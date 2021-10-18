@@ -5,9 +5,6 @@
 	char *(*hexpack) ( unsigned char *data, int bytes);
 	char *(*hexunpack) ( char *data, int *length);
 	char *(*split) ( char *string, unsigned char seperator, int which);
-	int (*debug_msg) ( int level, char *str, ...);
-	int (*error_msg) ( int level, char *str, ...);
-	int (*printf_) ( char *str, ...);
 	t_list *(*list_add_new) ( t_list * l1, int size, char *name);
 	t_list *(*list_get_last) ( t_list * l);
 	t_segment *(*v_get_segment) ( t_workspace * ws, unsigned int address);
@@ -68,3 +65,8 @@
 	void (*set_debuglevel) ( int lvl);
 	void (*set_errorlevel) ( int lvl);
 	void *(*smalloc) ( int size, char *name);
+	int (*script_is_aborted) ( );
+ 	unsigned int (*v_set_b_raw) ( t_stage * s, unsigned int address, unsigned int value);
+ 	unsigned int (*v_set_h_raw) ( t_stage * s, unsigned int address, unsigned int value);
+ 	unsigned int (*v_set_w_raw) ( t_stage * s, unsigned int address, unsigned int value);
+ 	void *(*smalloc_init) ( void *ptr, int size, char *name);

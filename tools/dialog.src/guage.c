@@ -1,5 +1,5 @@
 /*
- *  $Id: guage.c,v 1.1 2006/06/28 13:53:39 geggo Exp $
+ *  $Id: guage.c 1521 2006-06-28 13:53:39Z geggo $
  *
  *  guage.c -- implements the gauge dialog
  *

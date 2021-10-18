@@ -18,6 +18,7 @@ struct workspace_funcs
 	unsigned int (*set_modified) ( t_workspace * ws);
 	unsigned int (*update_memmap) ( t_workspace * ws);
 	void (*skip_error) ( int skip);
+ 	unsigned int (*memmap_reverse) ( t_workspace * ws);
 };
 
 /* trixplug struct initializer */
@@ -41,6 +42,7 @@ unsigned int workspace_plug_init ( ) \
 	ft->workspace->release = workspace_release;\
 	ft->workspace->memmap_release = workspace_memmap_release;\
 	ft->workspace->memmap_sort = workspace_memmap_sort;\
+	ft->workspace->memmap_reverse = workspace_memmap_reverse;\
 	ft->workspace->update_memmap = workspace_update_memmap;\
 \
 	return E_OK;\

@@ -3,12 +3,12 @@
 ** Include any stock Qt files here...
 **
 */
-#include <Qt/qapplication.h>
+#include <QtGui/QApplication>
 #include <QtGui/QtGui>
-#include <Qt/qdialog.h>
-#include <Qt/qtreewidget.h>
-#include <Qt/qdebug.h>
-#include <Qt/qobject.h>
+#include <QtGui/QDialog>
+#include <QtGui/QTreeWidget>
+#include <QtCore/QDebug>
+#include <QtCore/QObject>
 //---------------------------------------------------------------------------
  
 /*
@@ -26,6 +26,7 @@ extern "C"
 
 class QTreeWidget;
 
+#ifdef USE_THREAD_FOR_TEXTBOX
 class PPModd_TextEdit_Thread : public QThread 
 {
 public:
@@ -45,6 +46,7 @@ private:
 	t_treenode *node;
 	QTableWidget *tableWidget;
 };
+#endif
 
 //---------------------------------------------------------------------------
 class TextEdit : public QDialog, private Ui::dlgTextEdit
@@ -58,10 +60,12 @@ public slots:
 	void accept ();
 
 private:
+
 	t_treenode *sourcenode;
 	unsigned int comm_entries;
+#ifdef USE_THREAD_FOR_TEXTBOX
 	PPModd_TextEdit_Thread *thread;
-
+#endif
 
 
 };

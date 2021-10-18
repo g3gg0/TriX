@@ -1,5 +1,5 @@
 /*
- *  $Id: textbox.c,v 1.1 2006/06/28 13:53:39 geggo Exp $
+ *  $Id: textbox.c 1521 2006-06-28 13:53:39Z geggo $
  *
  *  textbox.c -- implements the text box
  *

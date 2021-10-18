@@ -279,7 +279,7 @@ nokia_create_func2 ( t_workspace *ws, object *func, unsigned int offset, unsigne
 		// this one:
 		//   0x00000010 -> 0x00000100
 		//
-        if ( arm_set ( ws, BL, offset - base, destination - base ) == E_FAIL )
+        if ( arm_set ( ws, THUMB_BL, offset - base, destination - base ) == E_FAIL )
         {
             DBG ( DEBUG_NOKIA, "## %s: BL not created!!!\n", __FUNCTION__ );
             return E_FAIL;
@@ -528,7 +528,7 @@ nokia_create_func ( t_workspace *ws, t_function *func, unsigned int offset )
                 //sscanf ( symbols->offset, "0x%x", &i );
                 sscanf ( symbols_get ( NULL, symbols[pos].dest )->data, "0x%x", &j );
                 if ( symbols[pos].type == SYM_CALL )
-                    arm_set ( ws, BL, text_pos+symbols[pos].offset, j );
+                    arm_set ( ws, THUMB_BL, text_pos+symbols[pos].offset, j );
                 else
                     v_set_w ( ws, text_pos+symbols[pos].offset, j );
             }
@@ -541,7 +541,7 @@ nokia_create_func ( t_workspace *ws, t_function *func, unsigned int offset )
                     sscanf ( symbols[pos].dest, "0x%x", &j );
                     DBG ( DEBUG_NOKIA, "## %s: reloc: dest is beginning with 0x ... 0x%08X \n", __FUNCTION__, j );
                     if ( symbols[pos].type == SYM_CALL )
-                        arm_set ( ws, BL, text_pos+symbols[pos].offset, j );
+                        arm_set ( ws, THUMB_BL, text_pos+symbols[pos].offset, j );
                     else
                         v_set_w ( ws, text_pos+symbols[pos].offset, j );
                 }

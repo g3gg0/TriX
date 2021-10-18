@@ -87,7 +87,38 @@ typedef struct _E32ImageHeaderv2
 	TVersion iToolsVersion; // Version of PETRAN/ELFTRAN which generated this file
 	TUint32 iTimeLo;
 	TUint32 iTimeHi;
-	TUint iFlags; // 0 = exe, 1 = dll, 2 = fixed address exe
+	TUint iFlags; 
+	/* (http://developer.symbian.org/wiki/Symbian_OS_Internals/Appendix_2:_The_E32ImageHeader)
+
+		Flags:
+
+		Bits 	Size in bits Description
+		0 	    1 	Executable type:
+		            0 - EXE
+		            1 - DLL
+		1 	    1 	Whether to call entry point (not used in EKA2):
+		            0 - call entry point
+		            1 - don't call entry point
+		2 	    1 	Whether this is a fixed address EXE:
+		            0 - not fixed address
+		            1 - fixed address
+		4-3 	2 	ABI:
+		            0 - GCC98r2
+		            1 - EABI
+		7-5 	3 	Entry point type:
+		            0 - EKA1
+		            1 - EKA2
+		23-8 	16 	Reserved
+		27-24 	4 	Header format:
+		            0 - Basic
+		            1 - J-format
+		            2 - V-format
+		31-28 	4 	Import format:
+		            0 - Standard PE format
+		            1 - ELF format
+		            2 - PE format without redundant copy of import ordinals. Standard PE format is only used with original
+		                and J-format headers. V-format headers are either ELF or PE without redundant import ordinals. 
+	*/
 	TInt iCodeSize; // size of code, import address table, constant data and export dir
 	TInt iDataSize; // size of initialised data
 	TInt iHeapSizeMin;
@@ -132,6 +163,8 @@ typedef struct _E32ImageHeaderv2
 	TUint8 iExportDesc; // description of holes in export table - extend
 } E32ImageHeaderv2;
 
+#define KUidCompressionDeflate  0x101F7AFC
+#define KUidCompressionBytePair 0x102822AA
 
 
 #endif

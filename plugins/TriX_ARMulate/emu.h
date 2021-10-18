@@ -40,8 +40,6 @@
 
 ARM7TDMI *arm;
 ARM7TDMI arm_backup;
-void *pDoc;
-void *meminterface;
 
 //
 // SEE ALSO armulate.h !!!!!
@@ -55,21 +53,16 @@ void *meminterface;
 #define ARMULATE_DEADLOCK        0x07
 #define ARMULATE_EXCEPTION       0x08
 
+#define ARMULATE_CB_NO_ACTION    0x1000
+#define ARMULATE_CB_IRQ          0x1001
+#define ARMULATE_CB_FIQ          0x1002
+
 #define ARMULATE_ABORT_MEMORY_RD	 0x01
 #define ARMULATE_ABORT_MEMORY_WR	 0x02
 #define ARMULATE_ABORT_MEMORY_EX	 0x03
 #define ARMULATE_ABORT_UNKNOWN_INSTR 0x04
 #define ARMULATE_ABORT_INV_MODE      0x05
 
-void backup_cpustate ()
-{
-	memcpy ( &arm_backup, arm, sizeof (struct tARM7TDMI) );
-}
-
-void restore_cpustate ()
-{
-	memcpy ( arm, &arm_backup, sizeof (struct tARM7TDMI) );
-}
 
 // MEMORY_RANGE *meminfo;
 
@@ -78,108 +71,32 @@ u32  (*opcode_handles   [0x1000])(void);
 u32  (*opcode_handles_special   [0x1000])(void);
 u32  (*opcode_handles_t [0x400])(void);
 
-void (*io_write_handles	[0x3FF])(void);
-void (*debug_handles [0x1000])(u32 op, u32 adress, char *dest);
-void (*render_mode [0x8])(void);
 void set_abort ( int mode );
 void armulate_warn ( unsigned char *buffer );
-
-/* Breakpoints */
-#define MAX_BP 10
-static u32 next_bp=0;
-static u32 bp_list[MAX_BP]={0};
+int armulate_aborted();
 
 char *cpu_mode_strings[0x20];  
-
 char *dummy_mem; 
 extern unsigned int instruction_trace;
 
 void setup_tables (void);
-u8   read_byte (u32 adress, void*i);
-u16  read_hword (u32 adress, void*i);
-u32  read_word (u32 adress, void*i);
-u16  read_aligned_hword (u32 adress, void*i);
-u32  read_aligned_word (u32 adress, void*i);
-void write_byte (word adress, byte data, void*i);
-void write_hword (u32 adress, u16 data, void*i);
-void write_word (u32 adress, u32 data, void*i);
-void set_ARM_reg(int reg, u32 value);
+u8   read_byte (u32 adress, ARM7TDMI *emu);
+u16  read_hword (u32 adress, ARM7TDMI *emu);
+u32  read_word (u32 adress, ARM7TDMI *emu);
+u16  read_aligned_hword (u32 adress, ARM7TDMI *emu);
+u32  read_aligned_word (u32 adress, ARM7TDMI *emu);
+void write_byte (u32 adress, u8 data, ARM7TDMI *emu);
+void write_hword (u32 adress, u16 data, ARM7TDMI *emu);
+void write_word (u32 adress, u32 data, ARM7TDMI *emu);
+
 void set_ARM_mode ( int mode );
+
+void set_ARM_reg(int reg, u32 value);
+void set_ARM_reg_mode(int reg, u32 value, u32 mode);
+u32 get_ARM_reg_mode(int reg, u32 mode);
 u32 get_ARM_reg(int reg);
 
 void pc_changed ();
-
-void fill_instruction_pipe (void)  
-{
-    if ( abort_situation )
-	return;
-    if ( !arm )
-	return;
-    
-    OPCODE = read_aligned_word_instruction (arm->gp_reg_USER [15], meminterface);	
-
-    if ( abort_situation )
-	abort_situation = ARMULATE_ABORT_MEMORY_EX;
-    else
-	arm->gp_reg_USER [15] += 8;									 			
-}   
-  
-void advance_instruction_pipe (void)
-{
-    if ( abort_situation )
-	return;
-    if ( !arm )
-	return;
-
-    if ( arm->pc_changed )
-    {
-	arm->pc_changed = 0;
-	pc_changed ();
-	return;
-    }
-
-    OPCODE = read_aligned_word_instruction (arm->gp_reg_USER [15] - 4, meminterface); 
-
-    if ( abort_situation )
-	abort_situation = ARMULATE_ABORT_MEMORY_EX;
-    else
-	arm->gp_reg_USER [15] += 4; 
-}
-
-void tfill_instruction_pipe (void)
-{
-    if ( abort_situation )
-	return;
-    if ( !arm )
-	return;
-
-    OPCODE_T = read_hword_instruction (arm->gp_reg_USER [15], meminterface);
-
-    if ( abort_situation )
-	abort_situation = ARMULATE_ABORT_MEMORY_EX;
-    else
-	arm->gp_reg_USER [15] += 4;
-}
-
-void tadvance_instruction_pipe (void)
-{
-    if ( abort_situation )
-	return;
-
-    if ( arm->pc_changed )
-    {
-	arm->pc_changed = 0;
-	pc_changed ();
-	return;
-    }
-
-    OPCODE_T = read_hword_instruction (arm->gp_reg_USER [15] - 2, meminterface); 
-
-    if ( abort_situation )
-	abort_situation = ARMULATE_ABORT_MEMORY_EX;
-    else
-	arm->gp_reg_USER [15] += 2; 
-}
 
 
 

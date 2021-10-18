@@ -525,7 +525,7 @@ scvalPutToRegister ( _value * val, int freeit )
 
             case valFLOAT:
                 v2.adr.address = scvalFindFreeDoubleRegister ( val );
-                ( int ) v2.type.main = valDOUBLE;
+                v2.type.main = (scSymbol *)valDOUBLE;
                 Gen_Opcode ( opvcpuFDBL, &v2, val );
 
                 break;
@@ -571,14 +571,14 @@ scvalPutToRegister ( _value * val, int freeit )
             case valFIXED:
                 v2.adr.address = scvalFindFreeRegister ( val );
                 v2.type.flags = typPREDEFINED;
-                ( valTYPE ) v2.type.main = valFIXED;
+                v2.type.main = (scSymbol *)valFIXED;
                 Gen_Opcode ( opvcpuMOV, &v2, val );
 
                 break;
             case valDOUBLE:
                 v2.adr.address = scvalFindFreeDoubleRegister ( val );
                 v2.type.flags = typPREDEFINED;
-                ( valTYPE ) v2.type.main = valDOUBLE;
+                v2.type.main = (scSymbol *)valDOUBLE;
 //      v2.type.flags=valDOUBLE;
                 Gen_Opcode ( opvcpuMOV, &v2, val ); //DMOV ???
 
@@ -586,7 +586,7 @@ scvalPutToRegister ( _value * val, int freeit )
             default:
                 v2.adr.address = scvalFindFreeRegister ( val );
                 v2.type.flags = typPREDEFINED;
-                ( valTYPE ) v2.type.main = valINT;
+                v2.type.main = (scSymbol *)valINT;
 //      v2.type.flags=valINT;
                 Gen_Opcode ( opvcpuMOV, &v2, val );
 
@@ -676,7 +676,7 @@ scvalSetImmidiate ( _value * v, valTYPE vt, int ival, double dval )
         v->adr.val.ival = ival;
     //type
     v->type.flags = typPREDEFINED;
-    ( valTYPE ) v->type.main = vt;
+    v->type.main = (scSymbol *)vt;
     v->type.params = NULL;
     //symbol reference
     v->sym = NULL;
@@ -706,7 +706,7 @@ scvalSetRegister ( _value * v, valTYPE vt, int reg )
     v->adr.val.ival = 0;        //don't care
     //type
     v->type.flags = typPREDEFINED;
-    ( valTYPE ) v->type.main = vt;
+    v->type.main = (scSymbol *)vt;
     v->type.params = NULL;
     //symbol reference
     v->sym = NULL;
@@ -884,7 +884,7 @@ scvalConvToDouble ( _value * val )
                 break;
         }
         scAssert ( scvalConvToDouble, ( val->type.flags & typTYPE ) == typPREDEFINED );
-        ( valTYPE ) val->type.main = valDOUBLE;
+        val->type.main = (scSymbol *)valDOUBLE;
     }
     else                        //-----------------------------------------------------------
     {
@@ -954,7 +954,7 @@ scvalConvToFloat ( _value * val )
         }
 
         scAssert ( scvalConvToFloat, ( val->type.flags & typTYPE ) == typPREDEFINED );
-        ( valTYPE ) val->type.main = valFLOAT;
+        val->type.main = (scSymbol *)valFLOAT;
     }
     else
     {
@@ -1011,7 +1011,7 @@ scvalConvToInt ( _value * val )
                 scError ( scvalConvToInt );
         }
         scAssert ( scvalConvToInt, ( val->type.flags & typTYPE ) == typPREDEFINED );
-        ( valTYPE ) val->type.main = valINT;
+        val->type.main = valINT;
     }
     else
     {
@@ -1024,13 +1024,13 @@ scvalConvToInt ( _value * val )
             case valSHORT:
             case valCHAR:
                 scvalPutToRegister ( val, TRUE );
-                ( valTYPE ) val->type.main = valINT;
+                val->type.main = (scSymbol *)valINT;
                 return;
                 break;
             case valFIXED:
                 scAssert ( scvalConvToInt ( 2 ), ( val->type.flags & typTYPE ) == typPREDEFINED );
                 scvalPutToRegister ( val, TRUE );
-                ( valTYPE ) val->type.main = valINT;
+                val->type.main = (scSymbol *)valINT;
                 Gen_Opcode ( opvcpuSHR, val, scvalSetImmidiate ( &v1, valINT, 16, 0 ) );
                 break;
             case valDOUBLE:
@@ -1084,7 +1084,7 @@ scvalConvToFixed ( _value * val )
                 scError ( scvalConvToFixed );
         }
         scAssert ( scvalConvToFixed, ( val->type.flags & typTYPE ) == typPREDEFINED );
-        ( valTYPE ) val->type.main = valFIXED;
+        val->type.main = (scSymbol *)valFIXED;
     }
     else
     {
@@ -1100,7 +1100,7 @@ scvalConvToFixed ( _value * val )
                 scAssert ( scvalConvToFixed ( 2 ), ( val->type.flags & typTYPE ) == typPREDEFINED );
                 scvalPutToRegister ( val, TRUE );
                 Gen_Opcode ( opvcpuSHL, val, scvalSetImmidiate ( &v1, valINT, 16, 0 ) );
-                ( valTYPE ) val->type.main = valFIXED;
+                val->type.main = (scSymbol *)valFIXED;
                 deb1 ( "val=%s\n", sciValTypeStr ( scvalGetValType ( val ) ) );
                 break;
             case valDOUBLE:
@@ -1256,7 +1256,7 @@ sciAddImportedFunction ( scSymbol * sym, scSymbol * in_struct )
             {
                 strcpy ( namer, _pmem );
                 _pmem += strlen ( namer ) + 1;
-                ALIGN_INT ( ( int ) _pmem );
+                ALIGN_INT ( _pmem );
                 if ( strcmp ( namer, temp ) == 0 )
                     serr3 ( scErr_Declaration, "Duplicate import name '%s' for symbol '%s'", temp, sym->name );
                 _pmem += 8;
@@ -1636,17 +1636,22 @@ scvalConstantString ( _value * val, char *s, int len )
     {
         char *a = act.consts.mem;
         int remain = act.consts.pos;
-        //printf ( "total remaining: %d\n", remain );
-        while ( remain && !adr )
+
+		while ( remain && !adr )
         {
-            //here we crash with gcc in msvcrt
-            /*if ( remain == 1378 )
-                printf ( "now we want to crash :-) %d %s\n", remain, s );*/
-            if ( memcmp ( s, a, remain ) == 0 )
+			int max_length = len;
+			if ( remain < max_length )
+				max_length = remain;
+
+            if ( memcmp ( s, a, len ) == 0 )
             {
-                adr = ( int ) a - ( int ) act.consts.mem + 1;
+                adr = ( int ) a - ( int ) act.consts.mem;
                 deb2 ( "Found before as %s at %d\n", a, adr );
             }
+
+			a++;
+			remain--;
+			/*
             //skip to next string....
             while ( *a && remain )
             {
@@ -1664,6 +1669,7 @@ scvalConstantString ( _value * val, char *s, int len )
                 a++;
                 remain--;
             }
+			*/
         }
     }                           //returns adr+1
 
@@ -1672,9 +1678,8 @@ scvalConstantString ( _value * val, char *s, int len )
         adr = act.consts.pos;
         pushstr_pmem ( &act.consts, s, len );
     }
-    else
-        adr--;
-    scFree ( s );
+
+	scFree ( s );
     scvalSetINT ( val, adr );
     val->sym = NULL;
     val->type = CharAsteriskType;

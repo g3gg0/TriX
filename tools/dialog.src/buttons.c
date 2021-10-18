@@ -1,5 +1,5 @@
 /*
- *  $Id: buttons.c,v 1.1 2006/06/28 13:53:39 geggo Exp $
+ *  $Id: buttons.c 1521 2006-06-28 13:53:39Z geggo $
  *
  *  buttons.c -- draw buttons, e.g., OK/Cancel
  *

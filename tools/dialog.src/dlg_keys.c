@@ -1,5 +1,5 @@
 /*
- *  $Id: dlg_keys.c,v 1.1 2006/06/28 13:53:39 geggo Exp $
+ *  $Id: dlg_keys.c 1521 2006-06-28 13:53:39Z geggo $
  *
  *  dlg_keys.c -- runtime binding support for dialog
  *

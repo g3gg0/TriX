@@ -4,3 +4,5 @@
 	unsigned int (*del_file) ( t_project * p, unsigned int pos);
 	unsigned int (*init) ( );
 	unsigned int (*save) ( t_project * p, char *file);
+ 	t_project *(*new) ( );
+ 	unsigned int (*free) ( t_project * p);

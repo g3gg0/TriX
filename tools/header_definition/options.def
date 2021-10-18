@@ -5,7 +5,7 @@
 	char *(*read_settings) ( );
 	char *(*read_settings_real) ( unsigned int all);
 	unsigned int (*add_option) ( int type, char *optionname, char *description, void *target);
-	unsigned int (*add_sysvar) ( int type, char *sysvar, char *description, unsigned int defaultval);
+	unsigned int (*add_sysvar) ( int type, char *sysvar, char *description, void *defaultval);
 	unsigned int (*apply_as_default_state) ( );
 	unsigned int (*apply_settings) ( char *settings);
 	unsigned int (*default_all) ( );

@@ -1,5 +1,5 @@
 #!/bin/sh
-# $Id: fselect2-stdout,v 1.1 2006/06/28 13:53:39 geggo Exp $
+# $Id: fselect2-stdout 1521 2006-06-28 13:53:39Z geggo $
 : ${DIALOG=dialog}
 
 FILE=`$DIALOG --stdout --title "Please choose a file" --fselect $HOME/ 0 0`

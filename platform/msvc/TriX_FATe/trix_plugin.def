@@ -1,3 +1,3 @@
-LIBRARY	"TriX_FATe"
+LIBRARY	"TriX_FATe.txp"
 EXPORTS
 	trix_plugin_info @1

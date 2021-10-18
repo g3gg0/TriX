@@ -9,6 +9,13 @@ struct s_elf_priv
 	Elf32_Ehdr header;
 };
 
+typedef struct s_elf_prog_priv t_elf_prog_priv;
+struct s_elf_prog_priv
+{
+	STRUCT_HEADER;
+	Elf32_Phdr header;
+};
+
 typedef struct s_elf_sect_priv t_elf_sect_priv;
 struct s_elf_sect_priv
 {

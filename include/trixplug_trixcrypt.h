@@ -10,6 +10,7 @@ struct trixcrypt_funcs
 	unsigned int (*set_cryptkeys) ( t_crypt_key * encrypt_key, t_crypt_key * decrypt_key);
 	unsigned int (*set_decryptkey) ( t_crypt_key * key);
 	unsigned int (*set_encryptkey) ( t_crypt_key * key);
+	unsigned int (*copy_cryptkey) ( t_crypt_key * dst, t_crypt_key * src);
 };
 
 /* trixplug struct initializer */
@@ -23,6 +24,7 @@ unsigned int trixcrypt_plug_init ( ) \
 		return E_FAIL;\
 	ft->trixcrypt = &trixcrypt_functions;\
 	ft->trixcrypt->alloc_priv = trixcrypt_alloc_priv;\
+	ft->trixcrypt->copy_cryptkey = trixcrypt_copy_cryptkey;\
 	ft->trixcrypt->set_decryptkey = trixcrypt_set_decryptkey;\
 	ft->trixcrypt->set_encryptkey = trixcrypt_set_encryptkey;\
 	ft->trixcrypt->set_cryptkeys = trixcrypt_set_cryptkeys;\

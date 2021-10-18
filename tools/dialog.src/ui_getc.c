@@ -1,5 +1,5 @@
 /*
- *  $Id: ui_getc.c,v 1.1 2006/06/28 13:53:39 geggo Exp $
+ *  $Id: ui_getc.c 1521 2006-06-28 13:53:39Z geggo $
  *
  *  ui_getc.c - user interface glue for getc()
  *

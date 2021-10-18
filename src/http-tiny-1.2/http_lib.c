@@ -5,11 +5,11 @@
  *  (c) 1996 Observatoire de Paris - Meudon - France
  *  see LICENSE for terms, conditions and DISCLAIMER OF ALL WARRANTIES
  *
- * $Id: http_lib.c,v 1.8 2008-03-06 21:41:57 geggo Exp $
+ * $Id: http_lib.c 3078 2008-09-21 02:31:36Z geggo $
  *
  * Description : Use http protocol, connects to server to echange data
  *
- * $Log: http_lib.c,v $
+ * $Log$
  * Revision 1.8  2008-03-06 21:41:57  geggo
  * fixes for linux platform
  * many code cleanups
@@ -58,7 +58,7 @@
  *
  */
 
-static char *rcsid = "$Id: http_lib.c,v 1.8 2008-03-06 21:41:57 geggo Exp $";
+static char *rcsid = "$Id: http_lib.c 3078 2008-09-21 02:31:36Z geggo $";
 
 //#define VERBOSE
 

@@ -867,9 +867,10 @@ scLoad_File ( char *filename )
 {
 	t_workspace *ws = NULL;
 	char *script = NULL;
-    Source_Text *ST;
+	Source_Text *ST;
 
 	ws = workspace_startup ( filename );
+
 	if ( !ws )
 	{
 		ui_dlg_msg ( "Can not load the script. Invalid filename?", 0 );
@@ -908,7 +909,6 @@ scCompile_File ( char *filename, int *length )
 
     if ( !setjmp ( act.jump ) )
     {
-
         _ST = scLoad_File ( filename );
 
         if ( !_ST )

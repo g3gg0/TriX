@@ -17,6 +17,10 @@ struct arm_funcs
 	unsigned int (*init) ( );
 	unsigned int (*run_makefile) ( const char *makefile_path);
 	unsigned int (*set) ( t_workspace * ws, unsigned int type, unsigned int offset, unsigned int dest);
+ 	unsigned int (*set_32) ( t_workspace * ws, unsigned int type, unsigned int offset, unsigned int dest, unsigned int cond_field);
+ 	unsigned int (*get_32) ( t_workspace * ws, unsigned int offset);
+ 	unsigned int (*get_32_adv) ( t_workspace * ws, unsigned int offset, unsigned int type);
+ 	unsigned int (*get_adv) ( t_workspace * ws, unsigned int offset, unsigned int type);
 };
 
 /* trixplug struct initializer */
@@ -31,8 +35,12 @@ unsigned int arm_plug_init ( ) \
 	ft->arm = &arm_functions;\
 	ft->arm->init = arm_init;\
 	ft->arm->set = arm_set;\
+	ft->arm->set_32 = arm_set_32;\
 	ft->arm->get_bl = arm_get_bl;\
+	ft->arm->get_32 = arm_get_32;\
+	ft->arm->get_32_adv = arm_get_32_adv;\
 	ft->arm->get = arm_get;\
+	ft->arm->get_adv = arm_get_adv;\
 	ft->arm->find = arm_find;\
 	ft->arm->get_freespace = arm_get_freespace;\
 	ft->arm->find_src_of_dest = arm_find_src_of_dest;\

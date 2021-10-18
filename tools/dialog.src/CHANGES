@@ -1,4 +1,4 @@
--- $Id: CHANGES,v 1.1 2006/06/28 13:53:39 geggo Exp $
+-- $Id: CHANGES 1521 2006-06-28 13:53:39Z geggo $
 -- Thomas E. Dickey <dickey@invisible-island.net>
 
 This version of dialog was originally from a Debian snapshot.  I've done this

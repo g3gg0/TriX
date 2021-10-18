@@ -21,11 +21,11 @@
 ** Include any stock Qt files here...
 **
 */
-#include <Qt/qapplication.h>
+#include <QtGui/QApplication>
 #include <QtGui/QtGui>
-#include <Qt/qmainwindow.h>
-#include <Qt/qdebug.h>
-#include <Qt/qevent.h>
+#include <QtGui/QMainWindow>
+#include <QtCore/QDebug>
+#include <QtCore/QEvent>
 //---------------------------------------------------------------------------
  
 /*
@@ -84,12 +84,14 @@ public:
 	unsigned int LoadFromBIN ( t_treenode *node );
 
 private slots:
-	int  treeItemClicked ( QTreeWidgetItem * item, int column );
+	void treeItemClicked ( QTreeWidgetItem * item, int column );
 	void treeCurrentItemChanged ( QTreeWidgetItem * current, QTreeWidgetItem * previous );
-	void treeItemChanged (  );
+	//void treeItemChanged (  );
 	void treeItemContext(const QPoint &pos);
 
 public slots:
+
+   void closeEvent ( QCloseEvent *event );
 
 	void dragEnterEvent(QDragEnterEvent *event);
 	void dropEvent(QDropEvent *event);

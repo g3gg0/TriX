@@ -31,13 +31,22 @@ segment_duplicate ( t_segment * s )
     if ( !t )
         return NULL;
 
-	t->data = malloc ( s->length );
-	if ( !t->data )
+	/* sparse segments do not have any memory */
+	if(!(s->flags & FLAGS_SPARSE))
 	{
-		free ( t );
-		return NULL;
+		t->data = malloc ( s->length );
+		if ( !t->data )
+		{
+			CHECK_AND_FREE ( t );
+			return NULL;
+		}
+		memcpy ( t->data, s->data, s->length );
 	}
-	memcpy ( t->data, s->data, s->length );
+	else
+	{
+		t->data = NULL;
+	}
+
 	t->length = s->length;
 	t->start = s->start;
 	t->end = s->end;
@@ -67,14 +76,13 @@ segment_find_by_num ( t_segment * s, unsigned int num )
     if ( !s )
         return NULL;
 
-    while ( s->prev )
-        s = s->prev;
+	LIST_REWND(s);
 
     while ( s )
     {
         if ( !num-- )
             return s;
-        s = s->next;
+		LIST_NEXT(s);
     }
 
     return NULL;
@@ -82,50 +90,70 @@ segment_find_by_num ( t_segment * s, unsigned int num )
 
 
 t_segment *
-segment_find_by_end_and_name ( t_segment * s, unsigned int addr, char *name )
+segment_find_by_end_and_name ( t_segment * s, unsigned int addr, char *name, unsigned int flags )
 {
-    while ( s )
-    {
-        if ( (s->end == addr && s->start != s->end) && (!strcmp ( s->name, name )) )
-            return s;
-        s = s->next;
-    }
+    if ( !s )
+        return NULL;
+
+	LIST_REWND(s);
+
+	while ( s )
+	{
+		if ( (s->flags & flags) && (s->end == addr && s->start != s->end) && (name && !strcmp ( s->name, name )) )
+			return s;
+		LIST_NEXT(s);
+	}
+
     return NULL;
 }
 
 t_segment *
-segment_find_by_end ( t_segment * s, unsigned int addr )
+segment_find_by_end ( t_segment * s, unsigned int addr, unsigned int flags )
 {
-    while ( s )
-    {
-        if ( s->end == addr && s->start != s->end )
-            return s;
-        s = s->next;
-    }
+    if ( !s )
+        return NULL;
+
+	LIST_REWND(s);
+
+	while ( s )
+	{
+		if ( (s->flags & flags) && (s->end == addr) && (s->start != s->end) )
+			return s;
+		LIST_NEXT(s);
+	}
+
     return NULL;
 }
 
 t_segment *
-segment_find_by_start ( t_segment * s, unsigned int addr )
+segment_find_by_start ( t_segment * s, unsigned int addr, unsigned int flags )
 {
-    while ( s )
-    {
-        if ( s->start == addr && s->start != s->end )
-            return s;
-        s = s->next;
-    }
+	LIST_REWND(s);
+
+	while ( s )
+	{
+		if ( (s->flags & flags) && (s->start == addr) && (s->start != (s->start + s->length)) )
+			return s;
+		LIST_NEXT(s);
+	}
+
     return NULL;
 }
 
 t_segment *
-segment_find_by_name ( t_segment * s, char *name )
+segment_find_by_name ( t_segment * s, char *name, unsigned int flags )
 {
-    while ( s )
-    {
-        if ( !strcmp ( s->name, name ) )
-            return s;
-        s = s->next;
-    }
+    if ( !s )
+        return NULL;
+
+	LIST_REWND(s);
+
+	while ( s )
+	{
+		if ( (s->flags & flags) && (name && !strcmp ( s->name, name )) )
+			return s;
+		LIST_NEXT(s);
+	}
     return NULL;
 }
 
@@ -134,6 +162,52 @@ segment_count ( t_segment * s )
 {
 	return LIST_COUNT(s);
 }
+
+unsigned int
+segment_is_mapped ( t_segment * s )
+{
+    if ( !s )
+        return 0;
+
+	return (s->flags & FLAGS_MAP_IN_MEM);
+}
+
+unsigned int
+segment_is_sparse ( t_segment * s )
+{
+    if ( !s )
+        return 0;
+
+	return (s->flags & FLAGS_SPARSE);
+}
+
+unsigned int
+segment_is_shadow ( t_segment * s )
+{
+    if ( !s )
+        return 0;
+
+	return (s->flags & FLAGS_SHADOW);
+}
+
+void
+segment_map_in_mem ( t_segment * s )
+{
+	if ( !s )
+		return;
+	s->flags &= ~FLAGS_MAP_ANY;
+	s->flags |= FLAGS_MAP_IN_MEM;
+}
+
+void
+segment_hide_in_mem ( t_segment * s )
+{
+	if ( !s )
+		return;
+	s->flags &= ~FLAGS_MAP_ANY;
+	s->flags |= FLAGS_HIDE_IN_MEM;
+}
+
 
 t_segment *
 segment_get_last ( t_segment * s )
@@ -144,8 +218,7 @@ segment_get_last ( t_segment * s )
 	if ( is_type ( s, "t_stage" ) )
 		s = ((t_stage*)s)->segments;
 
-    while ( s && s->next )
-        s = s->next;
+	LIST_FFWD(s);
 
     return s;
 }
@@ -188,6 +261,8 @@ segment_create ( )
     s->end = 0;
 	s->flags = 0;
 
+	segment_map_in_mem ( s );
+
     return s;
 }
 
@@ -228,7 +303,11 @@ segment_release ( t_segment * s )
     if ( !s )
         return E_FAIL;
 
-    CHECK_AND_FREE ( s->data );
+	if(!segment_is_sparse(s) && !segment_is_shadow(s))
+	{
+		CHECK_AND_FREE ( s->data );
+	}
+
 	if ( s->priv )
 	{
 		s->priv->struct_refs--;
@@ -255,20 +334,20 @@ segment_release ( t_segment * s )
 unsigned int
 segment_release_all ( t_segment * s )
 {
-    unsigned int failed = E_OK;
+    unsigned int ret = E_OK;
 
     if ( !s )
         return E_FAIL;
 
     while ( s->next )
     {
-        s = s->next;
+		LIST_NEXT(s);
         if ( segment_release ( s->prev ) == E_FAIL )
-            failed = E_FAIL;
+            ret = E_FAIL;
     }
     R ( segment_release ( s ) );
 
-    return failed;
+    return ret;
 }
 
 

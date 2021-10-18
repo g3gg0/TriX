@@ -1,5 +1,5 @@
 #!/bin/sh
-# $Id: gauge0-input-fd,v 1.1 2006/06/28 13:53:39 geggo Exp $
+# $Id: gauge0-input-fd 1521 2006-06-28 13:53:39Z geggo $
 # modified "gauge0" script to use "--input-fd" option.
 : ${DIALOG=dialog}
 

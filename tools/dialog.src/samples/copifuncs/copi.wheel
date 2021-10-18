@@ -1,5 +1,5 @@
 #!/bin/bash
-# $Id: copi.wheel,v 1.1 2006/06/28 13:54:32 geggo Exp $
+# $Id: copi.wheel 1522 2006-06-28 13:54:32Z geggo $
 
 mkstemp size
 dialog --print-maxsize 2>$tmp_size

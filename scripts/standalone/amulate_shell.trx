@@ -2,14 +2,22 @@
 #author "g3gg0"
 #plugin "trix_armulate"
 #plugin "trix_disarm"
+#plugin "trix_hwemu"
 
 #include trix
 #include stdio
 #include trix_armulate
 #include trix_disarm
+#include trix_hwemu
 
 unsigned int reg_box = E_FAIL;
 unsigned int asm_box = E_FAIL;
+
+unsigned int malloc_address = 0;
+
+unsigned int breakpoints[] = { 0x0000C104, 0x0000BE64, 0x0000BA34, 0x0000C0A4, 0xFFFFFFFF };
+t_fileinfo *memory_fi = NULL;
+t_segment *current_mem_seg = NULL;
 
 int init_armulate ()
 {
@@ -120,6 +128,8 @@ int dump_regs ()
 	strcat ( msg, buffer );
 
 	strcat ( msg, "\n" );
+	sprintf ( buffer, "CPSR 0x%08X  ", __armulate_get_cpsr ( ) );
+	strcat ( msg, buffer );
 
 	UiBoxClear ( reg_box );
 	UiBoxMsg ( reg_box, msg );
@@ -136,7 +146,6 @@ int exec_next ()
 
 	state = __armulate_exec_next ();
 
-
 	__disarm_address ( trix_workspace, (char*)buffer, __armulate_get_pc (), __armulate_is_thumb () );
 	printf ( buffer );
 	if ( state != ARMULATE_EXECUTED )
@@ -145,11 +154,109 @@ int exec_next ()
 
 }
 
+void own_memset ( unsigned int addr, unsigned int val, unsigned int length )
+{
+	int pos = 0;
 
-int exec_until ()
+	if ( length > 1000 )
+	{
+		printf ( "!!!!!!!!!!!!!! len: %08X\r\n", addr, val, length );
+		length = 0;
+	}
+	
+	while ( pos < length )
+	{
+		SetByte ( addr + pos, val );
+		pos++;
+	}
+
+}
+
+void own_memcpy ( unsigned int dst, unsigned int src, unsigned int length )
+{
+	int pos = 0;
+	
+	if ( length > 1000 )
+	{
+		printf ( "!!!!!!!!!!!!!! len: %08X\r\n", dst, src, length );
+		length = 0;
+	}
+	
+	while ( pos < length )
+	{
+		SetByte ( dst + pos, GetByte ( src + pos ) );
+		pos++;
+	}
+}
+
+unsigned int own_malloc ( unsigned int length )
+{
+	unsigned int ret = malloc_address;
+	
+	malloc_address += length;
+	
+	return ret;
+}
+
+
+int exec_until ( unsigned int address )
 {
 	char buffer[256];
 	int state = 0;
+	int cont = 1;
+
+	while ( cont )
+	{
+		state = __armulate_run_until ( address );
+
+		__disarm_address ( trix_workspace, (char*)buffer, __armulate_get_pc (), __armulate_is_thumb () );
+		if ( state != ARMULATE_EXECUTED )
+		{
+			int r0 = __armulate_get_reg ( 0 );
+			int r1 = __armulate_get_reg ( 1 );
+			int r2 = __armulate_get_reg ( 2 );
+			int lr = __armulate_get_reg ( 14 );
+			
+			switch ( __armulate_get_pc () )
+			{
+				case 0x0000C104: // memset
+//					printf ( "memset ( 0x%08X, 0x%08X, 0x%08X ) from %08X\r\n", r0, r1, r2, lr - 4 );
+					own_memset ( r0, r1, r2 );
+					__armulate_set_pc ( lr );
+//					printf ( " (ok)\r\n" );
+					break;
+				case 0x0000BE64: // memcpy
+//					printf ( "memcpy ( 0x%08X, 0x%08X, 0x%08X ) from %08X\r\n", r0, r1, r2, lr - 4 );
+					own_memcpy ( r0, r1, r2 );
+					__armulate_set_pc ( lr );
+//					printf ( " (ok)\r\n" );
+					break;
+				case 0x0000BA34: // malloc
+//					printf ( "malloc ( 0x%08X ) from %08X\r\n", r0, lr - 4 );
+					r0 = own_malloc ( r0 );
+					__armulate_set_reg ( 0, r0 );
+					__armulate_set_pc ( lr );
+//					printf ( " (ok)\r\n" );
+					break;
+				case 0x0000C0A4: // free
+//					printf ( "free from %08X\r\n", lr - 4 );
+					__armulate_set_pc ( lr );
+//					printf ( " (ok)\r\n" );
+					break;
+				default:
+					cont = 0;
+					printf ( buffer );
+					printf ( "\t[%s]", __armulate_reason (state)  );
+			}
+		}
+	}
+		
+	printf ( "\n" );
+}
+
+
+int exec_until_dlg ()
+{
 	char *val = NULL;
 	int value = 0;
 	int err = 0;
@@ -162,17 +269,8 @@ int exec_until ()
 	value = __util_hex_get ( val, &err );
 	if ( err )
 		return E_FAIL;
-
-
-	state = __armulate_run_until ( value );
-
-
-	__disarm_address ( trix_workspace, (char*)buffer, __armulate_get_pc (), __armulate_is_thumb () );
-	printf ( buffer );
-	if ( state != ARMULATE_EXECUTED )
-		printf ( "\t[%s]", __armulate_reason (state)  );
-	printf ( "\n" );
-
+		
+	exec_until ( value );
 }
 
 int exec_step ()
@@ -267,6 +365,104 @@ int dump_memory ()
 	DrawBytes ( address, 16, length );
 }
 
+int
+add_memory_segment ( unsigned int address, unsigned int length, unsigned int clear )
+{
+	unsigned int pos = 0;
+	unsigned char *name = malloc ( 32 );
+	
+	sprintf ( name, "0x%08X", address );
+	current_mem_seg->next = __segment_create ();
+	current_mem_seg = current_mem_seg->next;
+	
+	current_mem_seg->name = name;
+	current_mem_seg->start = address;
+	current_mem_seg->end = address + length;
+	current_mem_seg->length = length;
+	current_mem_seg->data = malloc ( length );
+
+	if ( clear == 1 )
+	{
+		while ( pos < length )
+			current_mem_seg->data[pos++] = 0x00;
+	}
+	if ( clear == 2 )
+	{
+		while ( pos < length )
+			current_mem_seg->data[pos++] = 0xFF;
+	}
+	
+	
+	WorkspaceUpdateMemmap ( trix_workspace );
+	__hwemu_register ( trix_workspace, address );
+}
+
+void
+init_memory_segments ()
+{
+	t_fileinfo *ptr = trix_workspace->fileinfo;
+	
+	memory_fi = __file_io_create_empty ();
+	
+	while ( ptr->next )
+		ptr = ptr->next;
+		
+	ptr->next = memory_fi;
+	current_mem_seg = memory_fi->stages->segments;
+	
+}
+
+
+
+int add_segment ()
+{
+	char buffer[256];
+	int state = 0;
+	char *val = NULL;
+	int base = 0;
+	int length = 0;
+	int err = 0;
+
+	UiDlgString ( "Base address? In hexadecimal form, please.", &val );
+	if ( !val )
+	{	
+		printf ( "Invalid address\n" );
+		return E_FAIL;
+	}
+
+	err = 0;
+	base = __util_hex_get ( val, &err );
+	if ( err )
+	{	
+		printf ( "Invalid address\n" );
+		return E_FAIL;
+	}
+
+	UiDlgString ( "Length? In hexadecimal form, please.", &val );
+	if ( !val )
+	{	
+		printf ( "Invalid address\n" );
+		return E_FAIL;
+	}
+
+	err = 0;
+	length = __util_hex_get ( val, &err );
+	if ( err )
+	{	
+		printf ( "Invalid address\n" );
+		return E_FAIL;
+	}
+}
+
+int rebase_segment ( unsigned int base )
+{
+	trix_workspace->fileinfo->stages->segments->start = base;
+	trix_workspace->fileinfo->stages->segments->end = base + trix_workspace->fileinfo->stages->segments->length;
+
+	WorkspaceUpdateMemmap ( trix_workspace );
+	printf ( "Rebased to 0x%08X\n", base );
+}
+
 int rebase_code ()
 {
 	char buffer[256];
@@ -289,19 +485,14 @@ int rebase_code ()
 		printf ( "Invalid address\n" );
 		return E_FAIL;
 	}
-
-	trix_workspace->fileinfo->stages->segments->start = value;
-	trix_workspace->fileinfo->stages->segments->end = value + trix_workspace->fileinfo->stages->segments->length;
-
-	WorkspaceUpdateMemmap ( trix_workspace );
-	printf ( "Rebased to 0x%08X\n", value );
-
+	
+	rebase_segment ( value );
 }
+
 
 
 int change_endianess ()
 {
-	
 	if ( trix_workspace->flags == FLAGS_ENDIANESS_LE )
 	{
 		trix_workspace->flags = FLAGS_ENDIANESS_BE;
@@ -312,8 +503,30 @@ int change_endianess ()
 		trix_workspace->flags = FLAGS_ENDIANESS_LE;
 		printf ( "Switched to: Little Endian\n" );
 	}
+	
 	WorkspaceUpdateMemmap ( trix_workspace );
+}
 
+int
+LoadBinary ( unsigned int address, unsigned char *file )
+{
+	t_workspace *ws = NULL;
+
+	printf ( "\n" );
+	printf ( "[x] Uploading Binary data\n" );
+	printf ( "    file: %s\n", file );
+	printf ( "    to  : 0x%08X\n", address );
+	ws = WorkspaceStartup ( file );
+	if ( !ws )
+		return E_FAIL;
+	printf ( "    size: 0x%08X\n", __v_get_size ( ws ) );
+	printf ( "\n" );
+
+//	__util_dump_bytes ( __v_get_ptr ( ws, 0 ), 0x10, __v_get_size ( ws ) );
+	MemCpyPut ( address, __v_get_ptr ( ws, 0 ), __v_get_size ( ws ) );
+	__workspace_release ( ws );
+
+	return E_OK;
 }
 
 int main ( )
@@ -334,17 +547,28 @@ int main ( )
 	UiBoxSize ( reg_box, 500, 80 );
 	UiBoxSize ( asm_box, 600, 190 );
 
-// !!!!!!!!!! iphone !!!!!!!!!!
-/*
-	trix_workspace->fileinfo->stages->segments->start = 0x9FFFF65C;
-	trix_workspace->fileinfo->stages->segments->end = trix_workspace->fileinfo->stages->segments->start + trix_workspace->fileinfo->stages->segments->length;
-	WorkspaceUpdateMemmap ( trix_workspace );
+	init_memory_segments ();
 
-	trix_workspace->flags = FLAGS_ENDIANESS_LE;
-*/ 
-// !!!!!!!!!! iphone !!!!!!!!!!
+	change_endianess ();
+
+    // load firmware
+	add_memory_segment ( 0xff810000, 0x7f0000, 0 ); 
+	LoadBinary ( 0xff810000, "D:\\Users\\g3gg0\\Documents\\EOS Firmware\\ROM0.BIN" );
+    
+    // RAM?
+	add_memory_segment ( 0x00800000, 0x00010000, 0 ); 
+    
+    // DMA?
+	add_memory_segment ( 0x04000000 , 0x000F0000, 0 ); 
+    
+    // IO MEM
+	add_memory_segment ( 0xc0000000, 0xa00000, 0 ); 
+	__hwemu_register ( trix_workspace, 0xc0000000 );
+    
 
 
+
+	
 	while ( !done )
 	{
 		dump_regs ();
@@ -386,7 +610,7 @@ int main ( )
 				exec_step ();
 				break;
 			case 8:
-				exec_until ();
+				exec_until_dlg ();
 				break;
 			case 9:
 				dump_memmap ();
@@ -394,6 +618,10 @@ int main ( )
 				break;
 			case 10:
 				dump_memory ();
+				repaint = 1;
+				break;
+			case 11:
+				add_segment ();
 				repaint = 1;
 				break;
 			default:

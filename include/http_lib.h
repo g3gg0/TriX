@@ -5,7 +5,7 @@
  *  (c) 1996 Observatoire de Paris - Meudon - France
  *  see LICENSE for terms, conditions and DISCLAIMER OF ALL WARRANTIES
  *
- * $Id: http_lib.h,v 1.3 2007/08/12 00:50:19 geggo Exp $
+ * $Id: http_lib.h 2596 2007-08-12 00:50:19Z geggo $
  *
  */
 

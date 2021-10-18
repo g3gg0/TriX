@@ -1,4 +1,5 @@
 
+typedef int va_list;
 
 // INSERT_DECLARATIONS
 
@@ -6,10 +7,13 @@
 #define UI_OPT_QUIT      0x00000002
 #define UI_OPT_NOREPAINT 0x00000004
 
+
 unsigned int UiDlgInt ( char *text, int min, int max ) { return __ui_dlg_int ( text, min, max, 0, 0 ); }
 unsigned int UiDlgIntDef ( char *text, int min, int max, int def ) { return __ui_dlg_int ( text, min, max, 1, def ); }
 unsigned int UiDlgBool ( char *text ) { return __ui_dlg_bool ( text ); }
 unsigned int UiDlgString ( char *text, char **buf ) { return __ui_dlg_string ( text, buf ); }
+unsigned int UiDlgLoadFile ( char **filename, const char *msg, const char *ext ) { return __ui_dlg_load_file ( filename, msg, ext ); }
+unsigned int UiDlgSaveFile ( char **filename, const char *msg, const char *ext ) { return __ui_dlg_save_file ( filename, msg, ext ); }
 unsigned int UiDlgMsg ( char *text, int type ) { return __ui_dlg_msg ( text, type ); }
 unsigned int UiDlgMenu ( char *title, char **text, int options ) { return __ui_dlg_menu ( title, text, options ); }
 

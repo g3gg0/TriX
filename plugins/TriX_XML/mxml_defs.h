@@ -6,7 +6,7 @@
 
    MXML standard definitions
 
-   $Id: mxml_defs.h,v 1.3 2008-03-06 21:41:44 geggo Exp $
+   $Id: mxml_defs.h 2762 2008-03-06 21:42:00Z geggo $
 */
 
 #ifndef MXML_DEFS_H

@@ -207,7 +207,6 @@ trix_run ( char *script, char *flash )
 }
 
 
-
 /**
 * Initializing most of the parts.
 */

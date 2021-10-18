@@ -1,5 +1,5 @@
 /*
- * $Id: mousewget.c,v 1.1 2006/06/28 13:53:39 geggo Exp $
+ * $Id: mousewget.c 1521 2006-06-28 13:53:39Z geggo $
  *
  * mousewget.c -- mouse/wgetch support for dialog
  *

@@ -10,3 +10,4 @@
 	unsigned int (*set_modified) ( t_workspace * ws);
 	unsigned int (*update_memmap) ( t_workspace * ws);
 	void (*skip_error) ( int skip);
+ 	unsigned int (*memmap_reverse) ( t_workspace * ws);

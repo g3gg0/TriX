@@ -10,7 +10,7 @@
 			CommandLine="$(QTDIR)/bin/uic.exe &quot;$(InputPath)&quot; -o ..\..\src\ui-qt\ui_$(InputName).h"
 			Outputs="..\..\src\ui-qt\ui_$(InputName).h"
 			FileExtensions="*.ui"
-			ExecutionDescription="Creating UI File ..\..\src\ui-qt\ui_\$(InputName).h"
+			ExecutionDescription="Creating UI File ..\..\src\ui-qt\ui_$(InputName).h"
 			>
 			<Properties>
 			</Properties>

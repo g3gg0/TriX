@@ -9,6 +9,9 @@
  All rights reserved.
  See seer.h for license information.
 ************************************************************************/
+#ifndef __TRIX_SEER_SCRIPT_C__
+#define __TRIX_SEER_SCRIPT_C__
+
 #define INTERNAL_FILE
 #include <seer.h>
 #include "seer_internal.h"
@@ -43,14 +46,14 @@ double callfunc_d ( void *func, void *params, int count );
 int callmember ( void *func, void *params, int count );
 double callmember_d ( void *func, void *params, int count );
 
-void scCDispatcher ( int *result, void *function, int *params, int paramcount, unsigned int options )
+int  scCDispatcher ( int *result, void *function, int *params, int paramcount, unsigned int options )
 {
     if ( options & scDispatch_Member )
     {                           //C++ call - convert to typical C call, so 'this' is the first param.
         options ^= scDispatch_Member;   //erase member flag
     }
     //call the default dispatcher
-    scStandardDispatcher ( result, function, params, paramcount, options );
+    return scStandardDispatcher ( result, function, params, paramcount, options );
 }
 
 int
@@ -452,3 +455,5 @@ my_realloc ( void *p, int s )
     return x;
 }
 #endif //MALLOC_DEBUG
+
+#endif

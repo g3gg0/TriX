@@ -21,7 +21,7 @@ void fill_code ( struct code_data *c );
 
 
 struct s_comp comp[] = {
-	{ MODE_ANY, 0, ".CODE",  comp_code,      0,  -2, PARM_VAL,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK, 0,  ".align boundary\r\nAligns to given boundary (e.g. 2, 4 or 8)" },
+	{ MODE_ANY, 0, ".CODE",  comp_code,      0,  -2, PARM_VAL,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK, 0,  ".code [16|32]\r\nSwitches between Thumb (16) and ARM (32) opcode set." },
 
 	{ MODE_ANY, 0, ".ALIGN",  comp_align,      0,  -2, PARM_VAL,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK, 0,  ".align boundary\r\nAligns to given boundary (e.g. 2, 4 or 8)" },
 	{ MODE_ANY, 0, ".GSC",  comp_gsc,      0,  0, PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK, 0,  ".gsc\r\nSets the output data to g3n0lite script [CODE]" },
@@ -30,17 +30,21 @@ struct s_comp comp[] = {
 	{ MODE_ANY, 0, ".INJ",  comp_inj,      0,  1, PARM_VAL,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK, 0,  ".inj addr\r\nInjects the generated code at position <addr> if a file is opened" },
 	{ MODE_ANY, 0, ".IDD",  comp_idd,      0,  2, PARM_UNK,    PARM_VAL,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK, 0,  ".idd name abs\r\nInserts a dword patch for g3n0lite with name. If abs = 0 no 0x00200000 is added" },
 	{ MODE_ANY, 0, ".IMP",  comp_imp,      0,  2, PARM_UNK,    PARM_VAL,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK, 0,  ".imp func addr\r\nImports the address of a function" },
-	{ MODE_ANY, 0, ".ORG",  comp_org,      0,  1, PARM_VAL,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK, 0,  ".org addr\r\nSpecifies the Origin of this code - used for calculating BL's" },
+	{ MODE_ANY, 0, ".ORG",  comp_org,      0,  -2, PARM_VAL,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK, 0,  ".org addr\r\nSpecifies the Origin of this code - used for calculating BL's" },
 	{ MODE_ANY, 0, ".HEX",  comp_hex,      0,  0, PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK, 0,  ".hex\r\nSets the output data to Hexadecimal dump mode" },
-	{ MODE_ANY, 0, ".TRIX", comp_trix,     0,  0, PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK, 0,  ".trix\nSets the output data to Trix dump mode" },
-	{ MODE_ANY, 0, ".ENS",  comp_ens,      0,  1, PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK, 0,  ".ens\r\nSets the endianess BE or LE" },
+	{ MODE_ANY, 0, ".TRIX", comp_trix,     0,  0, PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK, 0,  ".trix\r\nSets the output data to Trix dump mode" },
+	{ MODE_ANY, 0, ".NRX",  comp_nrx,      0,  0, PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK, 0,  ".nrx\r\nSets the output data to NokiX dump mode" },
+	{ MODE_ANY, 0, ".ENS",  comp_ens,      0,  1, PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK, 0,  ".ens\r\nSets the endianess BIG_ENDIAN or LITTLE_ENDIAN (short: LE). Default is BIG_ENDIAN" },
 	{ MODE_ANY, 0, ".SUB",  comp_nam,      0,  1, PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK, 0,  ".sub text\r\nSets the function name" },
 	{ MODE_ANY, 0, ".DES",  comp_des,      0,  1, PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK, 0,  ".des text\r\nSets the function description" },
 	{ MODE_ANY, 0, ".END",  comp_end,      0,  -2,PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK, 0,  ".end\r\nEnds the function" },
-	{ MODE_ANY, 0, ".UNI",  comp_uni, PARM_TXT,  -2,PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK, 0,  ".uni \"string\" 0d 0a 00\r\nInserts an UNICODE string. You may use \" or ' around the string to include spaces.\r\n ex:  .asc \"test\" 0d 0a 00\r\nplease note, that no \\000 is added automatically!" },
-	{ MODE_ANY, 0, ".ASC",  comp_asc, PARM_TXT,  -2,PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK, 0,  ".asc \"string\" 0d 0a 00\r\nInserts an ASCII string. You may use \" or ' around the string to include spaces.\r\n ex:  .asc \"test\" 0d 0a 00\r\nplease note, that no \\000 is added automatically!" },
-	{ MODE_ANY, 0, ".SIZE",  comp_size,      0,  1, PARM_VAL,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK, 0,  ".size bytes\r\nSpecifies the maximal size for that code. You get a warning if the code gets too big." },
+	{ MODE_ANY, 0, ".UNI",  comp_uni, PARM_TXT, -2,PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK, 0,  ".uni \"string\" 0d 0a 00\r\nInserts an UNICODE string. You may use \" or ' around the string to include spaces.\r\n ex:  .asc \"test\" 0d 0a 00\r\nplease note, that no \\000 is added automatically!" },
+	{ MODE_ANY, 0, ".ASC",  comp_asc, PARM_TXT, -2,PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK, 0,  ".asc \"string\" 0d 0a 00\r\nInserts an ASCII string. You may use \" or ' around the string to include spaces.\r\n ex:  .asc \"test\" 0d 0a 00\r\nplease note, that no \\000 is added automatically!" },
+	{ MODE_ANY, 0, ".SIZE", comp_size,      0,  1, PARM_VAL,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK, 0,  ".size bytes\r\nSpecifies the maximal size for that code. You get a warning if the code gets too big." },
 
+	{ MODE_ANY, 0, "DB" ,   comp_db,       0,  -2, PARM_VAL,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK, 0,  "DB 0xde\r\nInserts the Byte followed" },
+	{ MODE_ANY, 0, "DW" ,   comp_dw,       0,  -2, PARM_VAL,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK, 0,  "DW 0xdead\r\nInserts the Word followed" },
+	{ MODE_ANY, 0, "DD" ,   comp_dd,       0,  -2, PARM_VAL,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK, 0,  "DD 0xdeadbeef\r\nInserts the DWord followed" },
 
 	// Branch with eXchange
 	{ MODE_ARM32, 1, "BX",    comp32_bx,     4,  1, PARM_REG32, PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK, 1, "(ARM32) BX Rn\r\nThis instruction performs a branch by copying the contents of a general register, Rn, into the program counter, PC. The branch causes a pipeline flush and refill from theaddress specified by Rn. This instruction also permits the instruction set to be exchanged. When the instruction is executed, the value of Rn[0] determines whether the instruction stream will be decoded as ARM or THUMB instructions." },
@@ -108,7 +112,7 @@ struct s_comp comp[] = {
 
 	// Coprocessor Data Transfers (LDC, STC)
 	// Coprocessor Register Transfers (MRC, MCR)
-	// 
+	//
 
 
 	{ MODE_THUMB, 0, "STMIA", comp_stmia,    2, -1, PARM_REG,    PARM_REG,    PARM_VAL,    PARM_UNK,    PARM_UNK,    PARM_UNK, 15, "STMIA Rb, Rlist,...\r\nStore the Registers specified in Rlist, starting at the base address in Rb. \r\nWrite back the new address"  },
@@ -126,10 +130,10 @@ struct s_comp comp[] = {
 	{ MODE_THUMB, 0, "MOV",   comp_movpcrel, 2,  2, PARM_REG,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK, 12, "MOV Rd, @mark\r\nPlace the address of the given mark in Rd\r\nMust be DWORD aligned. (same as ADR)" },
 	{ MODE_THUMB, 0, "ADR",   comp_movpcrel, 2,  2, PARM_REG,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK, 12, "ADR Rd, @mark\r\nPlace the address of the given mark in Rd\r\nMust be DWORD aligned. (same as MOV)" },
 	{ MODE_THUMB, 0, "MOV",   comp_mov,      2,  2, PARM_REG,    PARM_VAL,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK, 3,  "MOV Rd, val\r\nChanges Rd to val"  },
-	{ MODE_THUMB, 0, "ADD",   comp_addpcr,   2,  3, PARM_REG,    PARM_REG_PC, PARM_VAL,    PARM_UNK,    PARM_UNK,    PARM_UNK, 12, "ADDPC Rd, val\r\nAdd PC and val and place the result in Rd" },
-	{ MODE_THUMB, 0, "ADD",   comp_addspr,   2,  3, PARM_REG,    PARM_REG_SP, PARM_VAL,    PARM_UNK,    PARM_UNK,    PARM_UNK, 12, "ADDSP Rd, val\r\nAdd SP and val and place the result in Rd" },
-	{ MODE_THUMB, 0, "ADD",   comp_addsp,    2,  2, PARM_REG_SP, PARM_VAL,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK, 13, "ADDSP val\r\nAdd val to SP" },
-	{ MODE_THUMB, 0, "SUB",   comp_subsp,    2,  2, PARM_REG_SP, PARM_VAL,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK, 13, "SUBSP val\r\nSubtract val from SP" },
+	{ MODE_THUMB, 0, "ADD",   comp_addpcr,   2,  3, PARM_REG,    PARM_REG_PC, PARM_VAL,    PARM_UNK,    PARM_UNK,    PARM_UNK, 12, "ADD Rd, val\r\nAdd PC and val and place the result in Rd" },
+	{ MODE_THUMB, 0, "ADD",   comp_addspr,   2,  3, PARM_REG,    PARM_REG_SP, PARM_VAL,    PARM_UNK,    PARM_UNK,    PARM_UNK, 12, "ADD Rd, val\r\nAdd SP and val and place the result in Rd" },
+	{ MODE_THUMB, 0, "ADD",   comp_addsp,    2,  2, PARM_REG_SP, PARM_VAL,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK, 13, "ADD val\r\nAdd val to SP" },
+	{ MODE_THUMB, 0, "SUB",   comp_subsp,    2,  2, PARM_REG_SP, PARM_VAL,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK, 13, "SUB val\r\nSubtract val from SP" },
 	{ MODE_THUMB, 0, "SUB",   comp_subr,     2,  3, PARM_REG,    PARM_REG,    PARM_REG,    PARM_UNK,    PARM_UNK,    PARM_UNK, 2,  "SUB Rd, Rs, Rn\r\nPlaces the result of Rs minus Rn into Rd" },
 	{ MODE_THUMB, 0, "SUB",   comp_subv,     2,  3, PARM_REG,    PARM_REG,    PARM_VAL,    PARM_UNK,    PARM_UNK,    PARM_UNK, 2,  "SUB Rd, Rs, val\r\nPlaces the result of Rs minus val into Rd" },
 	{ MODE_THUMB, 0, "ADD",   comp_addr,     2,  3, PARM_REG,    PARM_REG,    PARM_REG,    PARM_UNK,    PARM_UNK,    PARM_UNK, 2,  "ADD Rd, Rs, Rn\r\nPlaces the result of Rs plus Rn into Rd" },
@@ -147,6 +151,9 @@ struct s_comp comp[] = {
 	{ MODE_THUMB, 0, "MOV",   comp_movrr,    2,  2, PARM_REG,    PARM_REG,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK, 5,  "MOV Rl, Rl\r\nMoves the value in a Low Register into the Low Register" },	
 	{ MODE_THUMB, 0, "BX",    comp_bxr,      2,  1, PARM_REG,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK, 5,  "BX  Rl\r\nSets the new exection pointer to the value in the Low register" },
 	{ MODE_THUMB, 0, "BX",    comp_bxh,      2,  1, PARM_REG_HI, PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK, 5,  "BX  Rh\r\nSets the new exection pointer to the value in the High register" },
+	{ MODE_THUMB, 0, "BLX",   comp_blxr,     2,  1, PARM_REG,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK, 5,  "BLX Rl\r\nSets the new exection pointer to the value in the Low register after placing PC in LR" },
+	{ MODE_THUMB, 0, "BLX",   comp_blxh,     2,  1, PARM_REG_HI, PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK, 5,  "BLX Rh\r\nSets the new exection pointer to the value in the High register after placing PC in LR" },
+	{ MODE_THUMB, 0, "BLX",   comp_blx,      4,  1, PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK, 19, "BLX @routine\r\nBL and set T=0\r\nDoes a long unconditional branch to the given ARM-routine after placing PC in LR\r\n\r\nBL @mark\r\n\tcalls the imported (.imp) or searched (.loc) routine or\r\n\tleaves a unresolved symbol for g3n0lite\r\nBL $addr\r\n\tcalls the defined fixed addresss\r\nBL _mark\r\n\tcalls the imported (.imp) routine, error when not defined" },
 	{ MODE_THUMB, 0, "SUB",   comp_sub,      2,  2, PARM_REG,    PARM_VAL,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK, 3,  "SUB Rd, val\r\nSubtracts val from the given register" },
 	{ MODE_THUMB, 0, "ADD",   comp_add,      2,  2, PARM_REG,    PARM_VAL,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK, 3,  "ADD Rd, val\r\nAdds val to the given register" },
 	{ MODE_THUMB, 0, "CMP",   comp_cmp,      2,  2, PARM_REG,    PARM_VAL,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK, 3,  "CMP Rd, val\r\nCompares the register with val" },
@@ -196,9 +203,6 @@ struct s_comp comp[] = {
 	{ MODE_THUMB, 0, "BLE",   comp_ble,      2,  1, PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK, 16, "BLE @mark\r\nJumps to mark when the result was less or equal" },
 	{ MODE_THUMB, 0, "BL" ,   comp_bl,       4,  1, PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK, 19, "BL @routine\r\nDoes a long unconditional branch to the given routine after placing PC in LR\r\n\r\nBL @mark\r\n\tcalls the imported (.imp) or searched (.loc) routine or\r\n\tleaves a unresolved symbol for g3n0lite\r\nBL $addr\r\n\tcalls the defined fixed addresss\r\nBL _mark\r\n\tcalls the imported (.imp) routine, error when not defined" },
 	{ MODE_THUMB, 0, "B"  ,   comp_b,        2,  1, PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK, 18, "B @mark\r\nJumps to the given mark\r\n\r\nB  @mark\r\n\tjumps to the defined label if one defined or to the imported (.imp)\r\n\tor searched (.loc) function" },
-	{ MODE_THUMB, 0, "DB" ,   comp_db,       0,  -2, PARM_VAL,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK, 0,  "DB 0xde\r\nInserts the Byte followed" },
-	{ MODE_THUMB, 0, "DW" ,   comp_dw,       0,  -2, PARM_VAL,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK, 0,  "DW 0xdead\r\nInserts the Word followed" },
-	{ MODE_THUMB, 0, "DD" ,   comp_dd,       0,  -2, PARM_VAL,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK,    PARM_UNK, 0,  "DD 0xdeadbeef\r\nInserts the DWord followed" },
 	{ NULL  ,   NULL }
 };
 
@@ -360,7 +364,7 @@ int compile_line ( struct code_data *c, char *t, int cmd )
        )
 		return 0;
 
-	tmp_t = strupr(strdup ( t ));
+	tmp_t = string_uppercase(strdup ( t ));
 
 	while ( tmp_t[pos] )
 	{
@@ -375,12 +379,16 @@ int compile_line ( struct code_data *c, char *t, int cmd )
 		int match = 0;
 
 		if ( comp[pos].modifiers )
+		{
 			match = !strncmp ( comp[pos].opcode, tmp_t, strlen ( comp[pos].opcode ) );
+		}
 		else
 		{
 			match = !strncmp ( comp[pos].opcode, tmp_t, strlen ( comp[pos].opcode ) );
 			if ( tmp_t[strlen ( comp[pos].opcode )] != ' ' && tmp_t[strlen ( comp[pos].opcode )] != '\000' )
+			{
 				match = 0;
+			}
 		}
 
 		if ( match && (comp[pos].mode & c->arch_mode) )
@@ -823,7 +831,7 @@ int get_label ( struct code_data *c, char *label )
 	// check current labels
 	while ( c->labels[cur].name )
 	{
-		if ( !strcmp ( strupr(c->labels[cur].name), strupr(label) ) )
+		if ( !strcmp ( string_uppercase(c->labels[cur].name), string_uppercase(label) ) )
 			return c->labels[cur].pos;
 		cur++;
 	}
@@ -832,7 +840,7 @@ int get_label ( struct code_data *c, char *label )
 	// check global labels
 	while ( global_c.labels[cur].name )
 	{
-		if ( !strcmp ( strupr(global_c.labels[cur].name), strupr(label) ) )
+		if ( !strcmp ( string_uppercase(global_c.labels[cur].name), string_uppercase(label) ) )
 			return global_c.labels[cur].pos;
 		cur++;
 	}
@@ -870,7 +878,7 @@ int add_import_global ( char *func, unsigned long addr )
 	if ( cur > MAX )
 		return -1;
 
-	global_c.imports[cur].name = strupr ( strdup ( func ) );
+	global_c.imports[cur].name = string_uppercase ( strdup ( func ) );
 	global_c.imports[cur].addr = addr;
 
 	return 1;
@@ -889,7 +897,7 @@ int add_import ( struct code_data *c, char *func, unsigned long addr )
 	if ( cur > MAX )
 		return -1;
 
-	c->imports[cur].name = strupr(strdup ( func ) );
+	c->imports[cur].name = string_uppercase(strdup ( func ) );
 	c->imports[cur].addr = addr;
 
 	return 1;
@@ -905,7 +913,7 @@ unsigned long get_import ( struct code_data *c, char *func )
 	// check current labels
 	while ( c->imports[cur].name )
 	{
-		if ( !strcmp ( strupr(c->imports[cur].name), strupr(func) ) )
+		if ( !strcmp ( string_uppercase(c->imports[cur].name), string_uppercase(func) ) )
 			return c->imports[cur].addr;
 		cur++;
 	}
@@ -914,7 +922,7 @@ unsigned long get_import ( struct code_data *c, char *func )
 	// check global labels
 	while ( global_c.imports[cur].name )
 	{
-		if ( !strcmp ( strupr(global_c.imports[cur].name), strupr(func) ) )
+		if ( !strcmp ( string_uppercase(global_c.imports[cur].name), string_uppercase(func) ) )
 			return global_c.imports[cur].addr;
 		cur++;
 	}
@@ -1067,6 +1075,9 @@ int dump_code ( struct code_data *c, char **ret )
         case MODE_TRIX:
             sprintf ( temp, "    \".text\", \"" );
             break;
+      case MODE_NRX:
+         sprintf ( temp, "code=x2c(" );
+         break;
 		case MODE_NORM:
 			sprintf ( temp, ",\r\n" );
 			break;
@@ -1094,17 +1105,19 @@ int dump_code ( struct code_data *c, char **ret )
 			default:
 				break;
 		}
-		while ( 
+		while (
 			    (byte < 32768 && cur < c->bytes && c->mode == MODE_GSC) ||
 			    (byte < 8 && cur < c->bytes && c->mode == MODE_HEX) ||
 				(byte < 4 && cur < c->bytes && c->mode == MODE_NORM) ||
-				(byte < 32768 && cur < c->bytes && c->mode == MODE_TRIX) )
+				(byte < 32768 && cur < c->bytes && c->mode == MODE_TRIX) ||
+				(byte < 256 && cur < c->bytes && c->mode == MODE_NRX) )
 		{
 			temp = malloc ( 100 );
 			switch ( c->mode )
 			{
 				case MODE_HEX:
 				case MODE_GSC:
+				case MODE_NRX:
 					sprintf ( temp, "%02X", c->data[cur] ); 
 					break;
 				case MODE_NORM:
@@ -1132,6 +1145,9 @@ int dump_code ( struct code_data *c, char **ret )
                 case MODE_TRIX:
                     sprintf ( temp, "\", " );
                     break;
+            case MODE_NRX:
+               sprintf ( temp, ")\r\ncreate \"code\"; %s=rc\r\n", c->name );
+               break;
 				case MODE_NORM:
 					sprintf ( temp, "\",\r\n" );
 					break;
@@ -1146,6 +1162,9 @@ int dump_code ( struct code_data *c, char **ret )
 				case MODE_GSC:
 					sprintf ( temp, "\r\n" );
 					break;
+            case MODE_NRX:
+               sprintf ( temp, ")\r\ncode=code||x2c(" );
+               break;
 				case MODE_NORM:
 					sprintf ( temp, "\"\r\n" );
 					break;
@@ -1165,6 +1184,7 @@ int dump_code ( struct code_data *c, char **ret )
 			sprintf ( temp, "\r\nBytes: 0x%02X", c->bytes );
 			break;
 		case MODE_GSC:
+		case MODE_NRX:
 			sprintf ( temp, "" );
 			break;
 		case MODE_NORM:
@@ -1256,6 +1276,7 @@ int dump_patches ( struct code_data *c, char **ret )
 			sprintf ( temp, "\r\nBL\'s: %i", patches );
 			break;
 		case MODE_GSC:
+		case MODE_NRX:
 			sprintf ( temp, "" );
 			break;
 		case MODE_NORM:
@@ -1281,6 +1302,7 @@ int dump_patches ( struct code_data *c, char **ret )
 			strcat ( *ret, "\r\nBL-Positions: { " );
 			break;
 		case MODE_GSC:
+		case MODE_NRX:
 			strcat ( *ret, "" );
 			break;
 		case MODE_NORM:
@@ -1296,7 +1318,7 @@ int dump_patches ( struct code_data *c, char **ret )
 	if ( !patches )
 	{
 		temp = malloc ( 200 );
-		if ( c->mode == MODE_GSC || c->mode == MODE_TRIX )
+		if ( c->mode == MODE_GSC || c->mode == MODE_TRIX || c->mode == MODE_NRX )
 			sprintf ( temp, "" );
 		else
 			sprintf ( temp, "0 " );
@@ -1307,7 +1329,7 @@ int dump_patches ( struct code_data *c, char **ret )
 	while ( cur < patches )
 	{
 		temp = malloc ( 100 );
-		if ( c->mode == MODE_GSC || c->mode == MODE_TRIX )
+		if ( c->mode == MODE_GSC || c->mode == MODE_TRIX || c->mode == MODE_NRX )
 			sprintf ( temp, "" );
 		else
 		{
@@ -1331,6 +1353,7 @@ int dump_patches ( struct code_data *c, char **ret )
 			break;
 		case MODE_GSC:
 		case MODE_TRIX:
+		case MODE_NRX:
 			sprintf ( temp, "" );
 			break;
 		case MODE_NORM:
@@ -1346,7 +1369,7 @@ int dump_patches ( struct code_data *c, char **ret )
 	if ( !patches )
 	{
 		temp = malloc ( 200 );
-		if ( c->mode == MODE_GSC )
+		if ( c->mode == MODE_GSC || c->mode == MODE_NRX )
 			sprintf ( temp, "" );
 		else
 			sprintf ( temp, "NULL " );
@@ -1361,6 +1384,8 @@ int dump_patches ( struct code_data *c, char **ret )
 		temp = malloc ( 1024 + strlen ( c->functions[cur].name ) );
 		if ( c->mode == MODE_GSC )
 			sprintf ( temp, "BL = 0x%02x -> %s\r\n", c->functions[cur].pos, c->functions[cur].name + 1 );
+      else if ( c->mode == MODE_NRX )
+         sprintf ( temp, "setbl %s+x2d(%02X) %s\r\n", c->name, c->functions[cur].pos, strlwr (c->functions[cur].name + 1 ) );
         else
             if ( c->mode == MODE_TRIX )
                 sprintf ( temp, "    \"!SYM_CALL\", \"%s\", \"%i\",\r\n", strlwr (c->functions[cur].name + 1 ), c->functions[cur].pos );
@@ -1390,6 +1415,7 @@ int dump_patches ( struct code_data *c, char **ret )
 				break;
 			case MODE_GSC:
 			case MODE_TRIX:
+			case MODE_NRX:
 			default:
 				sprintf ( temp, "" );
 				break;
@@ -1412,6 +1438,7 @@ int dump_patches ( struct code_data *c, char **ret )
 				break;
 			case MODE_GSC:
 			case MODE_TRIX:
+			case MODE_NRX:
 			default:
 				sprintf ( temp, "" );
 				break;
@@ -1423,7 +1450,7 @@ int dump_patches ( struct code_data *c, char **ret )
 		while ( cur < d_patches )
 		{
 			temp = malloc ( 200 );
-			if ( c->mode == MODE_GSC || c->mode == MODE_TRIX )
+			if ( c->mode == MODE_GSC || c->mode == MODE_TRIX || c->mode == MODE_NRX )
 				sprintf ( temp, "" );
 			else
 			{
@@ -1451,6 +1478,7 @@ int dump_patches ( struct code_data *c, char **ret )
 				break;
 			case MODE_GSC:
 			case MODE_TRIX:
+			case MODE_NRX:
 			default:
 				sprintf ( temp, "" );
 				break;
@@ -1463,7 +1491,7 @@ int dump_patches ( struct code_data *c, char **ret )
 		while ( cur < d_patches )
 		{
 			temp = malloc ( 10 + strlen ( c->d_patches[cur].name ) );
-			if ( c->mode == MODE_GSC || c->mode == MODE_TRIX )
+			if ( c->mode == MODE_GSC || c->mode == MODE_TRIX || c->mode == MODE_NRX )
 				sprintf ( temp, "" );
 			else
 			{
@@ -1490,6 +1518,7 @@ int dump_patches ( struct code_data *c, char **ret )
 				break;
 			case MODE_GSC:
 			case MODE_TRIX:
+			case MODE_NRX:
 			default:
 				sprintf ( temp, "" );
 				break;
@@ -1504,9 +1533,11 @@ int dump_patches ( struct code_data *c, char **ret )
 			temp = malloc ( 1024 );
 			if ( c->mode == MODE_GSC )
 				sprintf ( temp, "Data = 0x%02x -> %s %c %c\r\n", c->d_patches[cur].pos, c->d_patches[cur].name, c->d_patches[cur].abs?'Y':'N', 'N' );
+			else if ( c->mode == MODE_NRX )
+				sprintf ( temp, "setlong %s+x2d(%02X) %s\r\n", c->name, c->d_patches[cur].pos, strlwr ( c->d_patches[cur].name + 1 ) );
 			else
                 if ( c->mode == MODE_TRIX )
-                    sprintf ( temp, "    \"!SYM_PTR\", \"%s\", \"%i\",\r\n", c->d_patches[cur].name, c->d_patches[cur].pos );
+                    sprintf ( temp, "    \"!SYM_PTR\", \"%s\", \"%i\",\r\n", c->d_patches[cur].name + 1, c->d_patches[cur].pos );
 			else
 			{
 				if ( cur == d_patches - 1 )
@@ -1524,6 +1555,8 @@ int dump_patches ( struct code_data *c, char **ret )
 
 	temp = malloc ( 200 );
 	if ( c->mode == MODE_GSC )
+		sprintf ( temp, "" );
+	if ( c->mode == MODE_NRX )
 		sprintf ( temp, "" );
 	else
 		sprintf ( temp, "}" );
@@ -1728,6 +1761,9 @@ char *compile ( char *text )
                 case MODE_TRIX:
                     sprintf ( temp, "\r\nfunc %s[] =\r\n{\r\n    \"name\", \"%s\", \"\",\r\n", code[function].name, code[function].name );
                     break;
+				case MODE_NRX:
+					sprintf ( temp, "\r\n/* %s code */\r\n", code[function].name );
+					break;
 				default:
 					break;
 			}
@@ -1755,6 +1791,9 @@ char *compile ( char *text )
 					strcat ( ret, "\r\n" );
 					break;
 				case MODE_GSC:
+					strcat ( ret, "" );
+					break;
+				case MODE_NRX:
 					strcat ( ret, "" );
 					break;
                 case MODE_TRIX:

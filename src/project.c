@@ -1,7 +1,9 @@
 #ifndef __TRIX_PROJECT_C__
 #define __TRIX_PROJECT_C__
 
+#include <stdio.h>
 #include <stdlib.h>
+
 #include "defines.h"
 #include "segment.h"
 #include "stage.h"
@@ -26,46 +28,108 @@ PROJECT_PLUG_INIT;
 
 
 t_project *project = NULL;
+//char *input_file_path = NULL;
+//char *output_file_path = NULL;
 
 
-unsigned int project_init ( )
+unsigned int project_free ( t_project *p )
 {
-	project = malloc ( sizeof ( t_project ) );
+	unsigned int reinit = 0;
 
-	project->projectname = strdup ( "" );
-	project->filename = strdup ( "" );
-	project->files = NULL;
-	project->num_files = 0;
-	project->operationmode = 0;
-	project->savemode = 0;
-	project->settings = strdup ( "" );
 
-	project->simple_in = 0;
-	project->simple_input = strdup ( "" );
-	project->simple_out = 0;
-	project->simple_output = strdup ( "" );
+	if ( !p ) // any better solution for unload main project from seer ?
+	{
+		p = project;
+		reinit = 1;
+	}
 
-	project->dct3_in = 0;
-	project->dct3_mcu_input = strdup ( "" );
-	project->dct3_seperate_ppm = 0;
-	project->dct3_mcu_output = strdup ( "" );
-	project->dct3_ppm_custom = 0;
-	project->dct3_ppm_address = 0;
+	if ( !p )
+		return E_FAIL;
 
-	project->dct3_out = 0;
-	project->dct3_ppm_input = strdup ( "" );
-	project->dct3_ppm_output = strdup ( "" );
+	// delete all scripts
+	while ( !project_del_file ( p, 0 ) );
 
-	project->dct4_in = 0;
-	project->dct4_mcu_input = strdup ( "" );
-	project->dct4_mcu_output = strdup ( "" );
+	CHECK_AND_FREE ( p->projectname );
+	CHECK_AND_FREE ( p->filename );
+	CHECK_AND_FREE ( p->settings );
+	CHECK_AND_FREE ( p->simple_input );
+	CHECK_AND_FREE ( p->simple_output );
+	CHECK_AND_FREE ( p->dct3_mcu_input );
+	CHECK_AND_FREE ( p->dct3_mcu_output );
+	CHECK_AND_FREE ( p->dct3_ppm_input );
+	CHECK_AND_FREE ( p->dct3_ppm_output );
+	CHECK_AND_FREE ( p->dct4_mcu_input );
+	CHECK_AND_FREE ( p->dct4_mcu_output );
+	CHECK_AND_FREE ( p->dct4_ppm_input );
+	CHECK_AND_FREE ( p->dct4_ppm_output );
 
-	project->dct4_out = 0;
-	project->dct4_ppm_input = strdup ( "" );
-	project->dct4_ppm_output = strdup ( "" );
+	free ( p );
+
+	if ( reinit )
+		project_init ( );
 
 	return E_OK;
 }
+
+t_project *project_create ( )
+{
+	t_project *p;
+
+	p = malloc ( sizeof ( t_project ) );
+	if ( !p )
+		return NULL;
+
+	p->projectname = strdup ( "" );
+	p->filename = strdup ( "" );
+	p->files = NULL;
+	p->num_files = 0;
+	p->operationmode = 1;
+	p->savemode = 0;
+	p->settings = strdup ( "" );
+
+	p->simple_in = 0;
+	p->simple_input = strdup ( "" );
+	p->simple_out = 0;
+	p->simple_output = strdup ( "" );
+
+	p->dct3_in = 0;
+	p->dct3_mcu_input = strdup ( "" );
+	p->dct3_seperate_ppm = 0;
+	p->dct3_mcu_output = strdup ( "" );
+	p->dct3_ppm_custom = 0;
+	p->dct3_ppm_address = 0;
+
+	p->dct3_out = 0;
+	p->dct3_ppm_input = strdup ( "" );
+	p->dct3_ppm_output = strdup ( "" );
+
+	p->dct4_in = 0;
+	p->dct4_mcu_input = strdup ( "" );
+	p->dct4_mcu_output = strdup ( "" );
+
+	p->dct4_out = 0;
+	p->dct4_ppm_input = strdup ( "" );
+	p->dct4_ppm_output = strdup ( "" );
+
+	return p;
+}
+
+unsigned int project_init ( )
+{
+	t_project *p = project_create ( );
+	if ( !p )
+		return E_FAIL;
+
+	project_free ( project );
+	project = p;
+
+	// options
+	//options_add_core_option ( OPT_STR, "project", input_file_path, "Default input files path" );
+	//options_add_core_option ( OPT_STR, "project", output_file_path, "Default output files path" );
+
+	return E_OK;
+}
+
 
 /*!
  * add a new script file to the project
@@ -235,7 +299,60 @@ unsigned int project_del_file ( t_project *p, unsigned int pos )
  */
 t_project *project_load ( char *file )
 {
-	return NULL;
+	char line[8192];
+	FILE *fh;
+	t_project *p;
+
+
+	if ( !file )
+		return NULL;
+
+	fh = fopen ( file, "r" );
+	if ( !fh )
+		return NULL;
+
+	p = project_create ( );
+
+	while ( fgets ( line, 8192, fh ) )
+	{
+		line[strlen ( line ) - 1] = 0;
+
+		if ( ( !strlen ( line ) ) || ( line[0] == '#' ) )
+			continue;
+
+		if ( !strncmp ( line, "SAVE_MODE\t", 10 ) )
+		{
+			p->savemode = util_str2int ( line + 10 );
+			if ( p->savemode == E_FAIL )
+				p->savemode = 0;
+		}
+		else if ( !strncmp ( line, "OPERATION_MODE\t", 15 ) )
+		{
+			p->operationmode = util_str2int ( line + 15 );
+			if ( p->operationmode == E_FAIL )
+				p->operationmode = 0;
+		}
+		else if ( !strncmp ( line, "SIMPLE_INPUT\t", 13 ) )
+		{
+			CHECK_AND_FREE ( p->simple_input );
+			p->simple_in = line[13] == 'Y' ? 1 : 0;
+			p->simple_input = strdup ( line + 15 );
+		}
+		else if ( !strncmp ( line, "SIMPLE_OUTPUT\t", 14 ) )
+		{
+			CHECK_AND_FREE ( p->simple_output );
+			p->simple_out = line[14] == 'Y' ? 1 : 0;
+			p->simple_output = strdup ( line + 16 );
+		}
+		else if ( !strncmp ( line, "SCRIPT\t", 7 ) )
+		{
+			project_add_file ( p, line + 7 );
+		}
+	}
+
+	fclose ( fh );
+
+	return p;
 }
 
 /*!
@@ -246,7 +363,61 @@ t_project *project_load ( char *file )
  */
 unsigned int project_save ( t_project *p, char *file )
 {
-	return E_FAIL;
+	char buf[8192];
+	char path[8192];
+	t_project_files *pfile;
+	FILE *fh;
+
+	// what a pitty xml is only a plugin :(
+
+	if ( !p || !file )
+		return E_FAIL;
+
+	fh = fopen ( file, "w" );
+	if ( !fh )
+		return E_FAIL;
+
+	fputs ( "# TriX Project File\n", fh );
+	//fprintf ( fh, "PROJECT_NAME\t%s\n", p->projectname );
+
+	fputs ( "\n# General\n", fh );
+	fprintf ( fh, "SAVE_MODE\t%d\n", p->savemode );
+	fprintf ( fh, "OPERATION_MODE\t%d\n", p->operationmode );
+
+	// should we save them all?
+	switch ( p->operationmode )
+	{
+		case 1:
+			fputs ( "\n# Simple\n", fh );
+			fprintf ( fh, "SIMPLE_INPUT\t%c\t%s\n", p->simple_in ? 'Y' : 'N',   p->simple_input );
+			fprintf ( fh, "SIMPLE_OUTPUT\t%c\t%s\n", p->simple_out ? 'Y' : 'N', p->simple_output );
+			break;
+
+		case 2:
+			fputs ( "\n# DCT3 Phone Firmware\n", fh );
+			/* TODO */
+			break;
+
+		case 3:
+			fputs ( "\n# DCT4 Phone Firmware\n", fh );
+			/* TODO */
+			break;
+	}
+
+	if ( p->num_files )
+	{
+		fputs ( "\n# Scripts\n", fh );
+
+		pfile = p->files;
+		while ( pfile )
+		{
+			fprintf ( fh, "SCRIPT\t%s\n", pfile->filename );
+			LIST_NEXT ( pfile );
+		}
+	}
+
+	fclose ( fh );
+	return E_OK;
 }
 
 #endif

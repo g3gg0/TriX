@@ -160,11 +160,13 @@ typedef struct
 {
 	struct bpb710 *bpb;
 	t_workspace *ws;
-	u8 VolLabel[12];							// Volume Label
+	unsigned int start_address;
+
+	u8  VolLabel[12];							// Volume Label
 	u32 FSInfo;						// File System Information
-	u8 Fat32Enabled;					// Indicates if is FAT32 or FAT16
+	u8  Fat32Enabled;					// Indicates if is FAT32 or FAT16
 	u32 FirstDataSector;				// First Data Sector Address
-	u16  SectorsPerCluster;			// Number of Sectors per Cluster
+	u16 SectorsPerCluster;			// Number of Sectors per Cluster
 	u32 FirstFATSector;				// First FAT Sector Address
 	u32 FirstFAT2Sector;				// First FAT2 Sector Address
 	u32 FirstDirCluster;				// First Directory (Data) Cluster Address
@@ -173,7 +175,7 @@ typedef struct
 	u32 currentDirCluster;			// Actual Dir Cluster Number
 	u32 NumClusters;					// ATA Dispositive Cluster Numbers
 	u32 SectorInCache;	// Address of the Sector Cluster in SectorBuffer
-	u8 prPartType;
+	u8  prPartType;
 
 } t_fat_info;
 
@@ -223,6 +225,7 @@ struct fsinfo {
 /***************************************************************/
 /***************************************************************/
 
+#define FAT_LFN_LENGTH 257
 
 // Structure of a dos directory entry.
 struct direntry {
@@ -233,8 +236,9 @@ struct direntry {
 	u8  deLFNValid;				// correct LFN entry?
 	u8  deWriteRaw;				// write raw direntry content?
 	u8  deRaw[0x20];				// raw direntry content
-	u8  deLFNName[257];				// long filename name
+	u8  deLFNName[FAT_LFN_LENGTH];				// long filename name
 	u8  deLFNchecksum;
+	u8	deNameExt[12];      			// filename plus extension, blank filled
 	u8	deName[9];      			// filename, blank filled
 	#define 		SLOT_EMPTY      	0x00	// slot has never been used
 	#define 		SLOT_E5         	0x05	// the real value is 0xe5
@@ -272,7 +276,7 @@ struct direntry {
 // Internal structure of a FILE, used in the program, not writed in FAT
 typedef struct{
 	struct direntry	de;					// Information about the file opened
-	u16	currentSector;  	// Actual sector address in memory
+	u32	currentSector;  	// Actual sector address in memory
 	u8  *buffer;				// buffer pointer to memory (cache sector)
 	u32	bytePointer;		// byte pointer to the actual byte (divide by 512 to find the current buffer position)
 	u8	sectorHasChanged;	// TRUE if the sector in memory has changed and needs to be write before a close file or change in sector
@@ -306,8 +310,9 @@ struct winentry {
 
 
 // Prototypes
-t_fat_info *fatInit ( t_workspace *workspace, unsigned char prPartType );
+t_fat_info *fatInit ( t_workspace *workspace, unsigned int start_address );
 u16      fatClusterSize        (t_fat_info *info);
+u16      fatSectorSize         ( t_fat_info *info);
 u32      fatNextCluster        (t_fat_info *info, u32 cluster);
 u32      fatGetFirstDirCluster (t_fat_info *info);
 u32      fatClustToSect        (t_fat_info *info, u32 clust);

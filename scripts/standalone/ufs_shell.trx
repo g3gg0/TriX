@@ -1,155 +1,851 @@
 #include trix
 
+/*
+#plugin "http://trix.g3gg0.de/plugins/get?UFS"
+#plugin "http://trix.g3gg0.de/plugins/get?ARMada"
+#plugin "http://trix.g3gg0.de/plugins/get?NokiaCrypt"
+*/
+
 #plugin trix_ufs
-#include trix_ufs
 #plugin trix_armada
+#plugin trix_nokiacrypt
+
+#include trix_ufs
 #include trix_armada
+#include trix_nokiacrypt
+
+	
+unsigned char *remote_loaders = "http://trix.g3gg0.de/support/get?";
+unsigned char *local_loaders = "support\\";
+unsigned char *dumpfile = "support\\flashdump.bin";;
+int remote = 0;
+
 
 //
 // fit to your paths
 /////////////////////////////////////////////////////////
-unsigned int little_endian = 1;
-char *u_2nd = "support\\te_2nd.fia";
-char *u_3rd = "support\\te_shell_v2.fia";
-char *dumpfile = "support\\flashdump.bin";
+
+// default ASIC2, ASIC7(TIKU) or ASIC11
+#define DEFAULT_ARCH 11
+
+
+int little_endian;
+int hw_arch_type;
+
+char *u_2nd;
+char *u_3rd;
+char *u_3rd_orig;
+
+char *nandfile;
+char *objfile;
+
+unsigned int ram_base;
+
+/////////////////////////////////////////////////////////
+char *nand_project = "projects/nand_dump";
+char *nand_object = "dynamic_code.le.o";
+
+char *timer_trace_project = "projects/timer_trace";
+char *cpuinfo_project = "projects/cpu_info";
+
+// these are relative to ram_base
+unsigned int control_mem_offset = 0x00002000;
+unsigned int code_upload_offset = 0x00004000;
+/////////////////////////////////////////////////////////
+
+/////////////////////////////////////////////////////////
+char *project_path = "projects/fsig_upload";
+char *project_object = "projects/fsig_upload";
 char *armadafile = "support\\dynamic_code.asm";
-char *cfile = "support\\dynamic_code.c";
 char *binfile = "support\\dynamic_code.bin";
 /////////////////////////////////////////////////////////
 
+unsigned int upload_address = 0;
+unsigned int main_code_address = 0xFFFFFFFF; // address of uploaded main routine
+unsigned int read_address = 0x02000000;
+unsigned int read_bytes = 0x00001480;
+unsigned int crypt_init = 0;
 
-unsigned int read_address = 0x0C0B0000;
-unsigned int read_bytes = 0x40;
-
+int upload_block_size = 0x100;
 int quiet = 0;
 
+// nand loader commands
+#define FL_CMD_INIT    0xABAC0000
+#define FL_CMD_SETADDR 0xABAC0001
+#define FL_CMD_READ    0xABAC0002
 
-int show_flash_info ( unsigned char *data )
+#define FL_TYPE_NOR     0x00000000
+#define FL_TYPE_ONENAND 0x00000001
+#define FL_TYPE_EIJA    0x00000002
+
+
+// nand base address, autodetected
+unsigned int nand_base = 0xFFFFFFFF;
+// use nand flash access, enabled via menu
+unsigned int nand_flash = 0;
+// embed spare bytes into dump, enabled via menu
+unsigned int nand_embed_spare = 0;
+
+
+unsigned int nand_type = 0;
+unsigned int nand_device_size = 0;
+unsigned int nand_device_mibit = 0;
+
+// some of them are OneNAND specific
+unsigned int nand_manufact_id = 0xFFFF;
+unsigned int nand_device_id = 0xFFFF;
+unsigned int nand_version_id = 0xFFFF;
+unsigned int nand_dbuf_size = 0xFFFF;
+unsigned int nand_bbuf_size = 0xFFFF;
+unsigned int nand_dbuf_count = 0xFFFF;
+unsigned int nand_bbuf_count = 0xFFFF;
+unsigned int nand_page_size = 0xFFFF;
+unsigned int nand_technology = 0xFFFF;
+//
+
+unsigned int nand_spare_address = 0;
+unsigned int nand_spare_bytes = 0;
+unsigned int nand_read_address = 0;
+		
+unsigned int nand_fba_count = 0xFFFF;
+unsigned int nand_fpa_count = 0xFFFF;
+
+
+// timer trace stuff
+#define GET_WORD(x) ( ((x)[0]<<24)|((x)[1]<<16)|((x)[2]<<8)|((x)[3]) )
+unsigned int calib_value = 0;
+unsigned int timer1_value = 0;
+
+unsigned char *rbuf = NULL;
+unsigned int rbuf_size = 0;
+const unsigned int rbuf_entry_size = 18*4;
+unsigned char tmp_txt_buf[128];
+
+
+int hw_flash_bases[] = { 0x00000000, 0x01000000 };
+int hw_faid_bases[] = { 0x0000012C, 0x0100002C };
+
+int hw_lead3mmi_bases[] = { 0xFFFF0000, 0x06002000 };
+int hw_dsppll_bases[] = { 0xFFFF0000, 0x06008000 };
+int hw_mcupll_bases[] = { 0xFFFF0000, 0x06009000 };
+int hw_accpll_bases[] = { 0xFFFF0000, 0x0600A000 };
+int hw_dspmif_bases[] = { 0x0C305500, 0x0600B000 };
+int hw_ebusc_bases[] = { 0xFFFF0000, 0x0600C000 };
+int hw_fsig_bases[] = { 0xFFFF0000, 0x0600C800 };
+int hw_testif_bases[] = { 0xFFFF0000, 0x0600F000 };
+int hw_cbusc_bases[] = { 0x0C305300, 0xFFFF0000 };
+int hw_sti_bases[] = { 0x0C305400, 0x0600D000 };
+int hw_ctsi_bases[] = { 0x0C308000, 0x06010000 };
+int hw_pup_bases[] = { 0x0C308200, 0x06010200 };
+int hw_uif_bases[] = { 0x0C308400, 0x06010400 };
+int hw_accif_bases[] = { 0xFFFF0000, 0x06010500 };
+int hw_simif_bases[] = { 0xFFFF0000, 0x06010800 };
+int hw_mfi_bases[] = { 0xFFFF0000, 0x06010900 };
+int hw_brain_bases[] = { 0xFFFF0000, 0x06100000 };
+int hw_osmodat_bases[] = { 0xFFFF0000, 0x04000000 };
+int hw_osmocmd_bases[] = { 0xFFFF0000, 0x04FD0000 };
+int hw_ram_bases[] = { 0x0A000000, 0x00000000 };
+int hw_intvec_bases[] = { 0x00000020, 0x00000020 };
+int hw_endianess_little[] = { 1, 0 };
+
+void setup_arch(int arch_type)
+{
+	switch(arch_type)
+	{
+		case 2:
+			printf ( "  [i] Set up for ASIC 2\n" );
+			little_endian = 0;
+			hw_arch_type = 2;
+
+			u_2nd = str("u_2nd.fia");
+			u_3rd = str("u_shell_v5.fia");
+			u_3rd_orig = str("u_amd_b.fia");
+
+			nandfile = str("support\\u_nand.bin");
+
+			ram_base = 0x00000000;
+			break;
+
+		case 7:
+			printf ( "  [i] Set up for ASIC 7\n" );
+			little_endian = 1;
+			hw_arch_type = 7;
+
+			u_2nd = str("te_2nd.fia");
+			u_3rd = str("te_shell_v3.fia");
+			u_3rd_orig = str("te_amd_b.fia");
+
+			nandfile = str("support\\te_nand.bin");
+
+			ram_base = 0x0A000000;
+			break;
+
+		case 11:
+			printf ( "  [i] Set up for ASIC 11\n" );
+			little_endian = 0;
+			hw_arch_type = 2;
+
+			u_2nd = str("u3_2nd.fia");
+			u_3rd = str("u3_shell_v5.fia");
+			u_3rd_orig = str("u3_amd_b.fia");
+
+			nandfile = str("support\\u3_nand.bin");
+
+			ram_base = 0x00000000;
+			break;
+	}
+
+	if(little_endian)
+	{
+		objfile = str("dynamic_code.le.o");
+	}
+	else
+	{
+		objfile = str("dynamic_code.be.o");
+	}
+}
+
+void auto_setup ( unsigned short upp_id )
+{
+	switch ( upp_id )
+	{
+		case 0x1120:
+		case 0x2031:
+			setup_arch(2);
+			break;
+			
+		case 0x1052:
+		case 0x2051:
+			setup_arch(7);
+			break;
+			
+		case 0x3040:
+			setup_arch(11);
+			break;
+		
+		default:
+			printf ( "  [i] Unknown UPP ID, staying ASIC %i\n", hw_arch_type );
+			break;
+	}
+}
+
+
+int do_upload_from_cfile ( char *project_path, char *objfile, int address, int rebuild );
+
+
+/*
+9F 
+01 00 EC 00 F8 22 00 00 11 00 10 
+00 02 EC 00 39 00 00 00 00 00 09 
+00 04 00 00 01 00 00 00 00 00 00 
+00 06 00 00 01 00 00 00 00 00 00 
+00 18 F0 9F E5 18 F0 9F E5 18 F0 
+9F E5 18 F0 9F E5 67 CD CD CD CD
+  
+  
+  
+FLASH ID0: 881C0020 <=> ST -> M39L0R807 Addr0: 0x01000000 - 0x01FFFFFF, SectorSize0: 11
+FLASH ID1: 881C0020 <=> ST -> M39L0R807 Addr1: 0x02000000 - 0x02FFFFFF, SectorSize1: 11
+
+9F 
+03 01 00 20 88 1C 00 00 92 21 11 
+00 02 00 00 00 01 00 00 00 00 00 
+00 00 AD 7E B6 1A 1B BE 0B E2 7D 
+58 6B E4 DB EE 65 14 47 00 00 00 
+
+Samsung NAND+MCU
+OneNAND(TM) Flash Memory 64Mbit (8M x8)
+Vcc=1.8V
+LSI=KS300C001M
+ID=00EC0039
+
+Nokia 6235 (or a similar variant):
+	[i] Flash 1: 00EC22E8 at 0x00000000 (01 00 00 21 7D 10)
+	[i] Flash 2: 00EC0010 at 0x02000000 (00 00 00 00 00 09)
+	
+	Manufacturer ID:   0x000000EC
+	Device ID:         0x00000010
+	Version ID:        0x00000111
+	Data Buffer Size   0x00000400
+	Boot Buffer Size:  0x00000200
+	Amount of Buffers: 0x00000201
+	Technology:        0x00000000
+	
+	
+Nokia 6230:
+	[i] Flash 1: 00EC22F8 at 0x00000000 (01 00 00 11 00 10)
+	[i] Flash 2: 00EC0039 at 0x02000000 (00 00 00 00 00 09)
+	
+	Manufacturer ID:   0x000039EC
+	Device ID:         0x00009AA5
+	Version ID:        0x0000FFFF
+	Data Buffer Size   0x0000FFFF
+	Boot Buffer Size:  0x0000FFFF
+	Amount of Buffers: 0x0000FFFF
+	Technology:        0x0000FFFF
+
+Nokia 6255:
+	[i] Flash 1: 00EC22E8 at 0x00000000 (01 00 00 21 01 10)
+	[i] Flash 2: 00EC0039 at 0x02000000 (00 00 00 00 00 09)
+
+	[i] Manufacturer ID:   0x000039EC
+	[i] Device ID:         0x00009AA5
+	[i] Version ID:        0x0000FFFF
+	[i] Data Buffer Size   0x0000FFFF
+	[i] Boot Buffer Size:  0x0000FFFF
+	[i] Data Buffers:      0x000000FF
+	[i] Boot Buffers:      0x000000FF
+	[i] Technology:        0x0000FFFF
+	
+	
+Nokia 8800:                                       [rev.]
+	[i] Flash 1: 00EC22F8 at 0x00000000 (01 00 00 11 DC 10)
+	[i] Flash 2: 00EC0020 at 0x02000000 (00 00 00 00 00 09)   (OneNAND512)
+
+	[i] Manufacturer ID:   0x000000EC
+	[i] Device ID:         0x00000020
+	[i] Version ID:        0x00000011
+	[i] Data Buffer Size   0x00000800
+	[i] Boot Buffer Size:  0x00000200
+	[i] Data Buffers:      0x00000002
+	[i] Boot Buffers:      0x00000001
+	[i] Technology:        0x00000000 
+  
+*/
+unsigned char *device_type_names[] = {
+	"NOR      ",
+	"OneNAND  ",
+	"EIJA NAND"
+};
+
+struct s_device_table {
+	unsigned int device_id;
+	unsigned char *desc;
+	unsigned int type;
+	unsigned int mibit_size;
+	unsigned int block_count;  // those are specific to EIJA flashes
+	unsigned int sector_count; // since OneNAND are autodetect
+	unsigned int sector_size;
+	unsigned int spare_size;
+} flash_devices[] = {
+	{ 0xFFFFFFFF, "unknown", 0, 0, 0, 0, 0, 0 },
+	
+	{ 0x00EC22F8, "Samsung K8S2815ETA", FL_TYPE_NOR, 0, 0, 0, 0, 0 },
+	{ 0x00EC22E8, "Samsung K8S2815ETB", FL_TYPE_NOR, 0, 0, 0, 0, 0 },
+	
+	{ 0x00EC0075, "Samsung  (unknown)", FL_TYPE_EIJA, 0, 0x800, 0x20, 0x200, 0x10 },
+	{ 0x00EC0035, "Samsung  (unknown)", FL_TYPE_EIJA, 0, 0x800, 0x20, 0x200, 0x10 },
+	{ 0x00EC0039, "Samsung KEE00E00CM", FL_TYPE_EIJA, 0, 0x400, 0x10, 0x200, 0x10 },
+	{ 0x00EC0057, "Samsung  (unknown)", FL_TYPE_EIJA, 0, 0x040, 0x10, 0x200, 0x10 },
+
+	{ 0x00EC0010, "Samsung KFG5616Q1A", FL_TYPE_ONENAND, 256, 0, 0, 0, 0 },
+	
+	{ 0x00EC0020, "Samsung KFM1216Q2A", FL_TYPE_ONENAND, 512, 0, 0, 0, 0 },
+	{ 0x00EC0024, "Samsung KFG1216Q2A", FL_TYPE_ONENAND, 512, 0, 0, 0, 0 },
+	{ 0x00EC0025, "Samsung KFG1216U2A", FL_TYPE_ONENAND, 512, 0, 0, 0, 0 },
+	
+	{ 0x00EC0030, "Samsung KFM1G16Q2M", FL_TYPE_ONENAND, 1024, 0, 0, 0, 0 },
+	{ 0x00EC0034, "Samsung KFG1G16Q2M", FL_TYPE_ONENAND, 1024, 0, 0, 0, 0 },
+	{ 0x00EC0035, "Samsung KFG1G16D2B", FL_TYPE_ONENAND, 1024, 0, 0, 0, 0 },
+	{ 0x00EC0048, "Samsung KFN2G16Q2M", FL_TYPE_ONENAND, 1024, 0, 0, 0, 0 },
+	{ 0x00EC004C, "Samsung KFH2G16Q2M", FL_TYPE_ONENAND, 1024, 0, 0, 0, 0 },
+
+	{ 0x00EC0040, "Samsung KFM2G16Q2M", FL_TYPE_ONENAND, 2048, 0, 0, 0, 0 },
+	{ 0x00EC0044, "Samsung KFG2G16Q2M", FL_TYPE_ONENAND, 2048, 0, 0, 0, 0 },
+	{ 0x00EC0058, "Samsung KFN4G16Q2M", FL_TYPE_ONENAND, 2048, 0, 0, 0, 0 },
+	{ 0x00EC005C, "Samsung KFW8G16Q2M", FL_TYPE_ONENAND, 2048, 0, 0, 0, 0 },
+	{ 0x00EC005D, "Samsung KFH4G16D2A", FL_TYPE_ONENAND, 2048, 0, 0, 0, 0 },
+
+	{ 0x00EC0050, "Samsung KFM4G16Q2M", FL_TYPE_ONENAND, 4096, 0, 0, 0, 0 },
+	{ 0x00EC0054, "Samsung KFG4G16Q2M", FL_TYPE_ONENAND, 4096, 0, 0, 0, 0 },
+	{ 0x00EC0055, "Samsung KFG4G16D2M", FL_TYPE_ONENAND, 4096, 0, 0, 0, 0 },
+	{ 0x00EC0068, "Samsung KFN8G16Q2M", FL_TYPE_ONENAND, 4096, 0, 0, 0, 0 },
+	{ 0x00EC006C, "Samsung KFH8G16Q2M", FL_TYPE_ONENAND, 4096, 0, 0, 0, 0 },
+	{ 0x00EC006D, "Samsung KFH8G16U2M", FL_TYPE_ONENAND, 4096, 0, 0, 0, 0 },
+
+	{ 0x00EC0250, "Samsung KFM4GH6Q4M", FL_TYPE_ONENAND, 4096, 0, 0, 0, 0 },
+	{ 0x00EC0254, "Samsung KFG4GH6Q4M", FL_TYPE_ONENAND, 4096, 0, 0, 0, 0 },
+	{ 0x00EC0255, "Samsung KFG4GH6D4M", FL_TYPE_ONENAND, 4096, 0, 0, 0, 0 },
+	{ 0x00EC0268, "Samsung KFN8GH6Q4M", FL_TYPE_ONENAND, 4096, 0, 0, 0, 0 },
+	{ 0x00EC026C, "Samsung KFWAGH6Q4M", FL_TYPE_ONENAND, 4096, 0, 0, 0, 0 },
+	{ 0x00EC026D, "Samsung KFWAGH6D4M", FL_TYPE_ONENAND, 4096, 0, 0, 0, 0 },
+	
+	{ 0x00000000, "dummy", 0, 0, 0, 0, 0, 0 }
+};
+
+unsigned int nand_device_entry = 0;
+
+
+int lookup_flash ( unsigned int id )
 {
 	int pos = 0;
+	
+	while ( flash_devices[pos].device_id )
+	{
+		if ( flash_devices[pos].device_id == id )
+			return pos;
+		pos++;
+	}
+
+	return 0;
+}
+
+/*
+	this routine is called right after some NAND device was detected
+	by the DATA1 parser.
+	it has to set up all known information about the flash device.
+	
+	TIKU EIJA NAND:
+		the data is hardcoded and no autodetection possible (or known...)
+		
+	OneNAND:
+		nothing to do here, right after flash loader was initialized, we
+		know more about the NAND device and set up the data there.
+		thats done in nand_init()
+*/
+int nand_found ( unsigned int start, unsigned int id )
+{
+	nand_device_entry = lookup_flash (id );
+	
+	if ( nand_device_entry == 0 )
+		return E_FAIL;
+		
+	nand_base = start;
+	nand_type = flash_devices[nand_device_entry].type;
+	
+	if ( nand_type == FL_TYPE_EIJA )
+	{	
+		int sectors_at_once = 8;
+		
+		// thats common to all EIJA types and not related to the NAND itself
+		nand_fba_count = flash_devices[nand_device_entry].block_count;
+		nand_fpa_count = flash_devices[nand_device_entry].sector_count / sectors_at_once;
+		nand_page_size = flash_devices[nand_device_entry].sector_size * sectors_at_once;
+		nand_spare_bytes = flash_devices[nand_device_entry].spare_size * sectors_at_once;
+		
+		nand_device_size = nand_fba_count * nand_fpa_count * nand_page_size;
+		nand_device_mibit = (nand_device_size/(1024*1024)) * 8;
+		
+		nand_read_address = nand_base;  // buffer address
+		nand_spare_address = nand_base + 0x1000;
+	}
+	
+	return E_OK;
+}
+
+
+int parse_flash_info ( unsigned char *data )
+{
+	int i = 0;
+	int pos = 1;
 	int done = 0;
 	int fl_num = 0;
 	int fl_id = 0;
 	int fl_start = 0;
+	int fl_end = 0;
 
+	nand_base = 0xFFFFFFFF;
+//	__util_dump_bytes ( data, 11, 128 );
 	while ( !done )
 	{
-		fl_start = (data[pos+2]) & 0xFF;
+		fl_start = ((data[pos+1]) & 0xFF) << 24;
 		if ( little_endian )
-			fl_id = (data[pos+4] << 24) | (data[pos+3] << 16) | (data[pos+6] << 8) | data[pos+5];
+			fl_id = (data[pos+3] << 24) | (data[pos+2] << 16) | (data[pos+5] << 8) | data[pos+4];
 		else
-			fl_id = (data[pos+3] << 24) | (data[pos+4] << 16) | (data[pos+5] << 8) | data[pos+6];
-		fl_num++;
-		pos += 11;
-
+			fl_id = (data[pos+2] << 24) | (data[pos+3] << 16) | (data[pos+4] << 8) | data[pos+5];
+		
 		if ( fl_id != 0x00000001 )
-			printf ( "  [i] Flash %i: %08X at 0x%02X000000\n", fl_num, fl_id, fl_start );
+		{
+			if ( data[pos+10] == 0x09 )
+				nand_found ( fl_start, fl_id );
+			
+			if ( !quiet )
+			{
+				printf ( "  [i] Flash %i: %08X at 0x%08X ", fl_num, fl_id, fl_start );
+				printf ( " %s ", device_type_names[flash_devices[lookup_flash(fl_id)].type] );
+				printf ( "(%s) ", flash_devices[lookup_flash(fl_id)].desc );
+				
+				// just for debugging
+				if ( 0 )
+				{
+					printf ( "(%02X ", data[pos] );
+					for ( i=6; i < 10; i++)
+						printf ( "%02X ", data[pos+i] );
+					printf ( "%02X)", data[pos+i] );
+				}
+				printf ( "\n" );
+			}
+			
+			pos += 11;
+			fl_num++;
+		}
 		else
 			done = 1;
-
 	}
 	return E_OK;
 }
 
-unsigned char neg_checksum ( unsigned char *buffer, unsigned int bytes )
+int execute_code ( unsigned int address )
 {
-   unsigned int i = 0;
-	unsigned char k = 0xFF;
+	unsigned char cmd[6];
+	unsigned short res = 0;
 
-   for(i=0; i<bytes; i++)
-      k = k - buffer[i];
+	cmd[0] = 0x31;
+	cmd[1] = (unsigned char)(address >> 24 );
+	cmd[2] = (unsigned char)(address >> 16 );
+	cmd[3] = (unsigned char)(address >>  8 );
+	cmd[4] = (unsigned char)(address & 0xFF);
+	cmd[5] = (__ufs_neg_checksum ( cmd + 1, 4 ) & 0xFF);
 
-   return k;
+	// send command
+	if ( !quiet )
+		printf ( "[x] Executing 0x%08X\n", address );
+	res = __ufs_send_data ( cmd, 6 );
+	if(res)
+	{
+		if ( !quiet )
+			printf ( "  [F] execute failed! phone has locked up\n" );
+		return E_FAIL;
+	}
+
+	// read ok signal
+	res = __ufs_read_data ( cmd, 1 );
+
+	if ( cmd[0] != 0x55 )
+	{
+		if ( !quiet )
+			printf ( "  [F] execute failed? 0x%02X (this case must not happen!)\n", cmd[0] );
+		return E_FAIL;
+	}
+	else
+	{
+		if ( !quiet )
+			printf ( "  [i] successfully executed!\n" );
+	}
+
+	return E_OK;
+}
+
+int do_upload_code ( unsigned int address, unsigned char *data, int bytes )
+{
+	int bytes_sent = 0;
+	int bytes_count = 0;
+	int res = 0;
+	unsigned char *buffer = NULL;
+
+	buffer = malloc ( upload_block_size + 8 );
+	while ( bytes_sent < bytes )
+	{
+		bytes_count = bytes - bytes_sent;
+		if ( bytes_count > upload_block_size )
+			bytes_count = upload_block_size;
+
+		buffer[0] = 0x32;
+		buffer[1] = (unsigned char)((address+bytes_sent) >> 24 );
+		buffer[2] = (unsigned char)((address+bytes_sent) >> 16 );
+		buffer[3] = (unsigned char)((address+bytes_sent) >>  8 );
+		buffer[4] = (unsigned char)((address+bytes_sent) & 0xFF);
+		buffer[5] = (unsigned char)(bytes_count >> 8 );
+		buffer[6] = (unsigned char)(bytes_count & 0xFF);
+
+		memcpy ( &buffer[7], &data[bytes_sent], bytes_count );
+		buffer[bytes_count+7] = (__ufs_neg_checksum ( buffer + 1, bytes_count+6 ) & 0xFF);
+
+		// send command
+		res = __ufs_send_data ( buffer, bytes_count + 8 );
+		if ( res != E_OK )
+		{
+			printf ( "ERROR %i while __ufs_send_data()\n", res );
+			return E_FAIL;
+		}
+
+
+		// read ok signal
+		res = __ufs_read_data ( buffer, 1 );
+
+		if ( buffer[0] != 0x55 )
+		{
+			printf ( "  [F] Write failed? 0x%02X (this case must not happen!)\n", buffer[0] );
+			free ( buffer );
+			return E_FAIL;
+		}
+
+		bytes_sent = bytes_sent + bytes_count;
+	}	
+	free ( buffer );
+	
+	if ( !quiet )
+		printf ( "  [i] successfully Written!\n" );
 }
 
 
-
-unsigned short pos_checksum ( unsigned char *buffer, unsigned int bytes )
-{
-   unsigned int i = 0;
-	unsigned short k = 0;
-
-   for ( i=0; i < bytes; i++)
-		k = k + buffer[i];
-
-   return k;
-}
 
 
 int read_mem ( unsigned char *buffer, unsigned int address, unsigned int bytes )
 {
-   unsigned char cmd[8];
+	unsigned char cmd[8];
 	unsigned char i = 0;
-   unsigned short res = 0;
-   unsigned int chk = 0;
+	unsigned short res = 0;
+	unsigned int chk = 0;
 	unsigned int orchk = 0;
 
+//	printf ( "@ 0x%08X, 0x%04X\n", address, bytes );
 
-   if ( bytes > 0xFFFD )
-     return false;
+	if ( bytes > 0xFFFD )
+		return E_FAIL;
 
-   cmd[0] = 0x30;
-   cmd[1] = (unsigned char)(address >> 24 );
-   cmd[2] = (unsigned char)(address >> 16 );
-   cmd[3] = (unsigned char)(address >>  8 );
-   cmd[4] = (unsigned char)(address);
-   cmd[5] = (unsigned char)(bytes >> 8 );
-   cmd[6] = (unsigned char)(bytes);
-   cmd[7] = neg_checksum ( cmd + 1, 6 );
+	cmd[0] = 0x30;
+	cmd[1] = (unsigned char)(address >> 24 );
+	cmd[2] = (unsigned char)(address >> 16 );
+	cmd[3] = (unsigned char)(address >>  8 );
+	cmd[4] = (unsigned char)(address & 0xFF);
+	cmd[5] = (unsigned char)(bytes >> 8 );
+	cmd[6] = (unsigned char)(bytes & 0xFF);
+	cmd[7] = (__ufs_neg_checksum ( cmd + 1, 6 ) & 0xFF);
 
 
-   // send command
-   res = __ufs_send_data ( cmd, 8 );
-   if ( res != E_OK )
-   {
+	// send command
+	res = __ufs_send_data ( cmd, 8 );
+	if ( res != E_OK )
+	{
 		printf ( "ERROR %i while __ufs_send_data()\n", res );
 		return E_FAIL;
-   }
+	}
 
-   // add 16 bit chksum
-   bytes = bytes + 2;
+	// add 16 bit chksum
+	bytes = bytes + 2;
 
-
-
-   res = __ufs_read_data ( buffer, bytes );
-   if ( res != E_OK )
-   {
+	res = __ufs_read_data ( buffer, bytes );
+	if ( res != E_OK )
+	{
 		printf ( "ERROR %i while __ufs_read_data()\n", res );
 		return E_FAIL;
-   }
+	}
 
+	chk = __ufs_pos_checksum ( buffer, bytes-2 );
+	orchk = (buffer[bytes-2] << 8) | buffer[bytes-1];
 
-	chk = pos_checksum ( buffer, bytes-2 );
-   orchk = (buffer[bytes-2] << 8) | buffer[bytes-1];
-
-   // test chksum
-   if ( chk != orchk )
+	// test chksum
+	if ( chk != orchk )
+	{
 		printf ( "checksum failed! 0x%02X bytes read from %08X\n calced: %04X\n said  : %04X\n", bytes, address, chk, orchk );
+		return E_FAIL;
+	}
 
-   return E_OK;
+	return E_OK;
 }
 
+
+unsigned int
+set_half ( unsigned int address, unsigned int value )
+{
+	unsigned char buffer[1];
+	unsigned char cmd[8];
+	unsigned short res = 0;
+
+
+	cmd[0] = 0x34;
+	cmd[1] = (unsigned char)(address >> 24 );
+	cmd[2] = (unsigned char)(address >> 16 );
+	cmd[3] = (unsigned char)(address >>  8 );
+	cmd[4] = (unsigned char)(address & 0xFF);
+	cmd[5] = (unsigned char)(value >>  8 );
+	cmd[6] = (unsigned char)(value & 0xFF);
+	cmd[7] = (__ufs_neg_checksum ( cmd + 1, 6 ) & 0xFF);
+
+	// send command
+	if ( !quiet )
+		printf ( "[x] Setting 0x%08X to 0x%04X\n", address, value );
+	res = __ufs_send_data ( cmd, 8 );
+	if(res)
+	{
+		printf ( "  [F] Write failed! phone has locked up\n" );
+		return E_FAIL;
+	}
+
+
+	// read ok signal
+	res = __ufs_read_data ( buffer, 1 );
+
+	if ( buffer[0] != 0x55 )
+		printf ( "  [F] Write failed? 0x%02X (this case must not happen!)\n", buffer[0] );
+	else if ( !quiet )
+		printf ( "  [i] successfully Written!\n" );
+
+	return E_OK;
+}
+
+
+unsigned int
+set_word ( unsigned int address, unsigned int value )
+{
+	unsigned char buffer[1];
+	unsigned char cmd[10];
+	unsigned short res = 0;
+
+	cmd[0] = 0x35;
+	cmd[1] = (unsigned char)(address >> 24 );
+	cmd[2] = (unsigned char)(address >> 16 );
+	cmd[3] = (unsigned char)(address >>  8 );
+	cmd[4] = (unsigned char)(address & 0xFF);
+	cmd[5] = (unsigned char)(value >> 24 );
+	cmd[6] = (unsigned char)(value >> 16 );
+	cmd[7] = (unsigned char)(value >>  8 );
+	cmd[8] = (unsigned char)(value & 0xFF);
+	cmd[9] = (__ufs_neg_checksum ( cmd + 1, 8 ) & 0xFF);
+
+	// send command
+	if ( !quiet )
+		printf ( "[x] Setting 0x%08X to 0x%08X\n", address, value );
+	res = __ufs_send_data ( cmd, 10 );
+	if(res)
+	{
+		printf ( "  [F] Write failed! phone has locked up\n" );
+		return E_FAIL;
+	}
+
+	// read ok signal
+	res = __ufs_read_data ( buffer, 1 );
+
+	if ( buffer[0] != 0x55 )
+		printf ( "  [F] Write failed? 0x%02X (this case must not happen!)\n", buffer[0] );
+	else if ( !quiet )
+		printf ( "  [i] successfully Written!\n" );
+
+	return E_OK;
+}
+
+
+unsigned int 
+read_half ( unsigned int address )
+{
+	unsigned char buffer[4];
+	unsigned char cmd[6];
+	unsigned short res = 0;
+	unsigned int chk = 0;
+	unsigned int orchk = 0;
+	
+	cmd[0] = 0x37;
+	cmd[1] = (unsigned char)(address >> 24 );
+	cmd[2] = (unsigned char)(address >> 16 );
+	cmd[3] = (unsigned char)(address >>  8 );
+	cmd[4] = (unsigned char)(address & 0xFF);
+	cmd[5] = (__ufs_neg_checksum ( cmd + 1, 4 ) & 0xFF);
+
+	// send command
+	if ( !quiet )
+		printf ( "[x] Reading half from 0x%08X\n", address );
+	res = __ufs_send_data ( cmd, 6 );
+	if(res)
+	{
+		printf ( "  [F] Write failed! phone has locked up\n" );
+		return E_FAIL;
+	}
+
+	// read data
+	res = __ufs_read_data ( buffer, 4 );
+
+	chk = __ufs_pos_checksum ( buffer, 2 );
+	orchk = (buffer[2] << 8) | buffer[3];
+
+	// test chksum
+	if ( chk != orchk )
+	{
+		printf ( "checksum failed! calced: %04X\n said  : %04X\n", chk, orchk );
+		return E_FAIL;
+	}
+	
+	return (buffer[0]<<8) | buffer[1];
+}
+
+
+unsigned int 
+read_word ( unsigned int address )
+{
+	unsigned char buffer[6];
+	unsigned char cmd[6];
+	unsigned short res = 0;
+	unsigned int chk = 0;
+	unsigned int orchk = 0;
+	
+
+	cmd[0] = 0x38;
+	cmd[1] = (unsigned char)(address >> 24 );
+	cmd[2] = (unsigned char)(address >> 16 );
+	cmd[3] = (unsigned char)(address >>  8 );
+	cmd[4] = (unsigned char)(address & 0xFF);
+	cmd[5] = (__ufs_neg_checksum ( cmd + 1, 4 ) & 0xFF);
+
+	// send command
+	if ( !quiet )
+		printf ( "[x] Reading word from 0x%08X\n", address );
+	res = __ufs_send_data ( cmd, 6 );
+	if(res)
+	{
+		printf ( "  [F] Write failed! phone has locked up\n" );
+		return E_FAIL;
+	}
+
+	// read data
+	res = __ufs_read_data ( buffer, 6 );
+
+	chk = __ufs_pos_checksum ( buffer, 4 );
+	orchk = (buffer[4] << 8) | buffer[5];
+
+	// test chksum
+	if ( chk != orchk )
+	{
+		printf ( "checksum failed! calced: %04X\n said  : %04X\n", chk, orchk );
+		return E_FAIL;
+	}
+	
+	return (buffer[0]<<24) | (buffer[1]<<16) | (buffer[2]<<8) | buffer[3];
+}
+
+unsigned int loader_set_workstage ( t_workspace *ws, int filenum, int stagenum ) 
+{ 
+	int ret = E_OK; 
+	if ( !ws || !ws->fileinfo || !ws->fileinfo->stages  ) 
+			ret = E_FAIL; 
+	if ( ret == E_OK && __stage_get_modified ( ws->fileinfo->stages ) ) 
+			__file_sync ( ws->fileinfo ); 
+	if ( ret == E_OK && __stage_set_workspace ( __stage_find_by_num ( ws->fileinfo->stages, stagenum ) ) != E_OK) 
+			ret = E_FAIL; 
+	__workspace_update_memmap ( ws ); 
+	return ret; 
+}
 
 unsigned char *load_loader ( unsigned char *name, int *length )
 {
 	t_workspace *ws = NULL;
+	unsigned char tmp_file_buf[1024];
 	int start = 0;
-
+	
 	if ( !name )
 		return NULL;
-	ws = WorkspaceStartup  ( name );
+		
+	if ( remote )
+		sprintf ( tmp_file_buf, "%s%s", remote_loaders, name );
+	else
+		sprintf ( tmp_file_buf, "%s%s", local_loaders, name );
+
+	ws = WorkspaceStartup  ( tmp_file_buf );
 	if ( !ws )
 	{
-		printf ( "  [F] unable to open '%s'\n", name );
+		printf ( "  [F] unable to open '%s'\n", tmp_file_buf );
 		return NULL;
 	}
 
+	/* new trix versions parse loaders - use the raw data here */
+	loader_set_workstage ( ws, 0, 0 );
+	
 	if ( __v_get_b(ws, 0) != 0xA0 && __v_get_b(ws, 0) != 0xA1 )
- 	{
-		printf ( "  [F] invalid loader '%s'\n", name );
+	{
+		printf ( "  [F] invalid loader '%s'\n", tmp_file_buf );
 		return NULL;
 	}
 
+	start = __v_get_w ( ws, 1 );
 	*length = __v_get_size ( ws );
 
 	if ( !quiet )
@@ -179,6 +875,8 @@ int do_get_uppid ( )
 
 	if ( !quiet )
 		printf ( "  [i] UPP ID: %02X %02X\n", buffer[1], buffer[2] );
+		
+	auto_setup ( (buffer[1]<<8) | buffer[2] );
 
 	return E_OK;
 }
@@ -205,10 +903,18 @@ int do_load_2nd ( )
 
 	if ( __ufs_boot_2nd ( buffer, loader, length ) != E_OK )
 		return E_FAIL;
-
-	if ( !quiet )
-		show_flash_info ( buffer );
-
+	
+	// check for data1 header
+	if ( buffer[0] != 0x9F )
+	{
+		printf ( "\n" );
+		printf ( "[x] 2nd loader returned invalid flash description header (0x%02X)...\n", buffer[0] );
+	}
+	else
+	{
+		parse_flash_info ( buffer );
+	}
+	
 	return E_OK;
 }
 
@@ -239,21 +945,82 @@ int do_load_3rd ( )
 	return E_OK;
 }
 
-int do_read_mem ( )
+int do_load_3rd_orig ( )
 {
-	char *buffer;
+	char buffer[1024];
 
 	int length = 0;
 	unsigned char *loader = NULL;
 
-	buffer = malloc ( read_bytes + 2 );
+
+	//
+	// open third loader and upload
+	//
+	if ( !quiet )
+	{
+		printf ( "\n" );
+		printf ( "[x] Load 3rd loader...\n" );
+	}
+
+	loader = load_loader ( u_3rd_orig, &length );
+	if ( !loader )
+		return E_FAIL;
+
+	if ( __ufs_boot_3rd ( loader, length ) != E_OK )
+		return E_FAIL;
+
+	return E_OK;
+}
+
+int prepare_phone ( )
+{
+	if ( do_get_uppid () != E_OK )
+		return E_FAIL;
+	if ( do_load_2nd () != E_OK )
+		return E_FAIL;
+	if ( do_load_3rd () != E_OK )		
+		return E_FAIL;
+
+	return E_OK;
+}
+
+int prepare_phone_orig ( )
+{
+	if ( do_get_uppid () != E_OK )
+		return E_FAIL;
+	if ( do_load_2nd () != E_OK )
+		return E_FAIL;
+	if ( do_load_3rd_orig () != E_OK )		
+		return E_FAIL;
+
+	return E_OK;
+}
+
+
+
+unsigned int
+do_read_mem ( unsigned int address, unsigned int length )
+{
+	char *buffer;
+	unsigned char *loader = NULL;
+
+	buffer = malloc ( length + 0x20 );
+	if ( !buffer )
+	{
+		printf ( "malloc failed\n" );
+		return E_FAIL;
+	}
+	
 
 	//
 	// read memory area
 	//
-	printf ( "\n" );
-	printf ( "[x] Read Memory...\n" );
-	if ( read_mem ( buffer, read_address, read_bytes ) != E_OK )
+	if ( !quiet )
+	{
+		printf ( "\n" );
+		printf ( "[x] Read Memory...\n" );
+	}
+	if ( read_mem ( buffer, address, length ) != E_OK )
 	{
 		free ( buffer );
 		return E_FAIL;
@@ -261,12 +1028,229 @@ int do_read_mem ( )
 
 
 	printf ( "\n" );
-	printf ( "[x] Dumping 0x%02X bytes from 0x%08X:\n", read_bytes, read_address );
+	printf ( "[x] Dumping 0x%02X bytes from 0x%08X:\n", length, address );
 	printf ( "---------------------------------------------------------------\n" );
-	__util_dump_bytes ( buffer, 0x10, read_bytes );
+	
+	__util_dump_bytes ( buffer, 0x10, length );
+	
 	printf ( "---------------------------------------------------------------\n" );
 
 	free ( buffer );
+}
+
+int upload_file ( unsigned char *file, unsigned int address )
+{
+	t_workspace *ws = NULL;
+	int ret = 0;
+	
+	ws = WorkspaceStartup ( file );
+	if ( !quiet )
+	{
+		printf ( "\n" );
+		printf ( "[x] Uploading NAND access code\n" );
+		printf ( "    file: %s\n", file );
+		printf ( "    to  : 0x%08X\n", address );
+		printf ( "    size: 0x%08X\n", __v_get_size ( ws ) );
+		printf ( "\n" );
+	}
+	if ( !ws )
+		return E_FAIL;
+
+	ret = do_upload_code ( address, __v_get_ptr ( ws, 0 ), __v_get_size ( ws ) );
+
+	__workspace_release ( ws );
+
+	return ret;
+}
+
+int nand_ctl_command ( unsigned int command, unsigned int data1, unsigned int data2, unsigned int data3 )
+{
+	// command
+	if ( set_word ( ram_base + control_mem_offset + 0x00, command ) != E_OK )
+		return E_FAIL;
+
+	// data1
+	if ( set_word ( ram_base + control_mem_offset + 0x04, data1 ) != E_OK )
+		return E_FAIL;
+
+	// data2
+	if ( set_word ( ram_base + control_mem_offset + 0x08, data2 ) != E_OK )
+		return E_FAIL;
+
+	// data3
+	if ( set_word ( ram_base + control_mem_offset + 0x0C, data3 ) != E_OK )
+		return E_FAIL;
+
+	return E_OK;
+}
+
+int nand_init ( int quiet_init )
+{
+	quiet = 1;
+	
+	if ( !quiet_init )
+		printf ( "[X] Checking for NAND\n" );
+	
+	if ( prepare_phone() != E_OK )
+	{
+		quiet = 0;
+		printf ( "  [E] Phone init FAILED\n" );
+		return E_FAIL;
+	}
+
+	if ( nand_base == 0 )
+	{
+		quiet = 0;
+		printf ( "  [E] Found no NAND\n" );
+		return E_FAIL;
+	}
+
+	if ( !quiet_init )
+	{
+		printf ( "\n" );
+		printf ( "  [i] Found NAND (%s) at 0x%08X\n", flash_devices[nand_device_entry].desc, nand_base );
+	}
+	
+	// prepare init and set NAND device base addess
+	if ( nand_ctl_command ( FL_CMD_INIT, nand_type, nand_base, nand_fba_count ) != E_OK )
+	{
+		quiet = 0;
+		printf ( "  [E] NAND command FL_CMD_INIT FAILED\n" );
+		return E_FAIL;
+	}
+
+	// execute code
+	if ( do_upload_from_cfile ( nand_project, nand_object, ram_base + code_upload_offset, !quiet_init ) != E_OK )
+	{
+		quiet = 0;
+		printf ( "  [E] code upload FAILED\n" );
+		return E_FAIL;
+	}
+
+	// check for magic
+	if ( read_word ( ram_base + control_mem_offset + 8 ) != 0xDEADBEEF )
+	{
+		quiet = 0;
+		printf ( "  [E] MAGIC ID FAILED: 0x%08X (wrong loader?)\n", read_word ( ram_base + control_mem_offset + 8 ) );
+		return E_FAIL;
+	}
+	
+	if ( !quiet_init )
+	{
+		switch ( nand_type )
+		{
+			case FL_TYPE_ONENAND:
+				nand_manufact_id = read_word ( ram_base + control_mem_offset + 0x10 );
+				nand_device_id = read_word ( ram_base + control_mem_offset + 0x14 );
+				nand_version_id = read_word ( ram_base + control_mem_offset + 0x18 );
+				nand_dbuf_size = read_word ( ram_base + control_mem_offset + 0x1C );
+				nand_bbuf_size = read_word ( ram_base + control_mem_offset + 0x20 );
+				nand_dbuf_count = read_word ( ram_base + control_mem_offset + 0x24 ) >> 8;
+				nand_bbuf_count = read_word ( ram_base + control_mem_offset + 0x24 ) & 0xFF;
+				nand_technology = read_word ( ram_base + control_mem_offset + 0x28 );
+				
+				if ( nand_manufact_id != 0x00EC )
+				{
+					printf ( "[E] Unsupported Manufacturer 0x%04X\n", nand_manufact_id );
+					return E_FAIL;
+				}
+
+				// number of blocks is determined by bits 7:4 of device id
+				// 0000 = 128MBit
+				// 0001 = 256MBit
+				// ...
+				// size in MiBit
+				nand_device_mibit = 128 << ((nand_device_id>>4) & 0x0f);
+				// size in MiByte
+				nand_device_size = (nand_device_mibit/8)*1024*1024;
+				
+				nand_page_size = (nand_dbuf_size/nand_dbuf_count) << 1;  // page size in bytes
+				nand_fpa_count = 64; // default in OneNAND devices
+				nand_fba_count = nand_device_size/(nand_page_size*nand_fpa_count);
+				nand_read_address = nand_base + (nand_bbuf_size<<1);  // buffer address
+				nand_spare_address = nand_base + 0x10000 + (nand_bbuf_size/0x100) * 0x10; // spare area address
+				nand_spare_bytes = (nand_page_size/0x200) * 0x10; // size of spare area per block
+				
+				printf ( "\n" );
+				
+				printf ( "  [i] OneNAND%i (%i MiByte)\n", nand_device_mibit, nand_device_size/(1024*1024) );
+				printf ( "  [i]   Blocks: %i Pages/Block: %i Page size: %i\n", nand_fba_count, nand_fpa_count, nand_page_size );
+				printf ( "  [i]   NAND Base:     0x%08X \n", nand_base );
+				printf ( "  [i]   Data  Address: 0x%08X Size: %i\n", nand_read_address, nand_page_size );
+				printf ( "  [i]   Spare Address: 0x%08X Size: %i   %s\n", nand_spare_address, nand_spare_bytes, nand_embed_spare?"(embedding)":"(skipping)" );
+				printf ( "\n" );
+				printf ( "  [i] Manufacturer ID:   0x%08X\n", nand_manufact_id );
+				printf ( "  [i] Device ID:         0x%08X\n", nand_device_id );
+				printf ( "  [i] Version ID:        0x%08X\n", nand_version_id );
+				printf ( "  [i] Data Buffer Size   0x%08X\n", nand_dbuf_size );
+				printf ( "  [i] Boot Buffer Size:  0x%08X\n", nand_bbuf_size );
+				printf ( "  [i] Data Buffers:      0x%08X\n", nand_dbuf_count );
+				printf ( "  [i] Boot Buffers:      0x%08X\n", nand_bbuf_count );
+				printf ( "  [i] Technology:        0x%08X\n", nand_technology );
+				printf ( "\n" );
+				break;
+				
+			case FL_TYPE_EIJA:
+				printf ( "\n" );
+				printf ( "  [i] EIJA NAND %i MiBit (%i MiByte)\n", nand_device_mibit, nand_device_size/(1024*1024) );
+				printf ( "  [i]   Blocks: %i Pages/Block: %i Page size: %i\n", nand_fba_count, nand_fpa_count, nand_page_size );
+				printf ( "  [i]   NAND Base:     0x%08X \n", nand_base );
+				printf ( "  [i]   Data  Address: 0x%08X Size: %i\n", nand_read_address, nand_page_size );
+				printf ( "  [i]   Spare Address: 0x%08X Size: %i   %s\n", nand_spare_address, nand_spare_bytes, nand_embed_spare?"(embedding)":"(skipping)" );
+				printf ( "\n" );
+				break;
+				
+			default:
+				printf ( "[E] Unsupported NAND Device\n" );
+				return E_FAIL;
+				break;
+			
+		}
+	}
+	
+	quiet = 0;
+	return E_OK;
+}
+
+int nand_ctl_read ( )
+{
+	quiet = 1;
+	
+	// FL_CMD_READ is set automatically after every command, so just execute
+	if ( execute_code ( main_code_address | 1 ) != E_OK ) 
+	{
+		quiet = 0;
+		printf ( "  [E] NAND command FL_CMD_SETADDR execution FAILED\n" );
+		return E_FAIL;
+	}
+	
+	quiet = 0;
+
+	return E_OK;
+}
+
+int nand_ctl_set_address ( unsigned int nand_fba, unsigned int nand_fpa )
+{
+	quiet = 1;
+	
+	// NAND device base addess
+	if ( nand_ctl_command ( FL_CMD_SETADDR, nand_fba, nand_fpa, 0 ) != E_OK )
+	{
+		quiet = 0;
+		printf ( "  [E] NAND command FL_CMD_SETADDR FAILED\n" );
+		return E_FAIL;
+	}
+	
+	if ( execute_code ( main_code_address | 1 ) != E_OK ) 
+	{
+		quiet = 0;
+		printf ( "  [E] NAND command FL_CMD_SETADDR execution FAILED\n" );
+		return E_FAIL;
+	}
+	
+	quiet = 0;
+
+	return E_OK;
 }
 
 int do_dump_mem ( )
@@ -276,45 +1260,187 @@ int do_dump_mem ( )
 
 	int aborted = 0;
 	int length = 0;
-	unsigned int pos = 0;
+	
+	unsigned int force_read = 1;
+	unsigned int re_init = 0;
+	unsigned int force_re_init = 0;
+	unsigned int fail_count = 0;
+	unsigned int max_fail_count = 5;
+	
+	unsigned int buffer_pos = 0;
+	unsigned int buffer_size = read_bytes;
 	unsigned int bytes = 0;
+	unsigned int bytes_read = 0;
 	unsigned int bytes_left = 0;
-	unsigned int bytes_count = 0x2000;
+	unsigned int bytes_per_read = 0x2000;
+	unsigned int real_read_address = 0;
 	t_workspace *ws = NULL;
+	
+	
+	unsigned int nand_fba = 0;
+	unsigned int nand_fpa = 0;
+	
+	// when this flash is a NAND, initialize first everything
+	if ( nand_flash )
+	{
+		printf ( "[X] NAND Initialization...\n" );
+		if ( nand_init ( 0 ) != E_OK )
+		{
+			printf ( "[E] NAND init failed\n" );
+			return E_FAIL;
+		}
+		
+		bytes_per_read = nand_page_size;
 
+		// calculate number of bytes to read - take start position into account
+		read_bytes = ((nand_fba_count - nand_fba) * nand_fpa_count * bytes_per_read) - (nand_fpa * bytes_per_read); 
+		
+		if ( nand_embed_spare ) // total flash size to dump
+			buffer_size = nand_fpa_count * nand_fba_count * (bytes_per_read + nand_spare_bytes);
+		else
+			buffer_size = read_bytes;
+	
+		// set the block address
+		if ( nand_ctl_set_address ( nand_fba, nand_fpa ) != E_OK )
+		{
+			printf ( "[E] NAND address init failed\n" );
+			return E_FAIL;
+		}
+		
+		// and send read command
+		if ( nand_ctl_read ( ) != E_OK )
+		{
+			printf ( "[E] NAND read failed\n" );
+			return E_FAIL;
+		}
+	}
 
-	buffer = malloc ( read_bytes + 2 );
+	buffer = malloc ( buffer_size + 2 );
 
 	printf ( "\n" );
 	printf ( "[x] Dump Memory...\n" );
 
+	bytes_read = 0;
 	bytes_left = read_bytes;
 
-	while ( bytes_left > 0 || aborted )
+	while ( bytes_left > 0 && !aborted )
 	{	
-		if ( bytes_left > bytes_count )
-			bytes = bytes_count;
+		unsigned int success = E_FAIL;
+		
+		if ( bytes_left > bytes_per_read )
+			bytes = bytes_per_read;
 		else
 			bytes = bytes_left;
 
-		printf ( "  - 0x%08X-0x%08X (0x%04X left)\n", pos, pos+bytes, bytes_left );
-		if ( read_mem ( &buffer[pos], read_address+pos, bytes ) != E_OK )
+		if ( !re_init )
 		{
-			printf ( "[F] FAILED... (still saving)\n" );
-			aborted = 1;
+			if ( nand_flash )
+				printf ( "  - 0x%08X-0x%08X (0x%04X left) FBA: %i FPA: %i\n", bytes_read, bytes_read+bytes, bytes_left, nand_fba, nand_fpa );
+			else
+				printf ( "  - 0x%08X-0x%08X (0x%04X left)\n", bytes_read, bytes_read+bytes, bytes_left );
+		}
+			
+		// determine where to read from
+		if ( nand_flash )
+		{
+			success = read_mem ( &buffer[buffer_pos], nand_read_address, bytes );
+			
+			// embed spare if requested
+			if ( nand_embed_spare && success == E_OK )
+				success = read_mem ( &buffer[buffer_pos+bytes], nand_spare_address, nand_spare_bytes );
 		}
 		else
 		{
-			bytes_left = bytes_left - bytes;
-			pos += bytes;
+			success = read_mem ( &buffer[buffer_pos], read_address+bytes_read, bytes );
+		}
+			
+		if ( re_init || success != E_OK )
+		{
+			if ( force_read )
+			{
+				quiet = 1;
+				if ( re_init )
+					printf ( "    - Re-Init (configured)\n", fail_count );
+				else
+					printf ( "    - Re-Init #%i due to fail\n", fail_count );
+					
+				if ( ++fail_count > max_fail_count )
+				{
+					printf ( "[F] RE-INIT FAILED...\n" );
+//					aborted = 1;
+				    re_init = 1;
+				}
+				else
+				{
+					// ignore all errors here
+				    if ( nand_flash )
+				    {
+						nand_init ( 1 );
+						nand_ctl_set_address ( nand_fba, nand_fpa );
+						nand_ctl_read ( );
+					}
+					else
+					{
+						prepare_phone ();
+						if ( crypt_init )
+							execute_code ( crypt_init );
+					}
+				    re_init = 0;
+				}
+				quiet = 0;
+			}
+			else
+			{
+				printf ( "[F] FAILED... (still saving)\n" );
+				aborted = 1;
+			}
+		}
+		else
+		{
+			fail_count = 0;
+			
+			buffer_pos += bytes;
+			bytes_read += bytes;
+			bytes_left -= bytes;
+			
+			if ( nand_flash && nand_embed_spare )
+				buffer_pos += nand_spare_bytes;
+				
+			if ( force_re_init )
+				re_init = 1;
+				
+			// prepare next buffer
+			if ( nand_flash )
+			{
+				// increase page address
+				nand_fpa++;
+				
+				// if went through all pages, select next block
+				if ( nand_fpa >= nand_fpa_count )
+				{
+					nand_fpa = 0;
+					nand_fba++;
+					
+					// update FBA/FPA only neccessary when block address changes
+					// page address is automatically increased on every read
+					if ( nand_ctl_set_address ( nand_fba, nand_fpa ) != E_OK )
+						re_init = 1;
+				}
+				
+				if ( nand_ctl_read ( ) != E_OK )
+					re_init = 1;
+			}
 		}
 
-		filebuffer = malloc ( read_bytes );
-		memcpy ( filebuffer, buffer, read_bytes );
-		ws = WorkspaceCreateFileFromBuffer ( filebuffer, read_bytes );
-		__file_write ( dumpfile , ws->fileinfo );
-		__workspace_release ( ws );
-		
+		// write buffers to disk
+		if ( !nand_flash || nand_fpa == 0 )
+		{
+			filebuffer = malloc ( buffer_pos );
+			memcpy ( filebuffer, buffer, buffer_pos );
+			ws = WorkspaceCreateFileFromBuffer ( filebuffer, buffer_pos );
+			__file_write ( dumpfile , ws->fileinfo );
+			__workspace_release ( ws ); // this will also free the filebuffer
+		}
 	}
 
 
@@ -363,41 +1489,6 @@ int do_change_address ()
 }
 
 
-int execute_code ( unsigned int address )
-{
-   unsigned char cmd[6];
-   unsigned short res = 0;
-
-   cmd[0] = 0x31;
-   cmd[1] = (unsigned char)(address >> 24 );
-   cmd[2] = (unsigned char)(address >> 16 );
-   cmd[3] = (unsigned char)(address >>  8 );
-   cmd[4] = (unsigned char)(address);
-   cmd[5] = neg_checksum ( cmd + 1, 4 );
-
-   // send command
-	printf ( "[x] Executing 0x%08X\n", address );
-   res = __ufs_send_data ( cmd, 6 );
-   if(res)
-   {
-		printf ( "  [F] execute failed! phone has locked up\n" );
-		return E_FAIL;
-   }
-
-
-   // read ok signal
-   res = __ufs_read_data ( cmd, 1 );
-
-   if ( cmd[0] != 0x55 )
-		printf ( "  [F] execute failed? 0x%02X (this case must not happen!)\n", cmd[0] );
-	else
-		printf ( "  [i] successfully executed!\n" );
-	
-
-
-	return E_OK;
-}
-
 int do_run_func ()
 {
 	char *addr = NULL;
@@ -423,9 +1514,9 @@ int do_run_func ()
 
 int do_set_byte ()
 {
-   unsigned char buffer[1];
-   unsigned char cmd[7];
-   unsigned short res = 0;
+	unsigned char buffer[1];
+	unsigned char cmd[7];
+	unsigned short res = 0;
 	int value = 0;
 	int err = 0;
 	char *addr = NULL;
@@ -451,34 +1542,34 @@ int do_set_byte ()
 	}
 
 
-   cmd[0] = 0x33;
-   cmd[1] = (unsigned char)(address >> 24 );
-   cmd[2] = (unsigned char)(address >> 16 );
-   cmd[3] = (unsigned char)(address >>  8 );
-   cmd[4] = (unsigned char)(address);
-   cmd[5] = (unsigned char)(value);
-   cmd[6] = neg_checksum ( cmd + 1, 5 );
+	cmd[0] = 0x33;
+	cmd[1] = (unsigned char)(address >> 24 );
+	cmd[2] = (unsigned char)(address >> 16 );
+	cmd[3] = (unsigned char)(address >>  8 );
+	cmd[4] = (unsigned char)(address & 0xFF);
+	cmd[5] = (unsigned char)(value & 0xFF);
+	cmd[6] = (__ufs_neg_checksum ( cmd + 1, 5 ) & 0xFF);
 
 
 
-   // send command
+	// send command
 	printf ( "[x] Setting 0x%08X to 0x%02X\n", address, value );
-   res = __ufs_send_data ( cmd, 7 );
-   if(res)
-   {
+	res = __ufs_send_data ( cmd, 7 );
+	if(res)
+	{
 		printf ( "  [F] Write failed! phone has locked up\n" );
 		return E_FAIL;
-   }
+	}
 
 
-   // read ok signal
-   res = __ufs_read_data ( buffer, 1 );
+	// read ok signal
+	res = __ufs_read_data ( buffer, 1 );
 
-   if ( buffer[0] != 0x55 )
+	if ( buffer[0] != 0x55 )
 		printf ( "  [F] Write failed? 0x%02X (this case must not happen!)\n", buffer[0] );
 	else
 		printf ( "  [i] successfully Written!\n" );
-	
+
 
 
 	return E_OK;
@@ -486,9 +1577,9 @@ int do_set_byte ()
 
 int do_set_half ()
 {
-   unsigned char buffer[1];
-   unsigned char cmd[8];
-   unsigned short res = 0;
+	unsigned char buffer[1];
+	unsigned char cmd[8];
+	unsigned short res = 0;
 	int value = 0;
 	int err = 0;
 	char *addr = NULL;
@@ -514,35 +1605,35 @@ int do_set_half ()
 	}
 
 
-   cmd[0] = 0x34;
-   cmd[1] = (unsigned char)(address >> 24 );
-   cmd[2] = (unsigned char)(address >> 16 );
-   cmd[3] = (unsigned char)(address >>  8 );
-   cmd[4] = (unsigned char)(address );
-   cmd[5] = (unsigned char)(value >>  8 );
-   cmd[6] = (unsigned char)(value);
-   cmd[7] = neg_checksum ( cmd + 1, 6 );
+	cmd[0] = 0x34;
+	cmd[1] = (unsigned char)(address >> 24 );
+	cmd[2] = (unsigned char)(address >> 16 );
+	cmd[3] = (unsigned char)(address >>  8 );
+	cmd[4] = (unsigned char)(address & 0xFF);
+	cmd[5] = (unsigned char)(value >>  8 );
+	cmd[6] = (unsigned char)(value & 0xFF);
+	cmd[7] = (__ufs_neg_checksum ( cmd + 1, 6 ) & 0xFF);
 
 
 
-   // send command
+	// send command
 	printf ( "[x] Setting 0x%08X to 0x%04X\n", address, value );
-   res = __ufs_send_data ( cmd,  8 );
-   if(res)
-   {
+	res = __ufs_send_data ( cmd,  8 );
+	if(res)
+	{
 		printf ( "  [F] Write failed! phone has locked up\n" );
 		return E_FAIL;
-   }
+	}
 
 
-   // read ok signal
-   res = __ufs_read_data ( buffer, 1 );
+	// read ok signal
+	res = __ufs_read_data ( buffer, 1 );
 
-   if ( buffer[0] != 0x55 )
+	if ( buffer[0] != 0x55 )
 		printf ( "  [F] Write failed? 0x%02X (this case must not happen!)\n", buffer[0] );
 	else
 		printf ( "  [i] successfully Written!\n" );
-	
+
 
 
 	return E_OK;
@@ -551,9 +1642,9 @@ int do_set_half ()
 
 int do_set_word ()
 {
-   unsigned char buffer[1];
-   unsigned char cmd[10];
-   unsigned short res = 0;
+	unsigned char buffer[1];
+	unsigned char cmd[10];
+	unsigned short res = 0;
 	int value = 0;
 	int err = 0;
 	char *addr = NULL;
@@ -581,37 +1672,37 @@ int do_set_word ()
 		return E_FAIL;
 
 
-   cmd[0] = 0x35;
-   cmd[1] = (unsigned char)(address >> 24 );
-   cmd[2] = (unsigned char)(address >> 16 );
-   cmd[3] = (unsigned char)(address >>  8 );
-   cmd[4] = (unsigned char)(address);
-   cmd[5] = (unsigned char)(value >> 24 );
-   cmd[6] = (unsigned char)(value >> 16 );
-   cmd[7] = (unsigned char)(value >>  8 );
-   cmd[8] = (unsigned char)(value);
-   cmd[9] = neg_checksum ( cmd + 1, 8 );
+	cmd[0] = 0x35;
+	cmd[1] = (unsigned char)(address >> 24 );
+	cmd[2] = (unsigned char)(address >> 16 );
+	cmd[3] = (unsigned char)(address >>  8 );
+	cmd[4] = (unsigned char)(address & 0xFF);
+	cmd[5] = (unsigned char)(value >> 24 );
+	cmd[6] = (unsigned char)(value >> 16 );
+	cmd[7] = (unsigned char)(value >>  8 );
+	cmd[8] = (unsigned char)(value & 0xFF);
+	cmd[9] = (__ufs_neg_checksum ( cmd + 1, 8 ) & 0xFF);
 
 
 
-   // send command
+	// send command
 	printf ( "[x] Setting 0x%08X to 0x%08X\n", address, value );
-   res = __ufs_send_data ( cmd, 10 );
-   if(res)
-   {
+	res = __ufs_send_data ( cmd, 10 );
+	if(res)
+	{
 		printf ( "  [F] Write failed! phone has locked up\n" );
 		return E_FAIL;
-   }
+	}
 
 
-   // read ok signal
-   res = __ufs_read_data ( buffer, 1 );
+	// read ok signal
+	res = __ufs_read_data ( buffer, 1 );
 
-   if ( buffer[0] != 0x55 )
+	if ( buffer[0] != 0x55 )
 		printf ( "  [F] Write failed? 0x%02X (this case must not happen!)\n", buffer[0] );
 	else
 		printf ( "  [i] successfully Written!\n" );
-	
+
 
 
 	return E_OK;
@@ -659,38 +1750,26 @@ int do_scan_mem ( )
 	{
 		if ( (pos&0xFFF00000) != 0x0C300000 )
 		{
-		if ( read_mem ( buffer, pos, bytes ) != E_OK )
-		{
-			printf ( "  [F] failed reading %i bytes at 0x%08X\n", bytes, pos );
-			return E_FAIL;
-		}
-		if ( is_empty ( buffer, bytes ) )
-		{
-			if ( laststate != FREE )
-				printf ( "      0x%08X end\n", pos );
-			laststate = FREE;
-		}
-		else
-		{
-			if ( laststate == FREE )
-				printf ( "  [i] 0x%08X start\n", pos );
-			laststate = USED;
-		}
+			if ( read_mem ( buffer, pos, bytes ) != E_OK )
+			{
+				printf ( "  [F] failed reading %i bytes at 0x%08X\n", bytes, pos );
+				return E_FAIL;
+			}
+			if ( is_empty ( buffer, bytes ) )
+			{
+				if ( laststate != FREE )
+					printf ( "      0x%08X end\n", pos );
+				laststate = FREE;
+			}
+			else
+			{
+				if ( laststate == FREE )
+					printf ( "  [i] 0x%08X start\n", pos );
+				laststate = USED;
+			}
 		}
 		pos += step;
 	}
-	return E_OK;
-}
-
-int prepare_phone ( )
-{
-	if ( do_get_uppid () != E_OK )
-		return E_FAIL;
-	if ( do_load_2nd () != E_OK )
-		return E_FAIL;
-	if ( do_load_3rd () != E_OK )		
-		return E_FAIL;
-
 	return E_OK;
 }
 
@@ -701,177 +1780,146 @@ int do_scan_crypt ( )
 
 	int res = 0;
 	int area = 0;
-	unsigned int start = 0xC000801;
+	unsigned int start = 0xC000901;
 	unsigned int end = 0xC000DFF;
 	unsigned int step = 0x00000002;
 	unsigned int pos = 0x00000000;
 	unsigned int areas[20] = { 
 		0x00000200, 0x005A7600,
-//		0x00000000, 0x00800000, 0x01000000, 0x01800000, 0x02000000, 0x02800000, 
-//		0x04000000, 0x04800000, 0x08000000, 0x08800000, 0x0A000000, 0x0A800000, 
+		//		0x00000000, 0x00800000, 0x01000000, 0x01800000, 0x02000000, 0x02800000, 
+		//		0x04000000, 0x04800000, 0x08000000, 0x08800000, 0x0A000000, 0x0A800000, 
 		0xFFFFFFFF };
-	unsigned char area_buffer[20][50];
-	unsigned char buffer[50];
-	unsigned char cmd[20];
+		unsigned char area_buffer[20][50];
+		unsigned char buffer[50];
+		unsigned char cmd[20];
 
-	printf ( "\n" );
-	printf ( "[x] Scanning ROM for flashcrypt routine\n" );
-	printf ( "    check 0x%08X - 0x%08X\n", start, end );
-	printf ( "\n" );
+		printf ( "\n" );
+		printf ( "[x] Scanning ROM for flashcrypt routine\n" );
+		printf ( "    check 0x%08X - 0x%08X\n", start, end );
+		printf ( "\n" );
 
-	//
-	// prepare phone
-	//
-
-	quiet = 1;
-
-	printf ( "  [i] reading memory areas\n" );
-	if ( prepare_phone () != E_OK )		
-	{
-		quiet = 0;
-		printf ( "  [F] failed prepare for initial read\n" );
-		return E_FAIL;
-	}
-
-	// get memory
-	area = 0;
-	while ( areas[area] != 0xFFFFFFFF )
-	{
-		printf ( "      reading 0x%08X\n", areas[area] );
-		if ( read_mem ( area_buffer[area], areas[area], bytes ) != E_OK )
-		{
-			printf ( "  [F] failed reading %i bytes at 0x%08X when preparing\n", bytes, pos );
-			return E_FAIL;
-		}
-		area++;
-	}
-
-	printf ( "\n" );
-	printf ( "  [i] starting procedure\n" );
-	pos = start;
-	while ( pos <= end )
-	{
 		//
 		// prepare phone
 		//
 
+		quiet = 1;
+
+		printf ( "  [i] reading memory areas\n" );
 		if ( prepare_phone () != E_OK )		
 		{
 			quiet = 0;
-			printf ( "  [F] failed to prepare for 0x%08X\n", pos );
+			printf ( "  [F] failed prepare for initial read\n" );
 			return E_FAIL;
 		}
 
-	   cmd[0] = 0x16;
-	   cmd[1] = (unsigned char)(pos >> 24 );
-	   cmd[2] = (unsigned char)(pos >> 16 );
-	   cmd[3] = (unsigned char)(pos >>  8 );
-	   cmd[4] = (unsigned char)(pos & 0xFF);
-
-
-	   // send command
-		printf ( "  [i] Executing 0x%08X\n", pos );
-	   res = __ufs_send_data ( cmd, 5 );
-
-		if ( !res )
+		// get memory
+		area = 0;
+		while ( areas[area] != 0xFFFFFFFF )
 		{
-		   // read ok signal
-		   res = __ufs_read_data ( buffer, 1 );
-	
-		   if ( buffer[0] != 0x55 )
-				res = 1;
+			printf ( "      reading 0x%08X\n", areas[area] );
+			if ( read_mem ( area_buffer[area], areas[area], bytes ) != E_OK )
+			{
+				printf ( "  [F] failed reading %i bytes at 0x%08X when preparing\n", bytes, pos );
+				return E_FAIL;
+			}
+			area++;
 		}
-	
-	   if ( !res )
-		{
 
-			// check memory
-	
-			printf ( "        reading areas\n", areas[area] );
-			area = 0;
-			while ( area >= 0 && areas[area] != 0xFFFFFFFF  )
+		printf ( "\n" );
+		printf ( "  [i] starting procedure\n" );
+		pos = start;
+		while ( pos <= end )
+		{
+			//
+			// prepare phone
+			//
+
+			if ( prepare_phone () != E_OK )		
+			{
+				quiet = 0;
+				printf ( "  [F] failed to prepare for 0x%08X\n", pos );
+				return E_FAIL;
+			}
+
+			// send command
+			printf ( "  [i] Executing 0x%08X\n", pos );
+
+			res = execute_code ( pos );
+			
+			if ( res == E_OK )
 			{
 
-			//	printf ( "         - 0x%08X\n", areas[area] );
-				if ( read_mem ( buffer, areas[area], bytes ) != E_OK )
+				// check memory
+
+				printf ( "        reading areas\n", areas[area] );
+				area = 0;
+				while ( area >= 0 && areas[area] != 0xFFFFFFFF  )
 				{
-					printf ( "        [F] failed reading %i bytes at 0x%08X\n", bytes, pos );
-					area = -1;
-				}
-				else
-				{
-					if ( memcmp ( buffer, area_buffer[area], bytes ) )
-						printf ( "        [i] 0x%08X changed after calling 0x%08X\n", areas[area], pos );
-					area++;
+
+					//	printf ( "         - 0x%08X\n", areas[area] );
+					if ( read_mem ( buffer, areas[area], bytes ) != E_OK )
+					{
+						printf ( "        [F] failed reading %i bytes at 0x%08X\n", bytes, pos );
+						area = -1;
+					}
+					else
+					{
+						if ( memcmp ( buffer, area_buffer[area], bytes ) )
+							printf ( "        [i] 0x%08X changed after calling 0x%08X\n", areas[area], pos );
+						area++;
+					}
 				}
 			}
+			pos += step;
 		}
-		pos += step;
+		return E_OK;
+}
+
+
+
+int dump_registers_indent ( unsigned int address, unsigned int length )
+{
+	int pos = 0;
+	unsigned int value = 0;
+	
+	quiet = 1;
+	printf ( "    " );
+	while ( pos < length )
+	{
+		value = read_half ( address + pos );
+		printf ( "%02X %02X ", value >> 8, value & 0xFF );
+		pos += 2;
+		
+		if ( (pos % 0x10) == 0 || pos == length )
+			printf ( "\n    " );
 	}
+	quiet = 0;
+	
 	return E_OK;
 }
 
-#define BLOCKSIZE 0x80
-int do_upload_code ( unsigned int address, unsigned char *data, int bytes )
+int dump_registers ( unsigned int address, unsigned int length )
 {
-	int bytes_sent = 0;
-	int bytes_count = 0;
-	int res = 0;
-	unsigned char *buffer = NULL;
-
-	buffer = malloc ( BLOCKSIZE + 8 );
-	while ( bytes_sent < bytes )
-	{
-		bytes_count = bytes - bytes_sent;
-		if ( bytes_count > BLOCKSIZE )
-			bytes_count = BLOCKSIZE;
-			
+	printf ( "\n" );
+	printf ( "[x] Dumping 0x%02X bytes from 0x%08X:\n", length, address );
+	printf ( "---------------------------------------------------------------\n" );
+	dump_registers_indent(address, length);
+	printf ( "---------------------------------------------------------------\n" );
 	
-		buffer[0] = 0x32;
-	  	buffer[1] = (unsigned char)((address+bytes_sent) >> 24 );
-  		buffer[2] = (unsigned char)((address+bytes_sent) >> 16 );
-	  	buffer[3] = (unsigned char)((address+bytes_sent) >>  8 );
-	  	buffer[4] = (unsigned char)((address+bytes_sent));
-	  	buffer[5] = (unsigned char)(bytes_count >> 8 );
-	  	buffer[6] = (unsigned char)(bytes_count);
-		memcpy ( &buffer[7], &data[bytes_sent], bytes_count );
-		buffer[bytes_count+7] = neg_checksum ( buffer + 1, bytes_count+6 );
-
-   		// send command
-//   		printf ( "Send block, %08X %08X\n", bytes_sent, bytes_count );
-		res = __ufs_send_data ( buffer, bytes_count + 8 );
-   		if ( res != E_OK )
-		{
-			printf ( "ERROR %i while __ufs_send_data()\n", res );
-			return E_FAIL;
-		}
-
-
-		// read ok signal
-		res = __ufs_read_data ( buffer, 1 );
-
-		if ( buffer[0] != 0x55 )
-		{
-			printf ( "  [F] Write failed? 0x%02X (this case must not happen!)\n", buffer[0] );
-			free ( buffer );
-			return E_FAIL;
-		}
-		
-		bytes_sent = bytes_sent + bytes_count;
-	}	
-	free ( buffer );
-	printf ( "  [i] successfully Written!\n" );
+	return E_OK;
 }
+
 
 int do_upload_from_armada ()
 {
 	int maxsize = 8192;
-	unsigned int address = 0x0C0B0410;
+	unsigned int address = ram_base + code_upload_offset;
 	unsigned char *arm_code = NULL;
 	unsigned char *buffer = NULL;
 	t_workspace *arm_file = WorkspaceStartup ( armadafile );
 
-	address = UiDlgIntDef ( "Upload to address", 0, 0x0FFFFFFF, address );
+	sprintf ( tmp_txt_buf, "Upload to address? (recommended: 0x%08X)", address );
+	address = UiDlgIntDef ( tmp_txt_buf, 0, 0x0FFFFFFF, address );
 	if ( address == E_FAIL )
 	{
 		printf ( "[!] Invalid value\n" );
@@ -899,7 +1947,7 @@ int do_upload_from_armada ()
 
 	// compile
 	if ( __armada_compile ( arm_file, arm_code, 1 ) != E_OK 
-			|| __armada_get_patched_bytes () <= 0 )
+		|| __armada_get_patched_bytes () <= 0 )
 	{
 		printf ( "Failed compiling ARMada code\n" );
 		__workspace_release ( arm_file );
@@ -914,41 +1962,43 @@ int do_upload_from_armada ()
 }
 
 
-int do_upload_from_cfile ()
+int do_upload_from_cfile ( char *project_path, char *objfile, int address, int rebuild )
 {
 	int maxsize = 32768;
 	int bytes = 0;
-	unsigned int address = 0x0C0B0410;
-	unsigned int offset = 0;
 	unsigned char *arm_code = NULL;
 	unsigned char *buffer = NULL;
 	t_workspace *arm_file = NULL;
 	object *own_funcs = NULL;
+	
+	unsigned int control_mem_address = 0;
+	unsigned int hw_arch_type_address = 0;
+	
 
-	address = UiDlgIntDef ( "Upload to address", 0, 0x0FFFFFFF, address );
-	if ( address == E_FAIL )
+	if ( !quiet )
 	{
-		printf ( "[!] Invalid value\n" );
-		return E_FAIL;
+		printf ( "\n" );
+		printf ( "[x] Hot-uploading and executing C-code from\n" );
+		printf ( "    file: %s\n", objfile );
+		printf ( "    to  : 0x%08X\n", address );
+		printf ( "\n" );
 	}
+	
+	// only build when rebuild is set
+	if ( rebuild )
+		__arm_run_makefile ( project_path );
 
-	printf ( "\n" );
-	printf ( "[x] Hot-uploading and executing C-code from\n" );
-	printf ( "    file: %s\n", cfile );
-	printf ( "    to  : 0x%08X\n", address );
-	printf ( "\n" );
-
-	__arm_run_makefile ( "support" );
-
-
-	own_funcs = __arm_create_object ( "support", "dynamic_code.o" );
+	own_funcs = __arm_create_object ( project_path, objfile );
 	if ( own_funcs )
 	{
 		buffer = malloc ( maxsize );
 		arm_file = WorkspaceCreateFileFromBuffer ( buffer, maxsize );
 
 		arm_file->flags = arm_file->flags & ~FLAGS_ENDIANESS;
-		arm_file->flags = arm_file->flags | FLAGS_ENDIANESS_LE;
+		if ( little_endian )
+			arm_file->flags = arm_file->flags | FLAGS_ENDIANESS_LE;
+		else
+			arm_file->flags = arm_file->flags | FLAGS_ENDIANESS_BE;
 
 
 		bytes = __nokia_create_func2 ( arm_file, own_funcs, 0, address );
@@ -959,41 +2009,65 @@ int do_upload_from_cfile ()
 			return -1;
 		}
 		__util_free_object ( own_funcs );
-		
+
 	}
 	else
 	{
 		printf ( "Failed opening C code\n" );
 		return E_FAIL;
 	}
-	
-	offset = __symbols_get_address ( NULL, "main" );
-	
-	if ( offset == E_FAIL )
+
+	main_code_address = __symbols_get_address ( NULL, "main" );
+	control_mem_address = __symbols_get_address ( NULL, "CONTROL_MEMORY_BASE" );
+	hw_arch_type_address = __symbols_get_address ( NULL, "HW_DEVICE_TYPE" );
+
+	if ( main_code_address == E_FAIL )
 	{
 		printf ( "Failed getting symbol 'main'\n" );
 		return E_FAIL;
 	}
 
-	printf ( "Address code  : 0x%08X\n", address );	
-	printf ( "Offset 'main ': 0x%08X\n", offset );	
-	printf ( "Used bytes    : 0x%08X\n", bytes );
-
-	__util_dump_bytes ( buffer, 0x10, bytes );
+	if ( !quiet )
+	{
+		printf ( "Address code  : 0x%08X\n", address );	
+		printf ( "Offset 'main' : 0x%08X\n", main_code_address );	
+		printf ( "Offset 'CMB'  : 0x%08X\n", control_mem_address );	
+		printf ( "Offset 'HDT'  : 0x%08X\n", hw_arch_type_address );	
+		printf ( "Used bytes    : 0x%08X\n", bytes );
+	}
+	//	__util_dump_bytes ( buffer, 0x10, bytes );
 
 	do_upload_code ( address, __v_get_ptr ( arm_file, 0 ), bytes );
+	
+	if ( control_mem_address != E_FAIL )
+	{
+//		printf ( "Address control mem orig : 0x%08X\n", read_word(control_mem_address) );	
+		if ( set_word ( control_mem_address, ram_base + control_mem_offset ) != E_OK )
+			return E_FAIL;
+//		printf ( "Address control mem set  : 0x%08X\n", read_word(control_mem_address) );	
+	}
+	
+	if ( hw_arch_type_address != E_FAIL )
+	{
+//		printf ( "Address control mem orig : 0x%08X\n", read_word(control_mem_address) );	
+		if ( set_word ( hw_arch_type_address, hw_arch_type ) != E_OK )
+			return E_FAIL;
+//		printf ( "Address control mem set  : 0x%08X\n", read_word(control_mem_address) );	
+	}
+	
 	__workspace_release ( arm_file );
 
-	execute_code ( offset|1 );
+	execute_code ( main_code_address|1 );
 }
 
 
 int do_upload_from_binary ()
 {
-	unsigned int address = 0x0C0B0410;
+	unsigned int address = ram_base + code_upload_offset;
 	t_workspace *ws = NULL;
 
-	address = UiDlgIntDef ( "Upload to address", 0, 0x0FFFFFFF, address );
+	sprintf ( tmp_txt_buf, "Upload to address? (recommended: 0x%08X)", address );
+	address = UiDlgIntDef ( tmp_txt_buf, 0, 0x0FFFFFFF, address );
 	if ( address == E_FAIL )
 	{
 		printf ( "[!] Invalid value\n" );
@@ -1012,7 +2086,7 @@ int do_upload_from_binary ()
 
 
 	do_upload_code ( address, __v_get_ptr ( ws, 0 ), __v_get_size ( ws ) );
-	
+
 	__workspace_release ( ws );
 
 }
@@ -1023,6 +2097,7 @@ int do_liveview ( )
 	char *buffer = NULL;
 	int length = 0x200;
 	int address = read_address;
+	int last_address = 0;
 	t_workspace *ws = NULL;
 
 	buffer = malloc ( length + 10 );
@@ -1036,34 +2111,39 @@ int do_liveview ( )
 
 	if ( read_mem ( buffer, address, length ) != E_OK )
 	{
-		__ui_dlg_dumpmem_finish (  );
 		free ( buffer );
 		return E_FAIL;
 	}
-	
+
 	ws->fileinfo->stages->segments->start = address;
 	ws->fileinfo->stages->segments->end = address + length;
 	ws->fileinfo->stages->segments->length = length;
 
 	__workspace_update_memmap ( ws );
 	__ui_dlg_dumpmem ( ws, address );
-	
+
 	while ( __ui_dlg_dumpmem_visible () == E_OK )
 	{
 		address = __ui_dlg_dumpmem_get_addr ();
 		if ( address == E_FAIL )
 		{
 			printf ( "Invalid address\n" );
+			__ui_dlg_dumpmem_finish (  );
+			free ( buffer );
 			return E_FAIL;
 		}
+		if ( address != last_address )
+		{
 		
-		ws->fileinfo->stages->segments->start = address;
-		ws->fileinfo->stages->segments->end = address + length;
-		ws->fileinfo->stages->segments->length = length;
-		
-		__workspace_update_memmap ( ws );
-		__ui_dlg_dumpmem_set_addr ( address );
-		
+			ws->fileinfo->stages->segments->start = address;
+			ws->fileinfo->stages->segments->end = address + length;
+			ws->fileinfo->stages->segments->length = length;
+
+			__workspace_update_memmap ( ws );
+			__ui_dlg_dumpmem_set_addr ( address );
+			last_address = address;
+		}
+
 
 		if ( read_mem ( buffer, address, length ) != E_OK )
 		{
@@ -1071,23 +2151,223 @@ int do_liveview ( )
 			free ( buffer );
 			return E_FAIL;
 		}
-
-	
 	}
 	__ui_dlg_dumpmem_finish (  );
 	free ( buffer );
 }
 
-int main ( )
+
+int get_flash_data ( )
 {
+	unsigned char cmd[0x30];
+	unsigned short res = 0;
+	int pos = 0;
+
+	cmd[0] = 0x03;
+	cmd[1] = 0xFF;
+
+	// send command
+	if ( !quiet )
+		printf ( "[x] Get Flash Info\n" );
+	res = __ufs_send_data ( cmd, 2 );
+	if(res)
+	{
+		printf ( "  [F] Get Flash Info failed! phone has locked up\n" );
+		return E_FAIL;
+	}
+
+	// read ok signal
+	res = __ufs_read_data ( cmd, 1 );
+
+	if ( cmd[0] != 0x98 )
+		printf ( "  [F] Get Flash Info failed? 0x%02X (this case must not happen!)\n", cmd[0] );
+	else
+	{
+		if ( !quiet )
+			printf ( "  [i] successfully executed!\n" );
+	}
+
+	// read data
+	res = __ufs_read_data ( cmd, 0x28 );
+	
+	if ( res != E_OK )
+	{
+		printf ( "  [E] Error reading Flash Info: Retcode %i\n", res );
+		return E_FAIL;
+	}
+		
+	if ( cmd[0x27] != (__ufs_neg_checksum ( cmd, 0x26 ) & 0xFF) )
+	{
+		printf ( "  [E] Error reading Flash Info: Checksum error 0x%02X != 0x%02X\n", cmd[13], (__ufs_neg_checksum ( cmd, 13 ) & 0xFF) );
+		return E_FAIL;
+	}
+	
+	printf ( "  [i] Flash Info: " );
+	printf ( "%02X ", cmd[pos] );
+	for ( pos=1; pos < 0x26; pos++ )
+		printf ( "%02X", cmd[pos] );
+		
+	printf ( "\n" );
+
+
+	return E_OK;
+}
+
+
+int get_msid ( )
+{
+	unsigned char cmd[14];
+	unsigned char faid[12];
+	unsigned short res = 0;
+	int pos = 0;
+
+	cmd[0] = 0x16;
+	cmd[1] = 0x00;
+	cmd[2] = 0x00;
+	cmd[3] = 0x00;
+	cmd[4] = 0x00;
+	cmd[5] = 0x00;
+	cmd[6] = 0x00;
+	cmd[7] = 0x00;
+	cmd[8] = (__ufs_neg_checksum ( cmd + 1, 7 ) & 0xFF);
+
+	// send command
+	if ( !quiet )
+		printf ( "[x] Get MSID\n" );
+	res = __ufs_send_data ( cmd, 9 );
+	if(res)
+	{
+		printf ( "  [F] Get MSID failed! phone has locked up\n" );
+		return E_FAIL;
+	}
+
+	// read ok signal
+	res = __ufs_read_data ( cmd, 1 );
+
+	if ( cmd[0] != 0x96 )
+		printf ( "  [F] Get MSID failed? 0x%02X (this case must not happen!)\n", cmd[0] );
+	else
+	{
+		if ( !quiet )
+			printf ( "  [i] successfully executed!\n" );
+	}
+
+	// read ok signal
+	res = __ufs_read_data ( cmd, 14 );
+	
+	if ( res != E_OK )
+	{
+		printf ( "  [E] Error reading MSID: Retcode %i\n", res );
+		return E_FAIL;
+	}
+		
+	if ( cmd[13] != (__ufs_neg_checksum ( cmd, 13 ) & 0xFF) )
+	{
+		printf ( "  [E] Error reading MSID: Checksum error 0x%02X != 0x%02X\n", cmd[13], (__ufs_neg_checksum ( cmd, 13 ) & 0xFF) );
+		return E_FAIL;
+	}
+	
+	printf ( "  [i] Crypted  MSID: " );
+	printf ( "%02X ", cmd[pos] );
+	for ( pos=1; pos < 13; pos++ )
+		printf ( "%02X", cmd[pos] );
+		
+	printf ( "\n" );
+
+	__nokiacrypt_decode_msid ( cmd );
+	
+	printf ( "  [i] Plain    MSID:    " );
+	for ( pos=1; pos < 13; pos++ )
+		printf ( "%02X", cmd[pos] );
+		
+	printf ( "\n" );
+
+	__nokiacrypt_encode_faid ( faid, cmd );
+
+	printf ( "  [i] Crypted  FAID:    " );
+	for ( pos=0; pos < 12; pos++ )
+		printf ( "%02X", faid[pos] );
+	printf ( "\n" );
+
+	__nokiacrypt_decode_faid ( faid, cmd );
+
+	printf ( "  [i] Plain    FAID:    " );
+	for ( pos=0; pos < 12; pos++ )
+		printf ( "%02X", faid[pos] );
+	printf ( "\n\n" );
+
+	return E_OK;
+}
+
+void scan_for_memory_regions ()
+{
+	unsigned int start_addr = 0x06000000;
+	unsigned int end_addr = 0x06100000;
+	unsigned int step_size = 0x80;
+	unsigned int fails = 0;
+	unsigned int max_fails = 2;
+	
+	unsigned int last_used = 0;
+	unsigned int last_start = 0;
+	
+	unsigned int address = start_addr;
+	
+	while(address < end_addr)
+	{
+		quiet = 1;
+		unsigned int sig0 = read_half ( address + 0 );
+		unsigned int sig2 = read_half ( address + 2 );
+		unsigned int sig8 = read_half ( address + 8);
+		unsigned int sig16 = read_half ( address + 16 );
+		quiet = 0;
+		
+		unsigned int signature = 0xFFFF;
+		
+		signature &= sig0;
+		signature &= sig2;
+		signature &= sig8;
+		signature &= sig16;
+		
+		if ( sig16 == E_FAIL )
+		{
+			if ( fails++ >= max_fails )
+			{
+				printf ( "Too many errors, stopping\r\n" );
+				return;
+			}
+			prepare_phone ();
+		}
+		else if ( signature != 0xFFFF && !last_used )
+		{
+			last_used = 1;
+			last_start = address;
+		}
+		else if ( signature == 0xFFFF && last_used )
+		{
+			printf ( "\r\n" );
+			printf ( "\r\n" );
+			printf ( "  [i] 0x%08X-0x%08X seems to be used.\r\n", last_start, address-1 );
+			last_used = 0;
+			
+			dump_registers_indent(last_start, 0x40);
+		}
+		
+		address += step_size;
+	}
+}
+
+int register_menu ()
+{
+	int i = 0;
 	int repaint = 1;
 	int done = 0;
 	int command = 0;
-	char *menu[] = { "Get UPP ID", "Load 2nd loader", "Load 3rd loader", "Read Mem", "Run function", "Change read address", "Change read bytes", "Scan for memory areas", "Scan for Flashcrypt init", "Dump Memory to file", "Set Byte", "Set Half", "Set Word", "ARMada upload", "GCC code upload", "Binary code/data upload", "Live Memry view" };
+	int dev_type = (hw_arch_type==7)?0:1;
+	char *menu[] = { "Init Phone", "Scan", "Dump CBUSC", "Dump DSPMIF", "Dump CTSI", "Dump CRYPTO", "Special", "Dump all" };
 
 	while ( !done )
 	{
-		command = UiDlgMenu ( "ufs Shell", menu, UI_OPT_QUIT | (repaint?0:UI_OPT_NOREPAINT) );
+		command = UiDlgMenu ( "Register Menu", menu, UI_OPT_QUIT | (repaint?0:UI_OPT_NOREPAINT) );
 		if ( command == 0 )
 			return E_OK;
 		repaint = 0;
@@ -1099,72 +2379,1011 @@ int main ( )
 				break;
 			case 0:
 				return E_OK;
-				break;
 			case 1:
-				do_get_uppid ();
+				prepare_phone ();
 				break;
+				
 			case 2:
-				do_load_2nd ();
+				scan_for_memory_regions ();
 				break;
+				
 			case 3:
-				do_load_3rd ();
+				dump_registers ( hw_cbusc_bases[dev_type], 0x100 );
+				repaint = 1;
 				break;
 			case 4:
-				do_read_mem ();
+				dump_registers ( hw_dspmif_bases[dev_type], 0x100 );
 				repaint = 1;
 				break;
 			case 5:
-				do_run_func ();
+				dump_registers ( hw_ctsi_bases[dev_type], 0x100 );
+				repaint = 1;
 				break;
 			case 6:
-				do_change_address ();
+				dump_registers ( hw_fsig_bases[dev_type], 0x100 );
+				repaint = 1;
 				break;
 			case 7:
-				do_change_bytes ();
-				break;
+				dump_registers ( 0x6018000, 0x100 );
+				repaint = 1;
+				break;				 
 			case 8:
-				do_scan_mem ( );
+				dump_registers ( 0x6000000, 0x00020000  );
 				repaint = 1;
 				break;
-			case 9:
-				do_scan_crypt ( );
-				repaint = 1;
-				break;
-			case 10:
-				do_dump_mem ();
-				repaint = 1;
-				break;
-			case 11:
-				do_set_byte ();
-				repaint = 1;
-				break;
-			case 12:
-				do_set_half ();
-				repaint = 1;
-				break;
-			case 13:
-				do_set_word ();
-				repaint = 1;
-				break;
-			case 14:
-				do_upload_from_armada ();
-				repaint = 1;
-				break;
-			case 15:
-				do_upload_from_cfile ();
-				repaint = 1;
-				break;
-			case 16:
-				do_upload_from_binary ();
-				repaint = 1;
-				break;
-			case 17:
-				do_change_address ();
-				do_liveview ();
-				repaint = 1;
-				break;
+				 
+				 
+				
+				
 			default:
 				break;
+		}
+	}
+
+	return E_OK;
+}
+
+
+int cpuinfo_init ( int quiet_init )
+{
+	quiet = 1;
+	
+	if ( !quiet_init )
+		printf ( "[X] Upload CPUInfo code\n" );
+	
+	if ( prepare_phone() != E_OK )
+	{
+		quiet = 0;
+		printf ( "  [E] Phone init FAILED\n" );
+		return E_FAIL;
+	}
+
+	// execute code
+	if ( do_upload_from_cfile ( cpuinfo_project, objfile, ram_base + code_upload_offset, !quiet_init ) != E_OK )
+	{
+		quiet = 0;
+		printf ( "  [E] code upload FAILED\n" );
+		return E_FAIL;
+	}
+
+	// check for magic
+	if ( read_word ( ram_base + control_mem_offset + 8 ) != 0xDEADBEEF )
+	{
+		quiet = 0;
+		printf ( "  [E] MAGIC ID FAILED: 0x%08X (wrong loader?)\n", read_word ( ram_base + control_mem_offset + 8 ) );
+		return E_FAIL;
+	}
+	
+	quiet = 0;
+	return E_OK;
+}
+
+int cpuinfo ()
+{
+	unsigned int cache_type = 0;
+	unsigned int cache_ctrl = 0;
+	unsigned int id_code = 0;
+	
+	if (cpuinfo_init (0) != E_OK)
+	{
+		return E_FAIL;
+	}
+	
+	quiet = 1;
+	
+	cache_type = read_word ( ram_base + control_mem_offset + 0x10 );
+	cache_ctrl = read_word ( ram_base + control_mem_offset + 0x14 );
+	id_code = read_word ( ram_base + control_mem_offset + 0x18 );
+	
+	printf ( "\n" );
+	printf ( "  [i] CPU Information\n" );
+	printf ( "\n" );
+	
+	if(id_code == 0xDEADBEEF)
+	{
+		quiet = 0;
+		printf ( "  [E] This CPU does not support CPU ID reading.\n" );
+		printf ( "  [E] It doesn't provide the coprocessor 15 which is necessary to get the information.\n" );
+		printf ( "\n" );
+		return E_FAIL;
+	}
+	
+	printf ( "  [i]   ID Code   : 0x%08X \n", id_code );
+	switch((id_code>>24)&0xFF)
+	{
+
+		case 'i':
+			printf ( "           Implementer:         Intel Corporation (0x%02X)\n", (id_code>>24)&0xFF );
+			break;
+			
+		case 'Q':
+			printf ( "           Implementer:         QUALCOMM Inc. (0x%02X)\n", (id_code>>24)&0xFF );
+			break;
+			
+		case 'M':
+			printf ( "           Implementer:         Motorola (0x%02X)\n", (id_code>>24)&0xFF );
+			break;
+			
+		case 'D':
+			printf ( "           Implementer:         DEC (0x%02X)\n", (id_code>>24)&0xFF );
+			break;
+			
+		case 'T':
+			printf ( "           Implementer:         Texas Instruments (0x%02X)\n", (id_code>>24)&0xFF );
+			break;
+			
+		case 'V':
+			printf ( "           Implementer:         Marvell Semoiconductor (0x%02X)\n", (id_code>>24)&0xFF );
+			break;
+			
+		case 'A':
+			printf ( "           Implementer:         ARM (0x%02X)\n", (id_code>>24)&0xFF );
+			break;
+			
+		default:
+			printf ( "           Implementer:         0x%X\n", (id_code>>24)&0xFF );
+			break;
+	}
+	
+	printf ( "           Part number:         ARM%i%i%i (0x%X)\n", ((id_code>>12)&0xF), ((id_code>>8)&0xF), ((id_code>>4)&0xF), ((id_code>>4)&0xFFF)  );
+	switch((id_code>>16)&0x0F)
+	{
+		case 0:
+			printf ( "           Architecture:        ARMv3 (%i)\n", (id_code>>16)&0x0F );
+			break;
+		case 1:
+			printf ( "           Architecture:        ARMv4 (%i)\n", (id_code>>16)&0x0F );
+			break;
+		case 2:
+			printf ( "           Architecture:        ARMv4T (%i)\n", (id_code>>16)&0x0F );
+			break;
+		case 3:
+			printf ( "           Architecture:        ARMv5 (%i)\n", (id_code>>16)&0x0F );
+			break;
+		case 4:
+			printf ( "           Architecture:        ARMv5T (%i)\n", (id_code>>16)&0x0F );
+			break;
+		case 5:
+			printf ( "           Architecture:        ARMv5TE (%i)\n", (id_code>>16)&0x0F );
+			break;
+		case 6:
+			printf ( "           Architecture:        ARMv5TEJ (%i)\n", (id_code>>16)&0x0F );
+			break;
+		case 7:
+			printf ( "           Architecture:        ARMv6 (%i)\n", (id_code>>16)&0x0F );
+			break;
+		case 8:
+			printf ( "           Architecture:        ARMv7 (%i)\n", (id_code>>16)&0x0F );
+			break;
+		case 0x0f:
+			printf ( "           Architecture:        get from feature register (ToDo) (%i)\n", (id_code>>16)&0x0F );
+			break;
+	}
+	printf ( "           Specification rev.:  %i\n", (id_code>>20)&0x0F );
+	printf ( "           Architecture:        %i\n", (id_code>>16)&0x0F );
+	printf ( "           Layout rev.:         %X\n", (id_code>>0)&0x0F );
+	printf ( "\n" );
+	printf ( "  [i]   Cache Info: 0x%08X\n", cache_type );
+	printf ( "           Cache Type:         0x%X\n", (cache_type>>25)&0x0F );
+	printf ( "           Harvard:            %s\n", ((cache_type>>24)&0x01)?"yes":"no" );
+	printf ( "           DCache\n" );
+	printf ( "               Exists:      %s\n", ((cache_type>>14)&0x01)?"no":"yes" );
+	printf ( "               Size:        %i KiB\n", (1<<((cache_type>>18)&0x07))/2 );
+	printf ( "               Assoc:       %i-way\n", (1<<((cache_type>>15)&0x07)) );
+	printf ( "               Length:      %i words\n", (2<<((cache_type>>12)&0x03)) );
+	printf ( "           ICache\n" );
+	printf ( "               Exists:      %s\n", ((cache_type>>2)&0x01)?"no":"yes" );
+	printf ( "               Size:        %i KiB\n", (1<<((cache_type>>6)&0x07))/2 );
+	printf ( "               Assoc:       %i-way\n", (1<<((cache_type>>3)&0x07)) );
+	printf ( "               Length:      %i words\n", (2<<((cache_type>>0)&0x03)) );
+	printf ( "\n" );
+	
+	quiet = 0;
+}
+
+int loader_menu ()
+{
+	int i = 0;
+	int repaint = 1;
+	int done = 0;
+	int command = 0;
+	char *menu[] = { "Load original 3rd", "Get MSID info" };
+
+	while ( !done )
+	{
+		command = UiDlgMenu ( "Loader Menu", menu, UI_OPT_QUIT | (repaint?0:UI_OPT_NOREPAINT) );
+		if ( command == 0 )
+			return E_OK;
+		repaint = 0;
+
+		switch ( command )
+		{
+			case E_FAIL:
+				repaint = 1;
+				break;
+			case 0:
+				return E_OK;
+			case 1:
+				prepare_phone_orig ();
+				repaint = 1;
+				break;
+			case 2:
+				get_msid ( );
+				break;
+				
+			default:
+				break;
+		}
+	}
+
+	return E_OK;
+}
+
+int dump_menu ()
+{
+	int i = 0;
+	int repaint = 1;
+	int done = 0;
+	int command = 0;
+	char *menu[] = { "Dump raw flash", "Dump decrypted flash" };
+
+	while ( !done )
+	{
+		command = UiDlgMenu ( "Dump Menu", menu, UI_OPT_QUIT | (repaint?0:UI_OPT_NOREPAINT) );
+		if ( command == 0 )
+			return E_OK;
+		repaint = 0;
+
+		switch ( command )
+		{
+			case E_FAIL:
+				repaint = 1;
+				break;
+			case 0:
+				return E_OK;
+			case 1:
+				do_change_address ();
+				do_change_bytes ();
+				if ( prepare_phone() == E_OK )
+					do_dump_mem ();
+				repaint = 1;
+				break;
+			case 2:
+				do_change_address ();
+				do_change_bytes ();
+				crypt_init = UiDlgIntDef ( "Crypt init routine address?", 0, 0x0FFFFFFF, crypt_init );
+				if ( crypt_init == E_FAIL )
+				{
+					crypt_init = 0;
+					printf ( "[!] Invalid value\n" );
+				}		
+				else
+				{
+					prepare_phone();
+					execute_code ( crypt_init );
+					do_dump_mem ();
+				}
+				break;
+				
+			default:
+				break;
+		}
+	}
+
+	return E_OK;
+}
+
+int nand_menu ()
+{
+	int i = 0;
+	int repaint = 1;
+	int done = 0;
+	int command = 0;
+	char *menu[] = { "Check NAND", "Dump NAND", "Dump NAND with Spare" };
+
+	while ( !done )
+	{
+		command = UiDlgMenu ( "NAND Menu", menu, UI_OPT_QUIT | (repaint?0:UI_OPT_NOREPAINT) );
+		if ( command == 0 )
+			return E_OK;
+		repaint = 0;
+
+		switch ( command )
+		{
+			case E_FAIL:
+				repaint = 1;
+				break;
+			case 0:
+				return E_OK;
+			case 1:
+				nand_init ( 0 );
+				repaint = 1;
+				break;
+			case 2:
+				nand_flash = 1;
+				do_dump_mem ();
+				nand_flash = 0;
+				repaint = 1;
+				break;
+			case 3:
+				nand_flash = 1;
+				nand_embed_spare = 1;
+				do_dump_mem ();
+				nand_embed_spare = 0;
+				nand_flash = 0;
+				repaint = 1;
+				break;
+				
+				// just for debugging/reverse engineering
+				/*
+			case 4:
+				nand_init ( 1 );
+
+				quiet = 1;
+				for ( i=0; i<(0x1100/0x100); i++ )
+					set_word ( nand_base + i*0x100, 0x55aa55aa );
+				quiet = 0;
+				
+				set_word ( 0x08000014, (read_word ( 0x08000014 ) & 0xFFEFFFFF) | 0x00200000 );
+				// init NAND
+				set_half ( nand_base + 0x1420, 0x00F3 );
+				set_half ( nand_base + 0x1422, 0x0000 );
+				
+				set_half ( nand_base + 0x144C, 0x0000 );
+				set_half ( nand_base + 0x144E, 0x03FF );
+				set_half ( nand_base + 0x144A, 0x0004 ); // seems to make no difference if 2 or 4
+				
+				// read block
+				set_half ( nand_base + 0x1442, read_half ( nand_base + 0x1442 ) & 0x7FFF);
+				
+				set_half ( nand_base + 0x1402, 0x0000 );
+				set_half ( nand_base + 0x1404, (8<<8) | 8 );
+				set_half ( nand_base + 0x1406, 0x0000 );
+				
+				set_half ( nand_base + 0x1422, 0x0002 );
+				set_half ( nand_base + 0x1420, 0x0000 );
+				
+				*/
+				
+			default:
+				break;
+		}
+	}
+
+	return E_OK;
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Timer Trace
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+unsigned int
+get_calib ()
+{
+	if ( set_word ( ram_base + control_mem_offset + 0x00, 2 ) != E_OK )
+		return E_FAIL;
+	if ( set_word ( ram_base + control_mem_offset + 0x04, 0 ) != E_OK )
+		return E_FAIL;
+	if ( execute_code ( main_code_address | 1 ) != E_OK )
+		return E_FAIL;
+	
+	calib_value = read_word ( ram_base + control_mem_offset + 0x04 );
+	timer1_value = read_word ( ram_base + control_mem_offset + 0x10 );
+	printf ( "[x] Calib: 0x%08X 0x%04X  (%04X:%04X)\n", calib_value, timer1_value, read_word ( ram_base + control_mem_offset + 0x08 ), read_word ( ram_base + control_mem_offset + 0x0C ) );
+}
+
+unsigned int
+launch_sniffer ( int just_buffer )
+{
+	int address = 0;
+	int size = 0;
+	int status = 0;
+	int pos = 0;
+	int i = 0;
+	unsigned char *register_buffer;
+
+	if ( !just_buffer )
+		printf ( "\n[x] Running\n" );
+		
+	if ( set_word ( ram_base + control_mem_offset + 0x00, 3 ) != E_OK )
+		return E_FAIL;
+	if ( set_word ( ram_base + control_mem_offset + 0x04, 0 ) != E_OK )
+		return E_FAIL;
+	if ( set_word ( ram_base + control_mem_offset + 0x08, calib_value ) != E_OK )
+		return E_FAIL;
+		
+	if ( execute_code ( main_code_address | 1 ) != E_OK )
+		return E_FAIL;
+	
+	status = read_word ( ram_base + control_mem_offset + 0x04 );
+	if ( status == 2 || status == 3 )
+	{
+		if ( status == 3 )
+			printf ( "[x] Status:  OVERRUN  (%i)\n", status );
+		else
+		{
+			if ( !just_buffer )
+				printf ( "[x] Status:  OK  (%i)\n", status );
+		}
+			
+		/* read registers, the first buffer (config[4]) is always the register dump */
+		i = 0;
+		
+		/* read registers, the first buffer is always the register dump */
+		address = read_word ( ram_base + control_mem_offset + 0x14 );
+		size = read_word ( ram_base + control_mem_offset + 0x18 );
+		
+		if ( size == 0xFFFFFFFF || address == 0xFFFFFFFF )
+			return E_FAIL;
+
+		i++;
+		if ( !just_buffer )
+		{
+		
+			register_buffer = malloc ( size + 0x10 );
+			if ( read_mem ( register_buffer, address, size ) != E_OK )
+				return E_FAIL;
+
+			for ( pos = 0; pos < 16; pos+=2 )
+				printf ( "[x]   R%02i: 0x%08X   R%02i: 0x%08X\n", pos, GET_WORD(register_buffer+(pos*4)), pos+1, GET_WORD(register_buffer+((pos+1)*4)));
+			
+			//printf ( "Diff: 0x%08X\n", read_word(ram_base + control_mem_offset + 0x10) );
+			free ( register_buffer );
+		}
+		
+		
+		do 
+		{
+			address = read_word ( 0x00003014 + 8*i );
+			size = read_word ( 0x00003018 + 8*i );
+			
+			if ( size == 0xFFFFFFFF || address == 0xFFFFFFFF )
+				return E_FAIL;
+				
+			if ( address && size && (!just_buffer || just_buffer == i ) )
+			{
+				if ( do_read_mem ( address, size ) != E_OK )
+					return E_FAIL;
+			}
+				
+			i++;
+		} while ( address && size );
+		
+	}
+	else if (  status == 4 )
+		printf ( "[E] Jitter problem. Timer1 diff: 0x%04X. Maybe code disabled interrupts!\n", read_word ( ram_base + control_mem_offset + 0x10 ) );
+	else
+		printf ( "[E] Unknown problem. Status: 0x%04X\n", read_word ( ram_base + control_mem_offset + 0x04 ) );
+}
+
+unsigned int
+init_code (int init)
+{
+	printf ( "[x] Initializing\n" );
+	if ( init )
+	{
+		printf ( "    - boot phone\n" );
+		if ( prepare_phone () != E_OK )
+			return E_FAIL;
+	}
+	printf ( "    - upload\n" );
+	if ( set_word ( ram_base + control_mem_offset + 0x00, 1 ) != E_OK )
+		return E_FAIL;
+	if ( set_word ( ram_base + control_mem_offset + 0x04, 1 ) != E_OK )
+		return E_FAIL;
+	
+	if ( do_upload_from_cfile ( timer_trace_project, objfile, ram_base + code_upload_offset, 1 ) != E_OK )
+		return E_FAIL;
+	
+	/*
+	printf ( "    - execute\n" );
+	if ( execute_code ( main_code_address | 1 ) != E_OK )
+		return E_FAIL;
+	*/
+	
+	if ( read_word ( ram_base + control_mem_offset + 0x04 ) != 0x00000001 )
+		printf ( "[E] Init failed (0x%02X)\n", read_word ( ram_base + control_mem_offset + 0x04 ) );
+	else
+		printf ( "    - done\n" );
+		
+}
+
+unsigned int
+set_calib_value ()
+{
+	unsigned int value = calib_value;
+
+	value = UiDlgIntDef ( "Calib value", 0, 0x0FFFFFFF, value );
+	if ( value == E_FAIL )
+	{
+		printf ( "[!] Invalid value\n" );
+		return E_FAIL;
+	}
+	calib_value = value;
+	printf ( "[x] New calib: 0x%08X\n", calib_value );
+}
+
+unsigned int
+buffer_trace ()
+{
+	int done = 0;
+	int calib = calib_value;
+	
+	while ( !done )
+	{
+		printf ( "0x%08X - ", calib_value );
+		launch_sniffer ( 1 );
+		printf ( "0x%08X - ", calib_value );
+		launch_sniffer ( 1 );
+		calib_value -= 1;
+	}
+}
+
+unsigned int
+rbuf_find ( unsigned char *data )
+{
+	unsigned int i = 0;
+	
+	while ( i < rbuf_size )
+	{
+		// check if R0-R15 and CPSR changed
+		if ( !memcmp ( rbuf + i, data, 17*4 ) )
+			return E_OK;
+			
+		i += rbuf_entry_size;
+	
+	}
+	
+	return E_FAIL;
+
+}
+
+void rbuf_insert ( unsigned char *data )
+{
+	if ( rbuf_find ( data ) == E_OK )
+	{
+		//say ( "already in\n" );
+		return;
+	}
+	printf ( "[x]   new R15: 0x%08X found (0x%08X)\n", GET_WORD(data+15*4), GET_WORD(data+17*4) );
+	rbuf = realloc ( rbuf, rbuf_size + rbuf_entry_size );
+	if ( !rbuf )
+	{
+		printf ( "realloc error!\n" );
+		return;
+	}
+	memcpy ( rbuf + rbuf_size, data, rbuf_entry_size );
+	rbuf_size += rbuf_entry_size;
+}
+
+void rbuf_free ()
+{
+	free ( rbuf );
+	rbuf = NULL;
+	rbuf_size = 0;
+}
+
+void rbuf_print ()
+{
+	int pos;
+	int i = 0;
+	
+	for ( pos = 0; pos < 16; pos+=2 )
+		printf ( "   R%02i         R%02i    ", pos, pos+1);
+	printf ( "   CPSR    " );
+	printf ( "   TIMER   \n" );
+	
+	while ( i < rbuf_size )
+	{
+		for ( pos = 0; pos < 16; pos++ ) //register dump
+			printf ( "0x%08X ", GET_WORD(rbuf+i+(pos*4)) );
+			
+		printf ( "0x%08X ", GET_WORD(rbuf+i+16*4));  //CPSR
+		printf ( "0x%08X", GET_WORD(rbuf+i+(17*4)));  //timer value
+		printf ( "\n" );
+		
+		i += rbuf_entry_size;
+	
+	}
+}
+
+void rbuf_sort ()
+{
+	//simple bubble sort
+	int i,j;
+	int changed;
+	int count = rbuf_size / rbuf_entry_size;
+	unsigned char *buf;
+	
+	buf = malloc ( rbuf_entry_size );
+	/*
+	do
+	{
+		for ( i = 0; i < count - 1 ; i++ )
+		{
+			if ( GET_WORD(rbuf+i*rbuf_entry_size+15*4) > GET_WORD(rbuf+(i+1)*rbuf_entry_size+15*4) )
+			{
+				printf ( "--- %08X is bigger than %08X\n", GET_WORD(rbuf+i*rbuf_entry_size+15*4), GET_WORD(rbuf+(i+1)*rbuf_entry_size+15*4) );
+				memcpy ( buf, rbuf+i*rbuf_entry_size, rbuf_entry_size );
+				memcpy ( rbuf+i*rbuf_entry_size, rbuf+(i+1)*rbuf_entry_size, rbuf_entry_size );
+				memcpy ( rbuf+(i+1)*rbuf_entry_size, buf, rbuf_entry_size );
+			}
+		}
+		
+		count--;
+	} while ( count >= 0 );
+	*/
+	for ( i = count; i > 1; i-- )
+		for ( j = 1; j < i; j++  )
+		{
+			if ( GET_WORD(rbuf+(j-1)*rbuf_entry_size+15*4) > GET_WORD(rbuf+j*rbuf_entry_size+15*4) )
+			{
+				//printf ( "--- i%d j%d: %08X > %08X\n", i,j,GET_WORD(rbuf+(j-1)*rbuf_entry_size+15*4), GET_WORD(rbuf+j*rbuf_entry_size+15*4) );
+				memcpy ( buf, rbuf+(j-1)*rbuf_entry_size, rbuf_entry_size );
+				memcpy ( rbuf+(j-1)*rbuf_entry_size, rbuf+j*rbuf_entry_size, rbuf_entry_size );
+				memcpy ( rbuf+j*rbuf_entry_size, buf, rbuf_entry_size );
+			}
+		
+		}
+	
+	free ( buf );
+
+}
+
+		
+
+// trace changes in register
+// possible todo also on phone (faster)
+unsigned int
+register_change_trace ( unsigned char sort )
+{
+	// start probably in RAM
+	int calib = calib_value;
+	// run counts
+	int count = 2000;
+	int inc_calib_loops = 15;
+	int inc_calib_count = 0;
+	
+	//allocate space for register saved
+	
+	int address = 0;
+	int size = 0;
+	int status = 0;
+	int pos = 0;
+	
+	int i = 0;
+	
+	unsigned char *register_buffer;
+	
+	printf ( "running register trace\n" );
+	printf ( "please wait some time\n" );
+	
+	do
+	{
+		if ( set_word ( ram_base + control_mem_offset + 0x00, 3 ) != E_OK )
+			return E_FAIL;
+		if ( set_word ( ram_base + control_mem_offset + 0x04, 0 ) != E_OK )
+			return E_FAIL;
+		if ( set_word ( ram_base + control_mem_offset + 0x08, calib ) != E_OK )
+			return E_FAIL;
+		if ( execute_code ( main_code_address | 1 ) != E_OK )
+			return E_FAIL;
+		
+		status = read_word ( ram_base + control_mem_offset + 0x04 );
+		if ( status != 2 )
+		{
+			if ( status == 3 )
+				printf ( "Finished, function returned. Status: %i\n", status );
+			else
+				printf ( "error, status was %i\n", status );
+				
+			return E_FAIL;
+		}
+			
+		/* read registers, the first buffer is always the register dump */
+		address = read_word ( ram_base + control_mem_offset + 0x14 );
+		size = read_word ( ram_base + control_mem_offset + 0x18 );
+		
+		if ( size == 0xFFFFFFFF || address == 0xFFFFFFFF )
+			return E_FAIL;
+
+		register_buffer = malloc ( size + 0x10 );
+		if ( read_mem ( register_buffer, address, size ) != E_OK )
+			return E_FAIL;
+
+		register_buffer[17*4+0] = (calib >> 24) & 0xFF;
+		register_buffer[17*4+1] = (calib >> 16) & 0xFF;
+		register_buffer[17*4+2] = (calib >> 8) & 0xFF;
+		register_buffer[17*4+3] = calib & 0xFF;
+		
+		rbuf_insert ( register_buffer );
+
+		free ( register_buffer );
+		
+				
+		if ( inc_calib_count++ == inc_calib_loops )
+		{
+			inc_calib_count = 0;
+			--calib;
+		}
+	
+	} while ( --count );
+	
+	return E_OK;
+}
+
+unsigned int
+show_register_change_trace ( int sort )
+{
+	register_change_trace ( sort );
+	rbuf_print();
+	if ( sort )
+	{
+		printf ( "\n\n----------------------\n   Sorted\n----------------------\n" );
+		rbuf_sort();
+		rbuf_print();
+	}
+	rbuf_free();
+	
+	return E_OK;
+}
+
+int
+jitter_test ()
+{
+	// number of calibration runs to do
+	int runs = 50;
+	
+	int values = 0;
+	int count = runs;
+
+	// stay aware of overflows when summing up large calib values!
+	unsigned int calib = 0;
+	unsigned int calib_sum = 0;
+	unsigned int calib_max = 0;
+	unsigned int calib_min = 0xFFFFFFFF;
+
+	printf ( "[x] Jitter test\n" );
+
+	do
+	{
+		if ( set_word ( ram_base + control_mem_offset + 0x00, 2 ) != E_OK )
+			return E_FAIL;
+		if ( set_word ( ram_base + control_mem_offset + 0x04, 0 ) != E_OK )
+			return E_FAIL;
+		if ( execute_code ( main_code_address | 1 ) != E_OK )
+			return E_FAIL;
+		
+		if ( timer1_value == read_word ( ram_base + control_mem_offset + 0x10 ) )
+		{
+			calib = read_word ( ram_base + control_mem_offset + 0x04 );
+			
+			calib_sum += calib;
+			
+			if ( calib > calib_max )
+				calib_max = calib;
+			if ( calib < calib_min )
+				calib_min = calib;
+
+//			printf ( "  - 0x%08X (%04X:%04X)\n", calib, read_word ( ram_base + control_mem_offset + 0x08 ), read_word ( ram_base + control_mem_offset + 0x0C ) );
+			printf ( "  - 0x%08X\n", calib );
+			
+			// increase the number of received, good measurements
+			values++;
+		}
+	} while ( --count );
+	
+	printf ( "\n" );
+	printf ( "[x] Statistics\n" );
+	// print number of tries, where Timer1 value was correct
+	printf ( "      ok : %i / %i  (%i%%)\n", values, runs, (values*100)/runs );
+	// max/min/avg calib values
+	printf ( "      min: 0x%08X\n", calib_min );
+	printf ( "      max: 0x%08X\n", calib_max );
+	printf ( "      avg: 0x%08X\n", calib_sum/values );
+	// maximum difference
+	printf ( "      dif: 0x%08X\n", calib_max - calib_min );
+	printf ( "\n" );
+	
+	return E_OK;
+}
+
+unsigned int
+timer_trace_main ( )
+{
+	int repaint = 1;
+	int done = 0;
+	int sort = 0;
+	int command = 0;
+	char *menu[] = { "Init Flasher and upload", "Just upload", "Get calib value", "Set Calib Value", "Launch sniffer", "Dump Code", "Buffer Trace", "Register Change Trace", "Register Change Trace: Toggle Sort", "Get Jitter" };
+
+	__options_set_int ( "plugins.UFS.timings.timing_factor", 250 );
+	
+	while ( !done )
+	{
+		command = UiDlgMenu ( "ufs Shell", menu, UI_OPT_QUIT | (repaint?0:UI_OPT_NOREPAINT) );
+		if ( command == 0 )
+			return E_OK;
+		repaint = 0;
+
+		switch ( command )
+		{
+		case E_FAIL:
+			repaint = 1;
+			break;
+		case 0:
+			return E_OK;
+			break;
+		case 1:
+			init_code (1);
+			break;
+		case 2:
+			init_code (0);
+			break;
+		case 3:
+			get_calib ();
+			break;
+		case 4:
+			set_calib_value ();
+			break;
+		case 5:
+			launch_sniffer (0);
+			break;
+		case 6:
+			do_dump_mem ();
+			break;
+		case 7:
+			buffer_trace ();
+			break;
+		case 8:
+			show_register_change_trace (sort);
+			break;
+		case 9:
+			sort ^= 1;
+			printf ( "sort for register change trace is now %s.\n", sort ? "ON (sort by R15)" : "OFF (sort by timer)" );
+			break;
+			
+		case 10:
+			jitter_test ();
+			break;
+			
+		default:
+			break;
+		}
+	}
+
+	return E_OK;
+}
+
+
+int main ( )
+{
+	int repaint = 1;
+	int done = 0;
+	int command = 0;
+	char *menu[] = { "Get UPP ID", "Load 2nd loader", "Load 3rd loader", "Read Mem", "Run function", "Change read address", "Change read bytes", "Scan for memory areas", "Scan for Flashcrypt init", "Dump Memory to file", "Set Byte", "Set Half", "Set Word", "ARMada upload", "GCC code upload", "Binary code/data upload", "Live Memory view", "", "Dump Menu", "NAND Flash Menu", "Loader Menu", "Register Menu", "Timer Trace", "CPU Info" };
+
+	__options_set_int ( "plugins.UFS.timings.timing_factor", 150 );
+	setup_arch(DEFAULT_ARCH);
+	
+	while ( !done )
+	{
+		command = UiDlgMenu ( "ufs Shell", menu, UI_OPT_QUIT | (repaint?0:UI_OPT_NOREPAINT) );
+		if ( command == 0 )
+			return E_OK;
+		repaint = 0;
+
+		switch ( command )
+		{
+		case E_FAIL:
+			repaint = 1;
+			break;
+		case 0:
+			return E_OK;
+			break;
+		case 1:
+			do_get_uppid ();
+			break;
+		case 2:
+			do_load_2nd ();
+			break;
+		case 3:
+			do_load_3rd ();
+			break;
+		case 4:
+			do_read_mem ( read_address, read_bytes );
+			repaint = 1;
+			break;
+		case 5:
+			do_run_func ();
+			break;
+		case 6:
+			do_change_address ();
+			break;
+		case 7:
+			do_change_bytes ();
+			break;
+		case 8:
+			do_scan_mem ( );
+			repaint = 1;
+			break;
+		case 9:
+			do_scan_crypt ( );
+			repaint = 1;
+			break;
+		case 10:
+			do_dump_mem ();
+			repaint = 1;
+			break;
+		case 11:
+			do_set_byte ();
+			repaint = 1;
+			break;
+		case 12:
+			do_set_half ();
+			repaint = 1;
+			break;
+		case 13:
+			do_set_word ();
+			repaint = 1;
+			break;
+		case 14:
+			do_upload_from_armada ();
+			repaint = 1;
+			break;
+		case 15:
+			upload_address = ram_base + code_upload_offset;
+
+			sprintf ( tmp_txt_buf, "Upload to address? (recommended: 0x%08X)", upload_address );
+			upload_address = UiDlgIntDef ( tmp_txt_buf, 0, 0x0FFFFFFF, upload_address );
+			if ( upload_address == E_FAIL )
+			{
+				printf ( "[!] Invalid value\n" );
+				return E_FAIL;
+			}		
+			do_upload_from_cfile ( project_path, objfile, upload_address, 1 );
+			repaint = 1;
+			break;
+		case 16:
+			do_upload_from_binary ();
+			repaint = 1;
+			break;
+		case 17:
+			do_change_address ();
+			do_liveview ();
+			repaint = 1;
+			break;
+		case 18:
+			dump_menu ();
+			repaint = 1;
+			break;
+		case 19:
+			nand_menu ();
+			repaint = 1;
+			break;
+		case 20:
+			loader_menu ();
+			repaint = 1;
+			break;
+		case 21:
+			register_menu ();
+			repaint = 1;
+			break;
+		case 22:
+			quiet = 1;
+			timer_trace_main ();
+			quiet = 0;
+			repaint = 1;
+			break;
+		case 23:
+			cpuinfo ();
+			repaint = 1;
+			break;
+		default:
+			break;
 		}
 	}
 

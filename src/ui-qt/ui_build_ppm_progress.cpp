@@ -314,7 +314,7 @@ void PPModd_Build_Thread::run()
 			process_percent = 99;
 
 			t_workspace *ws2 = workspace_create_file_from_buffer ( ret_buffer, ret_length );
-			file_sync ( ws2->fileinfo->stages );
+			file_sync ( ws2->fileinfo );
 			workspace_update_memmap ( ws2 );
 
 			result_treenode = xml_connector_parse ( v_get_str ( ws2, 0 ) );

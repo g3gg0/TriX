@@ -154,6 +154,7 @@ seer_init (  )
 	scAddExtSym ( memcmp );
 	scAddExtSym ( memcpy );
 	scAddExtSym ( memmove );
+	scAddExtSym ( memset );
 	scAddExtSym ( strcat );
 	scAddExtSym ( strcmp );
 	scAddExtSym ( strncmp );
@@ -185,7 +186,9 @@ seer_init (  )
 	options_add_core_option ( OPT_INT, "seer", signature_details, "Detail level when showing signature (0-4)" );
 	options_add_core_option ( OPT_INT, "seer", seer_stack_size, "Script stack size" );
 	options_add_core_option ( OPT_INT, "seer", seer_debug_ins, "Insert debug information in compiled scripts. 0=off, 1=file:line, 2=file:line:code (may cause bugs!!)" );
+#ifdef DEBUG
 	options_add_core_option ( OPT_BOOL, "seer", debug_flag, "verbose debug information" );
+#endif
 	return E_OK;
 }
 
@@ -255,7 +258,7 @@ seer_execute ( scScript sc )
 
 	if ( scErrorNo )
 	{
-		printf ( "Runtime error :\n%s\n", scErrorMsg );
+		printf ( "\nScript execution failed:\n%s\n", scErrorMsg );
 		retval = E_FAIL;
 	}
 
@@ -324,6 +327,8 @@ seer_run ( char *script )
 	char *new_script = NULL;
 	unsigned int oldstate = 0;
 	unsigned char oldmark[2];
+
+	seer_allow_script ();
 
 	mem_get_state_mark ( &oldstate, oldmark );
 	mem_set_state_mark ( 0xDEADBEEF, "sc" );

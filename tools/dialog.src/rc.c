@@ -1,5 +1,5 @@
 /*
- *  $Id: rc.c,v 1.1 2006/06/28 13:53:39 geggo Exp $
+ *  $Id: rc.c 1521 2006-06-28 13:53:39Z geggo $
  *
  *  rc.c -- routines for processing the configuration file
  *

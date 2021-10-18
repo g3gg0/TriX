@@ -65,6 +65,7 @@ t_stage *stage_get_last ( t_stage * s );
 t_stage *stage_duplicate ( t_stage * s );
 t_stage *stage_get_current ( t_stage * s );
 t_stage_info *stage_save_info ( t_stage * s );
+unsigned int stage_release_info ( t_stage_info *info );
 
 unsigned int stage_release ( t_stage * s );
 unsigned int stage_release_all ( t_stage * s );

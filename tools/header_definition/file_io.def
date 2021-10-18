@@ -3,3 +3,5 @@
 	unsigned int (*release) ( t_fileinfo * fi);
 	unsigned int (*release_all) ( t_fileinfo * fi);
 	unsigned int (*write) ( const char *filename, const t_fileinfo * fi);
+ 	int (*create_directory) ( char *dirname);
+ 	t_fileinfo *(*open_directory) ( char *path, unsigned int *ret_entries);

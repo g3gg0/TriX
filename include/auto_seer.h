@@ -7,7 +7,7 @@
 	"import char *__str ( char *str);\n"\
 	"import unsigned int __seer_init ( );\n"\
 	"import unsigned int __seer_execute ( scScript sc);\n"\
-	"import int __seer_progresscallback ( int percent);\n"\
+	"import unsigned int __seer_progresscallback ( int percent);\n"\
 	"import unsigned int __seer_handle_include ( char **script);\n"\
 	"import unsigned int __seer_run ( char *script);\n"\
 	"import unsigned int __seer_add_header ( unsigned char *section, unsigned char *header);\n"\
@@ -23,7 +23,7 @@
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">__str</font>&nbsp;(&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">str</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__seer_init</font>&nbsp;(&nbsp;);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__seer_execute</font>&nbsp;(&nbsp;<font color=\"#000000\">scScript</font>&nbsp;<font color=\"#000000\">sc</font>);<br>"\
-	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__seer_progresscallback</font>&nbsp;(&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">percent</font>);<br>"\
+	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__seer_progresscallback</font>&nbsp;(&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">percent</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__seer_handle_include</font>&nbsp;(&nbsp;<font color=\"#800000\">char</font>&nbsp;**<font color=\"#000000\">script</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__seer_run</font>&nbsp;(&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">script</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__seer_add_header</font>&nbsp;(&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">section</font>,&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">header</font>);<br>"\

@@ -1,5 +1,5 @@
 /*
- *  $Id: menubox.c,v 1.1 2006/06/28 13:53:39 geggo Exp $
+ *  $Id: menubox.c 1521 2006-06-28 13:53:39Z geggo $
  *
  *  menubox.c -- implements the menu box
  *

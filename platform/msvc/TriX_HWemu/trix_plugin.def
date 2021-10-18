@@ -1,2 +1,3 @@
+LIBRARY	"TriX_HWemu.txp"
 EXPORTS
 	trix_plugin_info @1

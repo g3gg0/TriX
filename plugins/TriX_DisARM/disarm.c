@@ -4,12 +4,6 @@
 /*! \file disarm.c
  */
 
-
-
-#ifdef WIN32
-//    #include <windows.h>
-#endif
-
 #include "defines.h"
 #include "seer.h"
 #include "segment.h"
@@ -66,17 +60,6 @@ unsigned int disarm_address ( t_workspace *ws, unsigned char *dest, unsigned int
 	return print_instruction ( dest, address, NULL, address, is_thumb, (void *)ws );
 }
 
-typedef unsigned char  byte;
-typedef unsigned short hword;
-typedef unsigned long  word;
-
-typedef unsigned char  u8;
-typedef unsigned short u16;
-typedef unsigned long  u32;
-
-typedef signed char  s8;
-typedef signed short s16;
-typedef signed long  s32;
 
 u8   read_byte (u32 address, void*i)
 {
@@ -103,7 +86,7 @@ u32  read_aligned_word (u32 address, void*i)
 	return v_get_w ( i, address & ~3 );
 }
 
-void write_byte (word address, byte data, void*i)
+void write_byte (u32 address, u8 data, void*i)
 {
 	v_set_b ( i, address, data );
 }

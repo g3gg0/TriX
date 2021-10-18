@@ -97,8 +97,10 @@
 #define   TYPE5_MOVRH 0x09 << TYPE5_T_O 
 #define   TYPE5_MOVHR 0x0A << TYPE5_T_O 
 #define   TYPE5_MOVHH 0x0B << TYPE5_T_O 
-#define   TYPE5_BXR   0x0C << TYPE5_T_O 
-#define   TYPE5_BXH   0x0D << TYPE5_T_O 
+#define   TYPE5_BXR   0x0C << TYPE5_T_O
+#define   TYPE5_BXH   0x0D << TYPE5_T_O
+#define   TYPE5_BLXR  0x0E << TYPE5_T_O
+#define   TYPE5_BLXH  0x0F << TYPE5_T_O
 
 #define   TYPE6      0x4800
 #define   TYPE6_D_O  0x08
@@ -220,11 +222,12 @@
 
 #define   TYPE18       0xE000
 
-#define   TYPE19     0xF000
-#define   TYPE19_LO  0x0800
-#define   TYPE19_HI  0x0000
+#define   TYPE19_BL    0xF000
+#define   TYPE19_BLX   0xE000
+#define   TYPE19_LO    0x0800
+#define   TYPE19_HI    0x0000
 
-#define   TYPE_NOP   0x46C0
+#define   TYPE_NOP     0x46C0
 
 
 #define ROL(val) {val = (val << 1) | (val >> 31 ); }
@@ -434,14 +437,14 @@
 #define   REG32_R15    0x0f
 #define   REG32_UNK    0xFF
 
-#define   ALIGN_2    if ( (c->bytes / 2) * 2 != c->bytes) return -E_WRONG_ALIGN;
-#define   ALIGN_4    if ( (c->bytes / 4) * 4 != c->bytes) return -E_WRONG_ALIGN;
+#define   ALIGN_2    if ( ((c->start + c->bytes) / 2) * 2 != (c->start + c->bytes)) return -E_WRONG_ALIGN;
+#define   ALIGN_4    if ( ((c->start + c->bytes) / 4) * 4 != (c->start + c->bytes)) return -E_WRONG_ALIGN;
 
 
 int set_path ( char* p );
 char *getparm ( char *t, unsigned int p );
 int getparms ( char *t );
 unsigned int pt ( char *p );
-int asm_inject_bl ( void * base, void * offset, void *src, void * jmp_addr );
+int asm_inject_bl ( struct code_data *c, unsigned int src, unsigned int jmp_addr, int type );
 
 

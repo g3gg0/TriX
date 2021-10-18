@@ -1,12 +1,16 @@
 #ifndef __TRIX_TRIXPLUG_H__
 #define __TRIX_TRIXPLUG_H__
 
-
-#ifdef WIN32
+#if defined (WIN32) && defined(TRIXPLUG_DL_MEMORY)
 #define TRIXPLUGIN_API __declspec(dllexport)
 #define DL_OPEN MemoryLoadLibrary
 #define DL_CLOSE MemoryFreeLibrary
 #define DL_SYM  MemoryGetProcAddress
+#elif defined (WIN32)
+#define TRIXPLUGIN_API __declspec(dllexport)
+#define DL_OPEN LoadLibrary
+#define DL_CLOSE FreeLibrary
+#define DL_SYM  GetProcAddress
 #else
 #define TRIXPLUGIN_API
 #define DL_OPEN(x)   dlopen (x,RTLD_LAZY)
@@ -37,6 +41,10 @@
 #define E_PLUGIN_INVALID         -4
 #define E_PLUGIN_UNKNOWN         -5
 
+typedef unsigned int (*dll_init_func) (  );
+typedef unsigned int (*dll_cleanup_func) (  );
+typedef unsigned char *(*dll_lasterror_func) (  );
+
 #define PLUGIN_INFO_NAME       0x0001
 #define PLUGIN_INFO_INIT       0x0002
 #define PLUGIN_INFO_CLEANUP    0x0003
@@ -44,6 +52,7 @@
 #define PLUGIN_INFO_FUNCS      0x0005
 #define PLUGIN_INFO_INTERFACE  0x0006
 #define PLUGIN_INFO_VERSION    0x0007
+#define PLUGIN_INFO_LASTERROR  0x0008
 #define PLUGIN_INFO_END        { 0, NULL, NULL }
 
 #define PLUGIN_INFO_FINISH      PLUGIN_INFO_END }; 
@@ -57,6 +66,7 @@ PLUGIN_FUNCTIONS(ft)
 #define PLUGIN_VERSION(major,minor) { PLUGIN_INFO_VERSION, (void*)major, (void*)minor },
 #define PLUGIN_INIT(func)			{ PLUGIN_INFO_INIT, (void*)func, (void*)#func },
 #define PLUGIN_CLEANUP(func)		{ PLUGIN_INFO_CLEANUP, (void*)func, (void*)#func },
+#define PLUGIN_LASTERROR(func)   	{ PLUGIN_INFO_LASTERROR, (void*)func, (void*)#func },
 #define PLUGIN_OPTION(opt)			{ PLUGIN_INFO_OPTIONS, (void*)opt, (void*)#opt },
 #define PLUGIN_FUNCTIONS(ft)		{ PLUGIN_INFO_FUNCS, (void*)&ft, (void*)#ft },
 #define PLUGIN_INTERFACE			{ PLUGIN_INFO_INTERFACE, (void*)TRIXPLUG_MAJOR, (void*)TRIXPLUG_MINOR },
@@ -113,6 +123,7 @@ t_plugin_entry *trixplug_get_plugins ();
 unsigned int trixplug_set_notification ( void *target, void* object );
 void trixplug_notify ( );
 unsigned int trixplug_init ( );
+unsigned int trixplug_handle_load ( unsigned char **plugin, unsigned int length, unsigned char *desc );
 
 #endif
 

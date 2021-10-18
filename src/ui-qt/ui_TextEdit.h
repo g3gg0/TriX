@@ -1,8 +1,8 @@
 /********************************************************************************
 ** Form generated from reading ui file 'TextEdit.ui'
 **
-** Created: Thu 21. Feb 15:53:12 2008
-**      by: Qt User Interface Compiler version 4.3.2
+** Created: Wed 21. Aug 22:19:57 2013
+**      by: Qt User Interface Compiler version 4.5.1
 **
 ** WARNING! All changes made in this file will be lost when recompiling ui file!
 ********************************************************************************/
@@ -16,10 +16,13 @@
 #include <QtGui/QButtonGroup>
 #include <QtGui/QDialog>
 #include <QtGui/QHBoxLayout>
+#include <QtGui/QHeaderView>
 #include <QtGui/QPushButton>
 #include <QtGui/QSpacerItem>
 #include <QtGui/QTableWidget>
 #include <QtGui/QVBoxLayout>
+
+QT_BEGIN_NAMESPACE
 
 class Ui_dlgTextEdit
 {
@@ -33,60 +36,60 @@ public:
 
     void setupUi(QDialog *dlgTextEdit)
     {
-    if (dlgTextEdit->objectName().isEmpty())
-        dlgTextEdit->setObjectName(QString::fromUtf8("dlgTextEdit"));
-    dlgTextEdit->resize(691, 678);
-    dlgTextEdit->setModal(true);
-    vboxLayout = new QVBoxLayout(dlgTextEdit);
+        if (dlgTextEdit->objectName().isEmpty())
+            dlgTextEdit->setObjectName(QString::fromUtf8("dlgTextEdit"));
+        dlgTextEdit->resize(691, 678);
+        dlgTextEdit->setModal(true);
+        vboxLayout = new QVBoxLayout(dlgTextEdit);
 #ifndef Q_OS_MAC
-    vboxLayout->setSpacing(6);
+        vboxLayout->setSpacing(6);
 #endif
 #ifndef Q_OS_MAC
-    vboxLayout->setMargin(9);
+        vboxLayout->setMargin(9);
 #endif
-    vboxLayout->setObjectName(QString::fromUtf8("vboxLayout"));
-    tableWidget = new QTableWidget(dlgTextEdit);
-    tableWidget->setObjectName(QString::fromUtf8("tableWidget"));
+        vboxLayout->setObjectName(QString::fromUtf8("vboxLayout"));
+        tableWidget = new QTableWidget(dlgTextEdit);
+        tableWidget->setObjectName(QString::fromUtf8("tableWidget"));
 
-    vboxLayout->addWidget(tableWidget);
+        vboxLayout->addWidget(tableWidget);
 
-    hboxLayout = new QHBoxLayout();
+        hboxLayout = new QHBoxLayout();
 #ifndef Q_OS_MAC
-    hboxLayout->setSpacing(6);
+        hboxLayout->setSpacing(6);
 #endif
-    hboxLayout->setMargin(0);
-    hboxLayout->setObjectName(QString::fromUtf8("hboxLayout"));
-    spacerItem = new QSpacerItem(131, 31, QSizePolicy::Expanding, QSizePolicy::Minimum);
+        hboxLayout->setMargin(0);
+        hboxLayout->setObjectName(QString::fromUtf8("hboxLayout"));
+        spacerItem = new QSpacerItem(131, 31, QSizePolicy::Expanding, QSizePolicy::Minimum);
 
-    hboxLayout->addItem(spacerItem);
+        hboxLayout->addItem(spacerItem);
 
-    okButton = new QPushButton(dlgTextEdit);
-    okButton->setObjectName(QString::fromUtf8("okButton"));
+        okButton = new QPushButton(dlgTextEdit);
+        okButton->setObjectName(QString::fromUtf8("okButton"));
 
-    hboxLayout->addWidget(okButton);
+        hboxLayout->addWidget(okButton);
 
-    cancelButton = new QPushButton(dlgTextEdit);
-    cancelButton->setObjectName(QString::fromUtf8("cancelButton"));
+        cancelButton = new QPushButton(dlgTextEdit);
+        cancelButton->setObjectName(QString::fromUtf8("cancelButton"));
 
-    hboxLayout->addWidget(cancelButton);
-
-
-    vboxLayout->addLayout(hboxLayout);
+        hboxLayout->addWidget(cancelButton);
 
 
-    retranslateUi(dlgTextEdit);
-    QObject::connect(okButton, SIGNAL(clicked()), dlgTextEdit, SLOT(accept()));
-    QObject::connect(cancelButton, SIGNAL(clicked()), dlgTextEdit, SLOT(reject()));
+        vboxLayout->addLayout(hboxLayout);
 
-    QMetaObject::connectSlotsByName(dlgTextEdit);
+
+        retranslateUi(dlgTextEdit);
+        QObject::connect(okButton, SIGNAL(clicked()), dlgTextEdit, SLOT(accept()));
+        QObject::connect(cancelButton, SIGNAL(clicked()), dlgTextEdit, SLOT(reject()));
+
+        QMetaObject::connectSlotsByName(dlgTextEdit);
     } // setupUi
 
     void retranslateUi(QDialog *dlgTextEdit)
     {
-    dlgTextEdit->setWindowTitle(QApplication::translate("dlgTextEdit", "Text Edit", 0, QApplication::UnicodeUTF8));
-    okButton->setText(QApplication::translate("dlgTextEdit", "OK", 0, QApplication::UnicodeUTF8));
-    cancelButton->setText(QApplication::translate("dlgTextEdit", "Cancel", 0, QApplication::UnicodeUTF8));
-    Q_UNUSED(dlgTextEdit);
+        dlgTextEdit->setWindowTitle(QApplication::translate("dlgTextEdit", "Text Edit", 0, QApplication::UnicodeUTF8));
+        okButton->setText(QApplication::translate("dlgTextEdit", "OK", 0, QApplication::UnicodeUTF8));
+        cancelButton->setText(QApplication::translate("dlgTextEdit", "Cancel", 0, QApplication::UnicodeUTF8));
+        Q_UNUSED(dlgTextEdit);
     } // retranslateUi
 
 };
@@ -94,5 +97,7 @@ public:
 namespace Ui {
     class dlgTextEdit: public Ui_dlgTextEdit {};
 } // namespace Ui
+
+QT_END_NAMESPACE
 
 #endif // UI_TEXTEDIT_H

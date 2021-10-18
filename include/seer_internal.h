@@ -119,7 +119,7 @@ typedef long int64;
 //#define  MALLOC_DEBUG
 //fflush every debX... - slows down everything as hell
 
-#define DEBUG
+//#define DEBUG
 
 //When DEBUG is on, the DEBUGLEVEL says:
 //0 - log all

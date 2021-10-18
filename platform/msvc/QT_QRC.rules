@@ -10,7 +10,7 @@
 			CommandLine="$(QTDIR)/bin/rcc.exe &quot;$(InputPath)&quot; -o ..\..\src\ui-qt\$(InputName).cpp"
 			Outputs="..\..\src\ui-qt\$(InputName).cpp"
 			FileExtensions="*.qrc"
-			ExecutionDescription="Creating UI File ..\..\src\ui-qt\\$(InputName).cpp"
+			ExecutionDescription="Creating UI File ..\..\src\ui-qt\$(InputName).cpp"
 			>
 			<Properties>
 			</Properties>

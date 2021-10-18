@@ -25,8 +25,8 @@ int seer_in_system_call = 0;
 int seer_memory_check = 1;
 unsigned char *seer_system_call = NULL;
 
-extern unsigned int seer_debug_ins;
-
+extern int seer_debug_ins;
+extern char seer_exception_text[];
 
 void seer_abort_script ()
 {
@@ -86,6 +86,7 @@ int seer_is_aborted ()
 #define DoOper3(typ1,typ2,op) *((int*)v1.what)=(*((typ1*)v1.what)) op (*((typ2*)v2.what));
 
 #define MEMCHECK_MESSAGE \
+	do {\
 		printf ( "###\n" ); \
 		printf ( "### ERROR: SCRIPT ACCESSED NON-ALLOCATED MEMORY\n"  ); \
 		printf ( "###\n" ); \
@@ -115,7 +116,42 @@ int seer_is_aborted ()
 				break;\
 			\
 		}\
+	} while(0)
 
+
+#define FATAL_MESSAGE(msg) \
+	do {\
+		printf ( "###\n" ); \
+		printf ( "### ERROR:  THE CURRENT SCRIPT CAUSED A FATAL ERROR\n"  ); \
+		printf ( "### REASON: %s\n", msg  ); \
+		printf ( "###\n" ); \
+		\
+		switch ( seer_debug_ins )\
+		{\
+			case 1:\
+				printf ( "###  file: <%s>\n", current_file );\
+				printf ( "###  line: <%i>\n", current_line );\
+				printf ( "###\n" ); \
+				printf ( "###  set 'core.seer.seer_debug_ins' to 2 to\n" ); \
+				printf ( "###      enable more debug information     \n" ); \
+				printf ( "###\n" ); \
+				break;\
+			\
+			case 2:\
+				printf ( "###  file: <%s>\n", current_file );\
+				printf ( "###  line: <%i>\n", current_line );\
+				printf ( "###  code: <%s>\n", current_srcline );\
+				printf ( "###\n" ); \
+				break;\
+			\
+			default:\
+				printf ( "### set 'core.seer.seer_debug_ins' to 1 or 2 to\n" ); \
+				printf ( "###       enable more debug information        \n" ); \
+				printf ( "###\n" ); \
+				break;\
+			\
+		}\
+	} while(0)
 
 #define MEMCHECK_ADDR(x) \
 	if ( seer_memory_check && !mem_is_valid(x)  ) \
@@ -263,6 +299,12 @@ Executor ( scInstance * Ins, int speed )
 			srcline_length = (opc[1]<<16) | (opc[2]<<8) | opc[3];
 			current_srcline = Ins->code+Register[regCS]+Register[regIP];
 
+			/* trim leading spaces/tabs */
+			while(current_srcline != NULL && (*current_srcline == ' ' || *current_srcline == '\t'))
+			{
+				current_srcline++;
+			}
+
 			deb1 ( "[%d]", srcline_length );
             deb1 ( "[%s]", current_srcline );
 
@@ -401,15 +443,15 @@ Executor ( scInstance * Ins, int speed )
                         }
                         break;
                     case adrES:
-                        ( char * ) ( v1.what ) += Register[regES];
+                        v1.what = (int*)((unsigned char*)v1.what + Register[regES]);
                         deb0 ( "ES" );
                         break;
                     case adrDS:
-                        ( char * ) ( v1.what ) += Register[regDS];
+                        v1.what = (int*)((unsigned char*)v1.what + Register[regDS]);
                         deb0 ( "DS" );
                         break;
                     case adrBP:
-                        ( char * ) ( v1.what ) += Register[regBP];
+                        v1.what = (int*)((unsigned char*)v1.what + Register[regBP]);
                         deb0 ( "BP" );
                         break;
                 }
@@ -430,12 +472,14 @@ Executor ( scInstance * Ins, int speed )
 					memcheck_skip_v1 = 1;
                 }
             }
+			MEMCHECK ( v1.what );
             deb1 ( "(=$%d) ", *( ( int * ) v1.what ) );
             switch ( opc[0] & 63 )
             {
                 case opvcpuPUSH:
 					MEMCHECK;
                     deb0 ( "PUSH " );
+					MEMCHECK ( v1.what );
                     PushInt ( *( ( int * ) v1.what ) );
                     deb3 ( "(SP=%d,@%d,BP=%d) ", Register[regSP], Register[regSS] + Register[regSP], Register[regBP] );
                     break;
@@ -545,15 +589,15 @@ Executor ( scInstance * Ins, int speed )
                         }
                         break;
                     case adrES:
-                        ( char * ) ( v1.what ) += Register[regES];
+                        v1.what = (int*)((unsigned char*)v1.what + Register[regES]);
                         deb0 ( "ES" );
                         break;
                     case adrDS:
-                        ( char * ) ( v1.what ) += Register[regDS];
+                        v1.what = (int*)((unsigned char*)v1.what + Register[regDS]);
                         deb0 ( "DS" );
                         break;
                     case adrBP:
-                        ( char * ) ( v1.what ) += Register[regBP];
+                        v1.what = (int*)((unsigned char*)v1.what + Register[regBP]);
                         deb1 ( "{%d}", ( int ) v1.what );
                         deb0 ( "BP" );
                         break;
@@ -617,15 +661,15 @@ Executor ( scInstance * Ins, int speed )
                         }
                         break;
                     case adrES:
-                        ( char * ) ( v2.what ) += Register[regES];
+                        v2.what = (int*)((unsigned char*)v2.what + Register[regES]);
                         deb0 ( "ES" );
                         break;
                     case adrDS:
-                        ( char * ) ( v2.what ) += Register[regDS];
+                        v2.what = (int*)((unsigned char*)v2.what + Register[regDS]);
                         deb0 ( "DS" );
                         break;
                     case adrBP:
-                        ( char * ) ( v2.what ) += /*Register[regSS]+ */ Register[regBP];
+                        v2.what = (int*)((unsigned char*)v2.what + /*Register[regSS]+ */ Register[regBP]);
                         deb1 ( "{%d}", ( int ) v2.what );
                         deb0 ( "BP" );
                         break;
@@ -667,6 +711,12 @@ Executor ( scInstance * Ins, int speed )
 
 					current_line = *( ( int * ) v1.what );
 					current_srcline = Ins->code+Register[regCS] + *( ( int * ) v2.what );
+
+					/* trim leading spaces/tabs */
+					while(current_srcline != NULL && (*current_srcline == ' ' || *current_srcline == '\t'))
+					{
+						current_srcline++;
+					}
 
 					deb1 ( "[%s]:", current_srcline );
 					deb1 ( "[%d]", current_line );
@@ -749,8 +799,7 @@ Executor ( scInstance * Ins, int speed )
                                 *( ( int * ) Ins->data_stack ) = *( ( int * ) h->ins->data_stack );
 
                         }
-                        else
-                            //imported function
+                        else //imported function
                         {
                             if ( ( *( ( unsigned int * ) v2.what ) ) & scDispatch_Void )
                                 result = &x;
@@ -758,7 +807,15 @@ Executor ( scInstance * Ins, int speed )
                                 result = &Register[0];
 							HEAP_CHECK;
 							if ( scUserFunctionDispatcher[nr] && scUserFunctionDispatcher[nr] != 0xFFFFFFFF )
-								scUserFunctionDispatcher[nr] ( result, ( void * ) x, ( int * ) ( Register[regSS] + Register[regSP] ), num, *( ( unsigned int * ) v2.what ) );
+							{
+								int ret = scUserFunctionDispatcher[nr] ( result, ( void * ) x, ( int * ) ( Register[regSS] + Register[regSP] ), num, *( ( unsigned int * ) v2.what ) );
+
+								if(ret)
+								{
+									FATAL_MESSAGE(seer_exception_text);
+									rerr ( "A native call caused an exception.");
+								}
+							}
 							HEAP_CHECK;
                         }
                         scActual_Instance = Ins;    //in case it changes Actual_Instance (like Kernel call)

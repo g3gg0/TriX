@@ -9,12 +9,12 @@
 pthread_t thread_id;
 unsigned int _beginthread ( void *func, int opt, void *parm )
 {
-    return pthread_create ( &thread_id, NULL, func, parm );
+	return pthread_create ( &thread_id, NULL, func, parm );
 }
 
 int Sleep ( int ms )
 {
-    return usleep ( 1000 * ms );
+	return usleep ( 1000 * ms );
 }
 
 #endif 
@@ -26,11 +26,36 @@ int Sleep ( int ms )
 #include "arm.h"
 
 extern int abort_situation;
+extern unsigned int async_mode;
 extern unsigned int timeout_breakpoint;
+extern unsigned int (*armulate_exec_callback)(unsigned int);
 
+extern u32 armulate_cp15_cpuid;
+extern u32 armulate_cp15_cache_type;
+extern u32 armulate_cp15_tcm_size;
+extern u32 armulate_cp15_control_reg;
+
+extern u32 armulate_cp15_prot_reg[8];
+extern u32 armulate_cp15_data_perm_old;
+extern u32 armulate_cp15_instr_perm_old;
+extern u32 armulate_cp15_data_perm;
+extern u32 armulate_cp15_instr_perm;
+
+extern u32 armulate_cp15_data_cachable;
+extern u32 armulate_cp15_instr_cachable;
+extern u32 armulate_cp15_bufferable;
+
+u32 armulate_mcr_int_waiting = 0;
+u32 armulate_mcr_int_happened = 0;
+
+u32 task_parm[3];
+u32 run_task_ctrl = 0;
 u32 (*instr_exec) (void);
 void (*instr_advance)(void);
- 
+void swi(void);
+void irq(void);
+void fiq(void);
+
 
 #include "emu.h"
 #include "opcodes.h"
@@ -42,18 +67,104 @@ void (*instr_advance)(void);
 
 int armulate_is_bp ( unsigned int address );
 int armulate_is_skipped ( unsigned int address );
-
-
 void skip_next (void);
+u32 read_aligned_word_instruction (u32 address, ARM7TDMI *emu);
+u16 read_hword_instruction (u32 address, ARM7TDMI *emu);
+
+
+void backup_cpustate ()
+{
+	memcpy ( &arm_backup, arm, sizeof (ARM7TDMI) );
+}
+
+void restore_cpustate ()
+{
+	memcpy ( arm, &arm_backup, sizeof (ARM7TDMI) );
+}
+
+void fill_instruction_pipe (void)  
+{
+	if ( abort_situation )
+		return;
+	if ( !arm )
+		return;
+
+	OPCODE = read_aligned_word_instruction (arm->gp_reg_USER [15], NULL);	
+
+	if ( abort_situation )
+		abort_situation = ARMULATE_ABORT_MEMORY_EX;
+	else
+		arm->gp_reg_USER [15] += 8;									 			
+}   
+
+void advance_instruction_pipe (void)
+{
+	if ( abort_situation )
+		return;
+	if ( !arm )
+		return;
+
+	if ( arm->pc_changed )
+	{
+		arm->pc_changed = 0;
+		pc_changed ();
+		return;
+	}
+
+	OPCODE = read_aligned_word_instruction (arm->gp_reg_USER [15] - 4, NULL); 
+
+	if ( abort_situation )
+		abort_situation = ARMULATE_ABORT_MEMORY_EX;
+	else
+		arm->gp_reg_USER [15] += 4; 
+}
+
+void tfill_instruction_pipe (void)
+{
+	if ( abort_situation )
+		return;
+	if ( !arm )
+		return;
+
+	OPCODE_T = read_hword_instruction (arm->gp_reg_USER [15], NULL);
+
+	if ( abort_situation )
+		abort_situation = ARMULATE_ABORT_MEMORY_EX;
+	else
+		arm->gp_reg_USER [15] += 4;
+}
+
+void tadvance_instruction_pipe (void)
+{
+	if ( abort_situation )
+		return;
+
+	if ( arm->pc_changed )
+	{
+		arm->pc_changed = 0;
+		pc_changed ();
+		return;
+	}
+
+	OPCODE_T = read_hword_instruction (arm->gp_reg_USER [15] - 2, NULL); 
+
+	if ( abort_situation )
+		abort_situation = ARMULATE_ABORT_MEMORY_EX;
+	else
+		arm->gp_reg_USER [15] += 2; 
+}
+
 
 u32 arm_exec (void)
 {
 	int ret = 0;
-	unsigned char buffer[1024];
-
+	int pos = 0;
+	u32 (*handler)() = unknown_opcode;
 
 	if ( armulate_is_bp ( get_ARM_reg(15) - 8 ) )
+	{
 		return ARMULATE_BP_REACHED;
+	}
 
 	if ( armulate_is_skipped ( get_ARM_reg(15) - 8 ) )
 	{
@@ -61,80 +172,95 @@ u32 arm_exec (void)
 		return ARMULATE_SKIPPED;
 	}
 
+    /* backup state in case of some abort, it will get restored below */
 	backup_cpustate();
 
-	switch (CONDITION_MASK) {
-	
-		case 0:
-				if (ZFLAG) 
-					ret = opcode_handles[OPCODE_MASK]();
-				break;
-		case 1:
-				if (!ZFLAG)
-					ret = opcode_handles[OPCODE_MASK]();
-				break;
-		case 2:
-				if (CFLAG)
-					ret = opcode_handles[OPCODE_MASK]();
-				break;
-		case 3:
-				if (!CFLAG)
-					ret = opcode_handles[OPCODE_MASK]();
-				break;
-		case 4:
-				if (NFLAG)				
-					ret = opcode_handles[OPCODE_MASK]();
-				break;
-		case 5:
-				if (!NFLAG)
-					ret = opcode_handles[OPCODE_MASK]();
-				break;
-		case 6:
-				if (VFLAG)
-					ret = opcode_handles[OPCODE_MASK]();
-				break;
-		case 7:
-				if (!VFLAG)				
-					ret = opcode_handles[OPCODE_MASK]();
-				break;
-		case 8:
-				if (CFLAG && !ZFLAG)
-					ret = opcode_handles[OPCODE_MASK]();
-				break;
-		case 9:
-				if (!CFLAG || ZFLAG)
-					ret = opcode_handles[OPCODE_MASK]();
-				break;
-		case 10:
-				if (NFLAG == VFLAG)
-					ret = opcode_handles[OPCODE_MASK]();
-				break;
-		case 11:
-				if (NFLAG != VFLAG)
-					ret = opcode_handles[OPCODE_MASK]();
-				break;
-		case 12:
-				if (!ZFLAG && (NFLAG == VFLAG))
-					ret = opcode_handles[OPCODE_MASK]();
-				break;
-		case 13:
-				if (ZFLAG || (NFLAG != VFLAG))
-					ret = opcode_handles[OPCODE_MASK]();
-				break;
-		case 14:
-				ret = opcode_handles[OPCODE_MASK]();
-				break;
-		default:
-//				sprintf ( buffer, "0x%08X: SPECIAL INSTR\n", get_ARM_reg(15) - 4 );
-//				armulate_warn ( buffer );
-				ret = opcode_handles_special[OPCODE_MASK]();
+	pos = OPCODE_MASK;
+
+	if(pos > 0x1000)
+	{
+		return ARMULATE_INV_INSTR;
 	}
+
+	if( get_ARM_reg(15) == 0xFF1F6A08 && (get_ARM_reg(0) > get_ARM_reg(5)))
+	{
+		return ARMULATE_BP_REACHED;
+	}
+
+	handler = opcode_handles[pos];
+
+	switch (CONDITION_MASK) {
+
+		case 0:
+			if (ZFLAG) 
+				ret = handler();
+			break;
+		case 1:
+			if (!ZFLAG)
+				ret = handler();
+			break;
+		case 2:
+			if (CFLAG)
+				ret = handler();
+			break;
+		case 3:
+			if (!CFLAG)
+				ret = handler();
+			break;
+		case 4:
+			if (NFLAG)				
+				ret = handler();
+			break;
+		case 5:
+			if (!NFLAG)
+				ret = handler();
+			break;
+		case 6:
+			if (VFLAG)
+				ret = handler();
+			break;
+		case 7:
+			if (!VFLAG)				
+				ret = handler();
+			break;
+		case 8:
+			if (CFLAG && !ZFLAG)
+				ret = handler();
+			break;
+		case 9:
+			if (!CFLAG || ZFLAG)
+				ret = handler();
+			break;
+		case 10:
+			if (NFLAG == VFLAG)
+				ret = handler();
+			break;
+		case 11:
+			if (NFLAG != VFLAG)
+				ret = handler();
+			break;
+		case 12:
+			if (!ZFLAG && (NFLAG == VFLAG))
+				ret = handler();
+			break;
+		case 13:
+			if (ZFLAG || (NFLAG != VFLAG))
+				ret = handler();
+			break;
+		case 14:
+				ret = handler();
+			break;
+		default:
+			ret = opcode_handles_special[pos]();
+	}
+
 	if ( abort_situation )
 	{
 		restore_cpustate();
 		ret = ARMULATE_EXCEPTION | abort_situation;
 		abort_situation = 0;
 	}
+
 	if ( !ret )
 	{
 		advance_instruction_pipe();
@@ -172,8 +298,8 @@ u32 thumb_exec (void)
 void pc_changed ()
 {
 	if ( !arm )
-	    return;
-	    
+		return;
+
 	arm->pc_changed = 0;
 
 	if ( CPSR & T_BIT )
@@ -190,60 +316,26 @@ void pc_changed ()
 	}
 }
 
-
-int set_pointers ( t_emustate *state )
+void free_emu ( )
 {
-	if ( !state )
-		return 1;
-
-	arm         = state->arm;
-	pDoc        = state->pDoc;
-	meminterface= state->memint;
-
-	return 0;
-}
-
-void free_emu ( t_emustate *state )
-{
-	if ( state )
+	if ( arm )
 	{
-		free ( state->arm );
-		free ( state );
+		free ( arm );
 	}
 }
 
-void clean_up (t_emustate *state )
+ARM7TDMI *init_emu (void)
 {
-}
+	arm = malloc (sizeof(ARM7TDMI));
+	if ( !arm )
+		return NULL;
 
+	memset(arm, 0, sizeof(ARM7TDMI));
+	arm->cpsr = SUPERVISOR_MODE | IRQ_BIT | FIQ_BIT;
 
-t_emustate *init_emu (void)
-{
-	t_emustate *state = malloc ( sizeof (t_emustate) );
-	state->arm = malloc (sizeof(ARM7TDMI));
-	if ( !state->arm )
-	    return NULL;
-
-	memset(state->arm, 0, sizeof(ARM7TDMI));
-	state->arm->cpsr = USER_MODE;
- 
-	set_pointers ( state );
 	setup_tables ();
 
-	return state;
-}
-
-void *get_memint ()
-{
-	return meminterface;
-}
-
-void place_emu (word pc, int is_thumb)
-{
-	if ( !arm )
-		return;
-	set_ARM_reg(15, pc);
-
+	return arm;
 }
 
 void copy_registers()
@@ -252,7 +344,8 @@ void copy_registers()
 		return;
 	memcpy(arm->gp_reg_SAVE, arm->gp_reg_USER, 16*sizeof(u32));
 
-	switch(arm->cpsr & 0x1F){
+	switch(arm->cpsr & 0x1F)
+	{
 		case USER_MODE:
 			break;
 		case FIQ_MODE:
@@ -277,203 +370,184 @@ void copy_registers()
 	arm->cpsr_SAVE = arm->cpsr;
 }
 
-u32 get_ARM_reg(int reg)
+u32 get_ARM_reg_mode(int reg, u32 mode)
 {
 	if ( !arm || reg < 0 || reg > 15 )
+	{
 		return 0;
+	}
 
-	if (reg < 7)
+	if (reg <= 7 || reg == 15)
+	{
 		return arm->gp_reg_USER[reg];
+	}
+	else
+	{
+		switch (mode)
+		{
+			case USER_MODE:
+				return arm->gp_reg_USER[reg];
 
-	switch (arm->cpsr & 0x1F){
-		case USER_MODE:
-			return arm->gp_reg_USER[reg];
-		case FIQ_MODE:
-			if (reg <= 14)
-				return arm->gp_reg_FIQ[reg-8];
-			else
-				return arm->gp_reg_USER[reg];
-		case IRQ_MODE:
-			if (13 <= reg && reg <= 14)
-				return arm->gp_reg_IRQ[reg-13];
-			else
-				return arm->gp_reg_USER[reg];
-		case SUPERVISOR_MODE:
-			if (13 <= reg && reg <= 14)
-				return arm->gp_reg_SUPERVISOR[reg-13];
-			else
-				return arm->gp_reg_USER[reg];
-			break;
-		case ABORT_MODE:
-			if (13 <= reg && reg <= 14)
-				return arm->gp_reg_ABORT[reg-13];
-			else
-				return arm->gp_reg_USER[reg];
-			break;
-		case UNDEFINED_MODE:
-			if (13 <= reg && reg <= 14)
-				return arm->gp_reg_UNDEFINED[reg-13];
-			else
-				return arm->gp_reg_USER[reg];
-			break;
-		case SYSTEM_MODE:
-			if (13 <= reg && reg <= 14)
-				return arm->gp_reg_SYSTEM[reg-13];
-			else
-				return arm->gp_reg_USER[reg];
-			break;
-		default:
-			// Undefined
-			return 0xDEADBEEF;
+			case FIQ_MODE:
+				if (reg >= 8)
+					return arm->gp_reg_FIQ[reg-8];
+				else
+					return arm->gp_reg_USER[reg];
+
+			case IRQ_MODE:
+				if (reg == 13 || reg == 14)
+					return arm->gp_reg_IRQ[reg-13];
+				else
+					return arm->gp_reg_USER[reg];
+
+			case SUPERVISOR_MODE:
+				if (reg == 13 || reg == 14)
+					return arm->gp_reg_SUPERVISOR[reg-13];
+				else
+					return arm->gp_reg_USER[reg];
+				break;
+
+			case ABORT_MODE:
+				if (reg == 13 || reg == 14)
+					return arm->gp_reg_ABORT[reg-13];
+				else
+					return arm->gp_reg_USER[reg];
+				break;
+
+			case UNDEFINED_MODE:
+				if (reg == 13 || reg == 14)
+					return arm->gp_reg_UNDEFINED[reg-13];
+				else
+					return arm->gp_reg_USER[reg];
+				break;
+
+			case SYSTEM_MODE:
+				if (reg == 13 || reg == 14)
+					return arm->gp_reg_SYSTEM[reg-13];
+				else
+					return arm->gp_reg_USER[reg];
+				break;
+
+			default:
+				// Undefined
+				return 0xDEADBEEF;
+		}
 	}
 }
 
 void set_ARM_mode ( int mode )
 {
-    if ( !arm )
-	return;
-	
-    if ( mode == THUMB_MODE )
-	CPSR |= T_BIT;
-    else 
-	CPSR &= ~T_BIT;
+	if ( !arm )
+		return;
+
+	if ( mode == THUMB_MODE )
+	{
+		CPSR |= T_BIT;
+	}
+	else 
+	{
+		CPSR &= ~T_BIT;
+	}
 }
 
-
-void set_ARM_reg(int reg, u32 value)
+void set_ARM_reg_mode(int reg, u32 value, u32 mode)
 {
 	u32 val = value;
 
 	if ( !arm || reg < 0 || reg > 15 )
 		return;
 
-	if (reg < 8 && reg > 0)
+	if ( reg == 15 )
+	{
+		val &= ~1;  // PC never contains T bit
+	}
+
+	if (reg <= 7 || reg == 15)
 	{
 		arm->gp_reg_USER[reg] = val;
-		return;
 	}
-
-	if ( reg == 15 )
-		val &= ~1;  // PC never contains T bit
-
-	switch (arm->cpsr & 0x1F)
+	else
 	{
-		case USER_MODE:
-			arm->gp_reg_USER[reg] = val;
-			break;
-
-		case FIQ_MODE:
-			if (reg <= 14)
-				arm->gp_reg_FIQ[reg-8] = val;
-			else
+		switch (mode)
+		{
+			case USER_MODE:
 				arm->gp_reg_USER[reg] = val;
-			break;
+				break;
 
-		case IRQ_MODE:
-			if (13 <= reg && reg <= 14)
-				arm->gp_reg_IRQ[reg-13] = val;
-			else
-				arm->gp_reg_USER[reg] = val;
-			break;
+			case FIQ_MODE:
+				if (reg >= 8)
+					arm->gp_reg_FIQ[reg-8] = val;
+				else
+					arm->gp_reg_USER[reg] = val;
+				break;
 
-		case SUPERVISOR_MODE:
-			if (13 <= reg && reg <= 14)
-				arm->gp_reg_SUPERVISOR[reg-13] = val;
-			else
-				arm->gp_reg_USER[reg] = val;
-			break;
+			case IRQ_MODE:
+				if (reg == 13 || reg == 14)
+					arm->gp_reg_IRQ[reg-13] = val;
+				else
+					arm->gp_reg_USER[reg] = val;
+				break;
 
-		case ABORT_MODE:
-			if (13 <= reg && reg <= 14)
-				arm->gp_reg_ABORT[reg-13] = val;
-			else
-				arm->gp_reg_USER[reg] = val;
-			break;
+			case SUPERVISOR_MODE:
+				if (reg == 13 || reg == 14)
+					arm->gp_reg_SUPERVISOR[reg-13] = val;
+				else
+					arm->gp_reg_USER[reg] = val;
+				break;
 
-		case UNDEFINED_MODE:
-			if (13 <= reg && reg <= 14)
-				arm->gp_reg_UNDEFINED[reg-13] = val;
-			else
-				arm->gp_reg_USER[reg] = val;
-			break;
+			case ABORT_MODE:
+				if (reg == 13 || reg == 14)
+					arm->gp_reg_ABORT[reg-13] = val;
+				else
+					arm->gp_reg_USER[reg] = val;
+				break;
 
-		case SYSTEM_MODE:
-			if (13 <= reg && reg <= 14)
-				arm->gp_reg_SYSTEM[reg-13] = val;
-			else
-				arm->gp_reg_USER[reg] = val;
-			break;
+			case UNDEFINED_MODE:
+				if (reg == 13 || reg == 14)
+					arm->gp_reg_UNDEFINED[reg-13] = val;
+				else
+					arm->gp_reg_USER[reg] = val;
+				break;
 
-		default:
-			// Undefined
-			break;
+			case SYSTEM_MODE:
+				if (reg == 13 || reg == 14)
+					arm->gp_reg_SYSTEM[reg-13] = val;
+				else
+					arm->gp_reg_USER[reg] = val;
+				break;
+
+			default:
+				// Undefined
+				break;
+		}
 	}
 
 	if ( reg == 15 )
+	{
 		arm->pc_changed = 1;
-
+	}
 }
 
-void dump_ARM_regs()
+void set_ARM_reg(int reg, u32 value)
 {
-	FILE *f;
-	int i;
-	if ( !arm )
-		return;
-	
-	if (!(f = fopen("regs.txt", "wt")))
-		return;
-	fprintf(f, "CPSR: %02X\n\n", arm->cpsr);
-	fprintf(f, "User:\n");
-	for (i=0; i<16; i++)
-		fprintf(f, "\tR%02d: %8X\n", i, arm->gp_reg_USER[i]);
-
-	fprintf(f, "FIQ:\n");
-	for (i=0; i<7; i++)
-		fprintf(f, "\tR%02d: %8X\n", i+8, arm->gp_reg_FIQ[i]);
-
-	fprintf(f, "IRQ:\n");
-	for (i=0; i<2; i++)
-		fprintf(f, "\tR%02d: %8X\n", i+13, arm->gp_reg_IRQ[i]);
-
-	fprintf(f, "SUPERVISOR:\n");
-	for (i=0; i<2; i++)
-		fprintf(f, "\tR%02d: %8X\n", i+13, arm->gp_reg_SUPERVISOR[i]);
-
-	fprintf(f, "ABORT:\n");
-	for (i=0; i<2; i++)
-		fprintf(f, "\tR%02d: %8X\n", i+13, arm->gp_reg_ABORT[i]);
-
-	fprintf(f, "UNDEFINED:\n");
-	for (i=0; i<2; i++)
-		fprintf(f, "\tR%02d: %8X\n", i+13, arm->gp_reg_UNDEFINED[i]);
-
-	fprintf(f, "SYSTEM:\n");
-	for (i=0; i<2; i++)
-		fprintf(f, "\tR%02d: %8X\n", i+13, arm->gp_reg_SYSTEM[i]);
-
-	fclose(f);
+	if(reg == 14)
+	{
+		armulate_lr_set(value);
+	}
+	set_ARM_reg_mode(reg, value, arm->cpsr & 0x1F);
 }
+
+u32 get_ARM_reg(int reg)
+{
+	return get_ARM_reg_mode(reg, arm->cpsr & 0x1F);
+}
+
 
 void setup_tables (void) 
 {
 	setup_handle_tables(); 
 	setup_handle_tables_t();
 	setup_string_tables();
-}
-
-char *get_cpu_mode_name()
-{
-	if ( !arm )
-		return "";
-	return cpu_mode_strings[arm->cpsr & 0x1F];
-}
-
-int emu_is_thumb ( void )
-{
-	if ( !arm )
-		return 0;
-	return (CPSR & THUMB_BIT);
 }
 
 u32 exec_step (void)
@@ -486,93 +560,138 @@ u32 exec_step (void)
 
 int get_instruction_length(int addr)
 {
-	word code = (read_hword(addr, meminterface) << 16 ) | read_hword(addr+2, meminterface);
+	u32 code = (read_hword(addr, NULL) << 16 ) | read_hword(addr+2, NULL);
+
 	if ((code & 0xF800E800) == 0xF000E800)
+	{
 		return 4;
+	}
 	else
+	{
 		return 2;
+	}
 }
 
-void run_breakpoint_real (u32 breakpoint, int *ctrl)
+void run_until_real (u32 breakpoint, u32 *ctrl, unsigned int (*cb)(unsigned int))
 {
-	u32 pc, last_pc, delta;
+	u32 pc, delta;
 	int status = 0;
-	
-	if ( !arm )
-		return;
-	if ( !ctrl )
+	int fiq_flag = 0;
+	int irq_flag = 0;
+	int fiq_wait = 0;
+	int irq_wait = 0;
+	if ( !arm || !ctrl )
 		return;
 
 	copy_registers();
-	last_pc = get_ARM_reg(15);
-	while (!*ctrl) 
+
+	while (!(*ctrl)) 
 	{
+		int pos = 0;
+
+		if (CPSR & THUMB_BIT)
+		{
+			pc = get_ARM_reg(15) - 4;
+		}
+		else
+		{
+			pc = get_ARM_reg(15) - 8;
+		}
+
+		/* call the per-instruction callback */
+		if(cb)
+		{
+			unsigned int ret = cb(pc);
+
+			switch(ret)
+			{
+				case ARMULATE_CB_NO_ACTION:
+					break;
+				case ARMULATE_CB_IRQ:
+					irq_flag = 1;
+					irq_wait = 0;
+					break;
+				case ARMULATE_CB_FIQ:
+					fiq_flag = 1;
+					fiq_wait = 0;
+					break;
+				default:
+					*ctrl = ret;
+					return; 
+			}
+		}
+
+		if(fiq_flag)
+		{
+			/* special hack - signal CP15 code (ins_mcr) that there was an interrupt */
+			armulate_mcr_int_happened = 1;
+
+			if(!(CPSR & FIQ_BIT))
+			{
+				if(fiq_wait++ > 32)
+				{
+					fiq_wait = 0;
+					fiq_flag = 0;
+					fiq();
+				}
+			}
+		}
+
+		if(irq_flag)
+		{
+			/* special hack - signal CP15 code (ins_mcr) that there was an interrupt */
+			armulate_mcr_int_happened = 1;
+
+			if(!(CPSR & IRQ_BIT))
+			{
+				if(irq_wait++ > 32)
+				{
+					irq_wait = 0;
+					irq_flag = 0;
+					irq();
+				}
+			}
+		}
+
 		status = instr_exec();
 
-		pc = get_ARM_reg(15);
 		if (CPSR & THUMB_BIT)
-			delta = 4;
+		{
+			pc = get_ARM_reg(15) - 4;
+		}
 		else
-			delta = 8;
+		{
+			pc = get_ARM_reg(15) - 8;
+		}
 
-		if ((pc-delta)==(breakpoint & ~1) || status == ARMULATE_BP_REACHED ) 
+		armulate_pc_changed(pc);
+
+		/* check if exec-until address is reached or there is a breakpoint */
+		if(pc == (breakpoint & ~1) || armulate_is_bp(pc))
+		{
+			status = ARMULATE_BP_REACHED;
+		}
+
+		if (status == ARMULATE_BP_REACHED ) 
 		{
 			*ctrl = ARMULATE_BP_REACHED;
 			return; 
 		}
-		if ( status == ARMULATE_INV_INSTR || (status&ARMULATE_EXCEPTION) )
+
+		if ( status == ARMULATE_INV_INSTR || (status & ARMULATE_EXCEPTION) )
 		{
 			*ctrl = status;
 			return;
 		}
-		last_pc = pc;
 	}
 	*ctrl = 0;
 }
 
-void run_breakpoint_stub ( void *parm )
+void exec_next_real (u32 breakpoint, u32 *ctrl, unsigned int (*cb)(unsigned int))
 {
-	u32 *p = parm;
-	run_breakpoint_real ( p[0], (int*)p[1] );
-}
-
-int run_breakpoint (u32 breakpoint)
-{
-	int ctrl = 0;
-	unsigned int tries = timeout_breakpoint;
-	u32 buf[2];
-	if ( !arm )
-		return 0;
-
-	copy_registers();
-	buf[0] = breakpoint;
-	buf[1] = (u32)&ctrl;
-
-	_beginthread ( run_breakpoint_stub, 0, &buf );
-
-	while ( !ctrl && tries-- )
-		Sleep ( 10 );
-
-	if ( ctrl )
-		return ctrl;
-
-	ctrl = ARMULATE_STOP_REQUEST;
-	tries = 500;
-	while ( ctrl != 0 && tries-- )
-		Sleep ( 10 );
-
-	if ( ctrl )
-		return ARMULATE_DEADLOCK;
-
-	return ARMULATE_TIMED_OUT;
-}
-
-
-void exec_next_real ( void *parm )
-{
-	int *ctrl = parm;
-	int len, addr;
-	int status = 0;
+	int len = 0;
+	int addr = 0;
+	int status = ARMULATE_EXECUTED;
 	u32 last_pc = 0;
 	u32 (*func)(void);
 
@@ -583,15 +702,16 @@ void exec_next_real ( void *parm )
 	{
 		addr = get_ARM_reg(15) - 4;
 		func = opcode_handles_t[OPCODE_MASK_T];
+
 		if ( func == tins_bl )
 		{
 			len = get_instruction_length(addr);
-			run_breakpoint_real( addr + len, ctrl );
+			run_until_real( addr + len, ctrl, cb );
 		} 
 		else 
 		{
 			status = exec_step();
-			if ( status == ARMULATE_INV_INSTR || (status&ARMULATE_EXCEPTION) )
+			if ( status == ARMULATE_INV_INSTR || (status & ARMULATE_EXCEPTION) )
 			{
 				*ctrl = status;
 				return;
@@ -603,13 +723,17 @@ void exec_next_real ( void *parm )
 		addr = get_ARM_reg(15) - 8;
 
 		if ( (OPCODE&0xF0000000) == 0xF0000000 )
+		{
 			func = opcode_handles_special[OPCODE_MASK];
+		}
 		else
+		{
 			func = opcode_handles[OPCODE_MASK];
+		}
 
 		if ( func == ins_blmi || func == ins_blpl || func == ins_blx  )
 		{
-			run_breakpoint_real( addr + 4, ctrl );
+			run_until_real( addr + 4, ctrl, cb );
 		}
 		else 
 		{
@@ -620,30 +744,105 @@ void exec_next_real ( void *parm )
 				return;
 			}
 		}
-
 	}
 	*ctrl = ARMULATE_EXECUTED;
 }
 
-u32 exec_next ( void )
+void run_until_stub ( void *parm )
 {
-	int ctrl = 0;
-	int tries = timeout_breakpoint;
+	u32 *parms = parm;
+	u32 breakpoint = parms[0];
+	u32 *ctrl = parms[1];
+	unsigned int (*cb)(unsigned int) = parms[2];
+
+	run_until_real (breakpoint, ctrl, cb);
+}
+
+
+void exec_next_stub ( void *parm )
+{
+	u32 *parms = parm;
+	u32 breakpoint = parms[0];
+	u32 *ctrl = parms[1];
+	unsigned int (*cb)(unsigned int) = parms[2];
+
+	exec_next_real (breakpoint, ctrl, cb);
+}
+
+
+u32 run_until (u32 breakpoint)
+{
+	unsigned int tries = 0;
+
 	if ( !arm )
 		return 0;
 
-	_beginthread ( exec_next_real, 0, &ctrl );
-	while ( !ctrl && tries-- )
+	run_task_ctrl = 0;
+
+	task_parm[0] = breakpoint;
+	task_parm[1] = (u32)&run_task_ctrl;
+	task_parm[2] = (u32)armulate_exec_callback;
+
+	_beginthread ( run_until_stub, 0, &task_parm );
+
+	if(async_mode)
+	{
+		return ARMULATE_BP_REACHED;
+	}
+
+	while ( !run_task_ctrl && (tries++ < timeout_breakpoint) && !armulate_aborted() )
+	{
 		Sleep ( 10 );
+	}
 
-	if ( ctrl )
-		return ctrl;
+	if ( run_task_ctrl )
+		return run_task_ctrl;
 
-	tries = timeout_breakpoint;
-	while ( ctrl != 2 && tries-- )
+	run_task_ctrl = ARMULATE_STOP_REQUEST;
+	tries = 50;
+	while ( run_task_ctrl != 0 && tries-- )
+		Sleep ( 100 );
+
+	if ( run_task_ctrl )
+		return ARMULATE_DEADLOCK;
+
+	return ARMULATE_TIMED_OUT;
+}
+
+u32 exec_next ( void )
+{
+	unsigned int tries = 0;
+
+	if ( !arm )
+		return 0;
+
+	run_task_ctrl = 0;
+
+	task_parm[0] = 0;
+	task_parm[1] = (u32)&run_task_ctrl;
+	task_parm[2] = (u32)armulate_exec_callback;
+
+	_beginthread ( exec_next_stub, 0, &task_parm );
+
+	if(async_mode)
+	{
+		return ARMULATE_BP_REACHED;
+	}
+
+	while ( !run_task_ctrl && (tries++ < timeout_breakpoint) && !armulate_aborted() )
+	{
 		Sleep ( 10 );
+	}
 
-	if ( ctrl )
+	if ( run_task_ctrl )
+		return run_task_ctrl;
+
+	run_task_ctrl = ARMULATE_STOP_REQUEST;
+	tries = 50;
+	while ( run_task_ctrl != 0 && tries-- )
+		Sleep ( 100 );
+
+	if ( run_task_ctrl )
 		return ARMULATE_DEADLOCK;
 
 	return ARMULATE_TIMED_OUT;
@@ -659,7 +858,9 @@ void skip_next (void)
 	{
 		func = opcode_handles_t[OPCODE_MASK_T];
 		if (func == tins_bl)
-		    instr_advance();
+		{
+			instr_advance();
+		}
 	}
 	instr_advance ();
 }
@@ -672,10 +873,26 @@ void fiq(void)
 	arm->spsr[FIQ_MODE] = arm->cpsr;
 	arm->gp_reg_FIQ[6] = get_ARM_reg(15);
 
-	arm->cpsr = (arm->cpsr & ~0x1F) | FIQ_MODE;
+	if ( CPSR & THUMB_BIT )
+	{
+		arm->gp_reg_FIQ[6] = (get_ARM_reg(15) - 2) | 1;
+	}
+	else
+	{
+		arm->gp_reg_FIQ[6] = get_ARM_reg(15) - 4;
+	}
 
-	set_ARM_mode ( ARM_MODE );
-	set_ARM_reg(15, 0x1C);
+	arm->cpsr = FIQ_MODE | IRQ_BIT | FIQ_BIT;
+
+	/* if alternate vectors are selected, use appropriate vector */
+	if(armulate_cp15_control_reg & (1<<13))
+	{
+		set_ARM_reg(15, 0xFFFF001C);
+	}
+	else
+	{
+		set_ARM_reg(15, 0x1C);
+	}
 
 	pc_changed ();
 }
@@ -685,13 +902,56 @@ void irq(void)
 	if ( !arm )
 		return;
 
-	arm->spsr[FIQ_MODE] = arm->cpsr;
-	arm->gp_reg_IRQ[1] = get_ARM_reg(15);
+	armulate_irq();
 
-	arm->cpsr = (arm->cpsr & ~0x1F) | IRQ_MODE;
+	arm->spsr[IRQ_MODE] = arm->cpsr;
 
-	set_ARM_mode ( ARM_MODE );
-	set_ARM_reg(15, 0x18);
+	if ( CPSR & THUMB_BIT )
+	{
+		arm->gp_reg_IRQ[1] = (get_ARM_reg(15) - 2) | 1;
+	}
+	else
+	{
+		arm->gp_reg_IRQ[1] = get_ARM_reg(15) - 4;
+	}
+
+	arm->cpsr = IRQ_MODE | IRQ_BIT;
+
+	/* if alternate vectors are selected, use appropriate vector */
+	if(armulate_cp15_control_reg & (1<<13))
+	{
+		set_ARM_reg(15, 0xFFFF0018);
+	}
+	else
+	{
+		set_ARM_reg(15, 0x18);
+	}
+
+	pc_changed ();
+}
+
+void swi(void)
+{
+	if ( !arm )
+		return;
+
+	arm->spsr[SUPERVISOR_MODE] = arm->cpsr;
+	if ( CPSR & THUMB_BIT )
+		arm->gp_reg_SUPERVISOR[1] = (get_ARM_reg(15) - 2) | 1;
+	else
+		arm->gp_reg_SUPERVISOR[1] = get_ARM_reg(15) - 4;
+
+	arm->cpsr = SUPERVISOR_MODE | IRQ_BIT;
+
+	/* if alternate vectors are selected, use appropriate vector */
+	if(armulate_cp15_control_reg & (1<<13))
+	{
+		set_ARM_reg(15, 0xFFFF0008);
+	}
+	else
+	{
+		set_ARM_reg(15, 0x08);
+	}
 
 	pc_changed ();
 }
@@ -702,7 +962,6 @@ int is_thumb_state()
 		return 1;
 	return 0;
 }
-
 
 u32 get_reg (u32 i)                
 { 
@@ -719,55 +978,15 @@ u32 get_cpsr (void)
 	if ( !arm )
 		return 0xDEADBEEF;
 
-	if (CFLAG) 
-		CPSR |= C_BIT; 
-	else 
-		CPSR &= ~C_BIT; 
-
-	if (VFLAG) 
-		CPSR |= V_BIT; 
-	else 
-		CPSR &= ~V_BIT;
-
-	if (NFLAG) 
-		CPSR |= N_BIT; 
-	else 
-		CPSR &= ~N_BIT;
-
-	if (ZFLAG) 
-		CPSR |= Z_BIT; 
-	else 
-		CPSR &= ~Z_BIT;
-
 	return arm->cpsr;
 }
 
 void set_cpsr (u32 value)			 
 { 
 	if ( !arm )
-		return 0xDEADBEEF;
+		return;
 
 	arm->cpsr = value;
-
-	if (C_FLAG_SET) 
-		CFLAG = 1; 
-	else 
-		CFLAG = 0;
-
-	if (V_FLAG_SET) 
-		VFLAG = 1; 
-	else 
-		VFLAG = 0; 
-
-	if (N_FLAG_SET)
-		NFLAG = 1; 
-	else 
-		NFLAG = 0; 
-
-	if (Z_FLAG_SET) 
-		ZFLAG = 1; 
-	else 
-		ZFLAG = 0; 
 }
 
 u32 get_instruction_pipe (u32 num)
@@ -776,34 +995,3 @@ u32 get_instruction_pipe (u32 num)
 		return 0xDEADBEEF;
 	return arm->op;
 }
-
-void set_mem32(u32 address, u32 val)
-{
-	write_word(address, val, meminterface);
-}
-
-void set_mem16(u32 address, u16 val)
-{
-	write_hword(address, val, meminterface);
-}
-
-void set_mem8(u32 address, u8 val)
-{
-	write_byte(address, val, meminterface);
-}
-
-u32 get_mem32(u32 address)
-{
-	return read_word(address, meminterface);
-}
-
-u16 get_mem16(u32 address)
-{
-	return read_hword(address, meminterface);
-}
-
-u8 get_mem8(u32 address)
-{
-	return read_byte(address, meminterface);
-}
-

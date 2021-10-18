@@ -103,6 +103,7 @@ WorkspaceWindow::WorkspaceWindow()
 
 	connect ( okButton, SIGNAL ( clicked() ),this, SLOT( accept() ) );
 	connect ( btnExport, SIGNAL ( clicked() ),this, SLOT( btnExportClicked() ) );
+	connect ( btnImport, SIGNAL ( clicked() ),this, SLOT( btnImportClicked() ) );
 	connect ( btnEdit, SIGNAL ( clicked() ),this, SLOT( btnEditClicked() ) );
 	connect ( treeWorkspace, SIGNAL( itemClicked(QTreeWidgetItem *, int) ), this, SLOT ( treeWorkspaceClicked (QTreeWidgetItem *, int) ) );
 	connect ( treeWorkspace, SIGNAL( itemSelectionChanged() ), SLOT( treeWorkspaceChanged() ) );
@@ -210,6 +211,13 @@ unsigned int WorkspaceWindow::viewerAction ( int action, unsigned int address, u
 	char *filename = NULL;
 	char *export_buffer = NULL; 
 	unsigned long export_length = 0;
+	static int cache_locations[4] = {-1,-1,-1,-1};
+	static t_workspace *cache_ws = NULL;
+	static t_fileinfo *cache_fi = NULL;
+	static t_stage *cache_stage = NULL;
+	static t_segment *cache_segment = NULL;
+
+	int cache_enabled = 0;
 	
 	if ( !ws )
 		return E_FAIL;
@@ -218,45 +226,79 @@ unsigned int WorkspaceWindow::viewerAction ( int action, unsigned int address, u
 	if ( location[0] == -1 || location[1] == -1 || location[2] == -1  )
 		return E_FAIL;
 
-	pos = location[0];
-	while ( pos > 0 )
+	if ( cache_enabled && cache_locations[0] == location[0] )
+		ws = cache_ws;
+	else
 	{
-		if ( !ws || !ws->next )
-			return E_FAIL;
-		ws = ws->next;
-		pos--;
-	}
-	fi = ws->fileinfo;
-
-	pos = location[1];
-	while ( pos > 0 )
-	{
-		if ( !fi || !fi->next )
-			return E_FAIL;
-		fi = fi->next;
-		pos--;
-	}
-	stage = fi->stages;
-
-	pos = location[2];
-	while ( pos > 0 )
-	{
-		if ( !stage || !stage->next )
-			return E_FAIL;
-		stage = stage->next;
-		pos--;
-	}
-	segment = stage->segments;
-
-	pos = location[3];
-	while ( pos > 0 )
-	{
-		if ( !segment || !segment->next )
-			return E_FAIL;
-		segment = segment->next;
-		pos--;
+		cache_locations[1] = 0xFF;
+		pos = location[0];
+		while ( pos > 0 )
+		{
+			if ( !ws || !ws->next )
+				return E_FAIL;
+			ws = ws->next;
+			pos--;
+		}
 	}
 
+	if ( cache_locations[1] == location[1] )
+		fi = cache_fi;
+	else
+	{
+		cache_locations[2] = 0xFF;
+		fi = ws->fileinfo;
+
+		pos = location[1];
+		while ( pos > 0 )
+		{
+			if ( !fi || !fi->next )
+				return E_FAIL;
+			fi = fi->next;
+			pos--;
+		}
+	}
+
+	if ( cache_locations[2] == location[2] )
+		stage = cache_stage;
+	else
+	{
+		cache_locations[3] = 0xFF;
+		stage = fi->stages;
+
+		pos = location[2];
+		while ( pos > 0 )
+		{
+			if ( !stage || !stage->next )
+				return E_FAIL;
+			stage = stage->next;
+			pos--;
+		}
+	}
+
+	if ( cache_locations[3] == location[3] )
+		segment = cache_segment;
+	else
+	{
+		segment = stage->segments;
+
+		pos = location[3];
+		while ( pos > 0 )
+		{
+			if ( !segment || !segment->next )
+				return E_FAIL;
+			segment = segment->next;
+			pos--;
+		}
+	}
+
+	cache_locations[0] = location[0];
+	cache_locations[1] = location[1];
+	cache_locations[2] = location[2];
+	cache_locations[3] = location[3];
+	cache_ws = ws;
+	cache_fi = fi;
+	cache_stage = stage;
+	cache_segment = segment;
 
 	/* if a segment was selected */
 	if ( location[3] != -1 && location[2] != -1 && location[1] != -1 && location[0] != -1 )
@@ -440,7 +482,7 @@ void WorkspaceWindow::btnExportClicked (  )
 	if ( !name.isNull() )
 	{
 		t_workspace *ws = NULL;
-		filename = (char*)strdup(name.toAscii().data());
+		filename = (char*)strdup(name.toLocal8Bit().data());
 		
 		ws = workspace_create_file_from_buffer ( (unsigned char*)export_buffer, export_length );
 
@@ -469,6 +511,108 @@ void WorkspaceWindow::btnExportClicked (  )
 	return;
 }
 
+void WorkspaceWindow::btnImportClicked (  )
+{
+	int pos = 0;
+	t_workspace *ws = actual_ws;
+	t_fileinfo *fi = NULL;
+	t_stage *stage = NULL;
+	t_segment *segment = NULL;
+	int state = E_OK;
+	char *filename = NULL;
+	char *export_buffer = NULL; 
+	unsigned long export_length = 0;
+	
+	if ( !ws )
+		return;
+
+	if ( location[0] == -1 || location[1] == -1 || location[2] == -1 || location[3] == -1  )
+	{
+		ui_dlg_msg ( "Can not Import that type. Please select a Segment.", 0 );
+		return;
+	}
+
+	pos = location[0];
+	while ( pos > 0 )
+	{
+		if ( !ws || !ws->next )
+		{
+			ui_dlg_msg ( "ERROR: workspace seems to have changed?", 0 );
+			return;
+		}
+		ws = ws->next;
+		pos--;
+	}
+	fi = ws->fileinfo;
+
+	pos = location[1];
+	while ( pos > 0 )
+	{
+		if ( !fi || !fi->next )
+		{
+			ui_dlg_msg ( "ERROR: workspace seems to have changed?", 0 );
+			return;
+		}
+		fi = fi->next;
+		pos--;
+	}
+	stage = fi->stages;
+
+	pos = location[2];
+	while ( pos > 0 )
+	{
+		if ( !stage || !stage->next )
+		{
+			ui_dlg_msg ( "ERROR: workspace seems to have changed?", 0 );
+			return;
+		}
+		stage = stage->next;
+		pos--;
+	}
+	segment = stage->segments;
+
+	pos = location[3];
+	while ( pos > 0 )
+	{
+		if ( !segment || !segment->next )
+		{
+			ui_dlg_msg ( "ERROR: workspace seems to have changed?", 0 );
+			return;
+		}
+		segment = segment->next;
+		pos--;
+	}
+
+	/* import now */
+	QFileDialog dlg;
+	QString name = dlg.getOpenFileName( this, 
+		QString("Load from"),
+		"",
+		"Binary File (*.bin);;Compressed Binary File (*.bin.bz2);;All Files (*)");
+
+	if ( !name.isNull() )
+	{
+		t_workspace *import_ws = NULL;
+		filename = (char*)strdup(name.toLocal8Bit().data());
+		
+		import_ws = workspace_startup (filename);
+
+		free ( filename );
+
+		if ( !import_ws )
+		{
+			ui_dlg_msg ( "Failed loading the file", 0 );
+			return;
+		}
+
+		v_memcpy_put(ws, segment->start, v_get_ptr(import_ws, v_get_start(import_ws)), v_get_size(import_ws) );
+
+		workspace_release ( import_ws );
+	}
+
+	return;
+}
+
 //---------------------------------------------------------------------------
 void WorkspaceWindow::treeWorkspaceChanged (  )
 {
@@ -487,6 +631,7 @@ void WorkspaceWindow::treeWorkspaceChanged (  )
 	// why doesnt that work with ->toAscii()->data() ?!
 	QByteArray byteArray = items.first()->text(2).toAscii();
 	id = byteArray.data();
+	//id = items.first()->text(2).toAscii().data();
 
 	if ( !id )
 		return;
@@ -562,7 +707,6 @@ unsigned int WorkspaceWindow::UpdateStages ( t_stage *s, QTreeWidgetItem *item, 
 		QStringList list;
 		sprintf ( (char*)location, "%sT%i", (char*)parent_loc, pos );
 		list << QString ( "Stage #%1, %2" ).arg(pos).arg(s->name);
-//		list << QString ( "Stage #%1, %2 (0x%3)" ).arg(pos).arg(s->name).arg((int)s,0,16);
 		list << QString ( "ID:\t%1\nFlags:\t0x%2\nLength:\t0x%3" ).arg((char*)location).arg((int)s->flags,0,16).arg(s->length,0,16);
 		list << QString ( (const char*)location );
 		child = new QTreeWidgetItem ( item, list );
@@ -578,14 +722,31 @@ unsigned int WorkspaceWindow::UpdateSegments ( t_segment *s, QTreeWidgetItem *it
 	QTreeWidgetItem *child;
 	int pos = 0;
 	unsigned char location[16];
+	unsigned char start[16];
+	unsigned char end[16];
+	unsigned char length[16];
 
 	while ( s )
 	{
 		QStringList list;
+		QString desc;
+
 		sprintf ( (char*)location, "%sS%i", (char*)parent_loc, pos );
+		sprintf ( (char*)start, "0x%08X", s->start );
+		sprintf ( (char*)end, "0x%08X", s->end );
+		sprintf ( (char*)length, "0x%08X", s->length );
+
 		list << QString ( "Segment #%1, %2" ).arg(pos).arg(s->name);
-//		list << QString ( "Segment #%1, %2 (0x%3)" ).arg(pos).arg(s->name).arg((int)s,0,16);
-		list << QString ( "ID:\t%1\nFlags:\t0x%2\nStart:\t0x%3\nEnd:\t0x%4\nLength:\t0x%5" ).arg((char*)location).arg((int)s->flags,0,16).arg(s->start,0,16).arg(s->end,0,16).arg(s->length,0,16);
+		desc = QString ( "ID:\t%1\nFlags:\t0x%2\nStart:\t%3\nEnd:\t%4\nLength:\t%5\n" ).arg((char*)location).arg((int)s->flags,0,16).arg((char*)start).arg((char*)end).arg((char*)length);
+		if ( segment_is_mapped ( s ) )
+			desc += QString ( "Mapped into Memory\n" );
+		else
+			desc += QString ( "NOT Mapped into Memory\n" );
+
+		if ( segment_is_sparse ( s ) )
+			desc += QString ( "Sparse. No physical memory behind these addresses\n" );
+
+		list << desc;
 		list << QString ( (const char*)location );
 		child = new QTreeWidgetItem ( item, list );
 		s = s->next;
@@ -607,7 +768,6 @@ unsigned int WorkspaceWindow::UpdateWorkspaces ( t_workspace *ws )
 		QStringList list;
 		sprintf ( (char*)location, "W%i", pos );
 		list << QString ( "Workspace #%1" ).arg(pos);
-//		list << QString ( "Workspace #%1, (0x%3)" ).arg(pos).arg((int)ws,0,16);
 		list << QString ( "ID:\t%1\nFlags:\t0x%2" ).arg((char*)location).arg((int)ws->flags,0,16);
 		list << QString ( (const char*)location );
 
@@ -631,10 +791,12 @@ unsigned int WorkspaceWindow::Update ( t_workspace *ws )
 	treeWorkspace->clear();
 	if ( !ws )
 	{
+
 #ifdef TRIX
 		memView->Stop ();
 		memView->setVisible ( false );
 #endif
+
 		QTreeWidgetItem *item = new QTreeWidgetItem ( QStringList(QString("No Workspace defined")) );
 		treeWorkspace->insertTopLevelItem ( 0, item );
 		return E_FAIL;

@@ -1,5 +1,5 @@
 #! /bin/sh
-# $Id: inputmenu2,v 1.1 2006/06/28 13:53:39 geggo Exp $
+# $Id: inputmenu2 1521 2006-06-28 13:53:39Z geggo $
 #
 # "inputmenu1" with defaultitem, help-button.
 : ${DIALOG=dialog}

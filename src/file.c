@@ -58,13 +58,13 @@ file_open ( char *filename )
 	char *url_path = NULL;
     t_fileinfo *f = NULL;
 
-	if ( filename )
+	if ( !filename )
+		return NULL;
+
+	if ( filename[0] == '"' && filename[strlen(filename)-1] == '"' )
 	{
-		if ( filename[0] == '"' &&  filename[strlen(filename)-1] == '"' )
-		{
-			filename[strlen(filename)-1] = '\000';
-			filename++;
-		}
+		filename[strlen(filename)-1] = '\000';
+		filename++;
 	}
 
 	if ( netrix_check ( filename ) == E_OK )
@@ -133,7 +133,7 @@ file_flush_diff ( t_stage * s, t_stage * d )
 }
 
 /*
-    int file_flush ( t_stage * s )
+    int file_flush ( t_fileinfo *fi )
    -----------------------------------------------------
 
     Internal:
@@ -147,32 +147,41 @@ file_flush_diff ( t_stage * s, t_stage * d )
         returns E_OK on success E_FAIL on error
 */
 unsigned int
-file_flush ( t_stage * s )
+file_flush ( t_fileinfo *fi )
 {
+	t_stage *s = NULL;
+
+	if ( !fi || !fi->stages )
+		return E_FAIL;
+
+	/* find a modified stage */
+	s = stage_get_modified ( fi->stages );
+
+	/* none found -> use the first */
+	if ( !s )
+        s = stage_find_by_num ( fi->stages, 0 );
+
+	/* erh... this shouldnt happen of course :) */
 	if ( !s )
 		return E_FAIL;
 
-	if ( !stage_get_modified ( s ) )
-        s = stage_find_by_num ( s, 0 );
-    else
-        s = stage_get_modified ( s );
-
-	if ( !s )
-		return E_FAIL;
-
+	/* free all stages behind this one (they are non-modified) */
     if ( s->next )
+	{
         stage_release_all ( s->next );
-	s->next = NULL;
+		s->next = NULL;
+	}
 
+	/* and go through all remaining from behind */
     while ( s && s->prev )
     {
+		/* TODO: commented out? needed? useless? have to track the 'priv' field usage! */
 //        R ( fmt_free_priv ( s->prev ) );
 		R ( fmt_encode ( s, s->prev ) );
         s = s->prev;
         R ( stage_release ( s->next ) );
 
-		// if the flag S_SAVEBASE was set, 
-		// prevent any further sync operation.
+		/* if the flag S_SYNCBASE was set, stop here */
 		if ( s->flags & S_SYNCBASE )
 			s = NULL;
     }
@@ -181,7 +190,7 @@ file_flush ( t_stage * s )
 }
 
 /*
-    int file_sync ( t_stage * s )
+    int file_sync ( t_fileinfo *fi )
    -----------------------------------------------------
 
     Internal:
@@ -195,17 +204,25 @@ file_flush ( t_stage * s )
         returns E_OK on success E_FAIL on error
 */
 unsigned int
-file_sync ( t_stage * s )
+file_sync ( t_fileinfo *fi )
 {
-	t_stage_info *info = NULL;
+ 	t_stage_info *info = NULL;
 
-	info = stage_save_info ( s );
+	/* get the sage information backup (flags) */
+	info = stage_save_info ( fi->stages );
 
-	R ( file_flush ( s ) );
-    R ( fmt_decode ( stage_get_last ( s ), NULL ) );
+	/* 'commit' all changes down to the raw file (or to syncbase) first */
+	R ( file_flush ( fi ) );
 
-	R ( stage_restore_info ( s, info ) );
-	R (	stage_clear_flags ( s, S_MODIFIED ) );
+	/* then try to decode all again */
+    R ( fmt_decode ( stage_get_last ( fi->stages ), NULL ) );
+
+	/* restoring flags is non-critical and may safely fail if e.g. a parser was added or removed */
+	stage_restore_info ( fi->stages, info );
+	stage_release_info ( info );
+
+	/* clear flag S_MODIFIED, since nothing is modified now anymore */
+	R (	stage_clear_flags ( fi->stages, S_MODIFIED ) );
 
     return E_OK;
 }
@@ -214,28 +231,42 @@ unsigned int
 file_format ( t_fileinfo *fi, char *format )
 {
 	t_stage *stage = NULL;
+	t_stage *workstage = NULL;
 
     if ( !fi || !fi->stages || !format )
         return E_FAIL;
 
-	R ( file_sync ( fi->stages ) );
+	/* first 'commit' all changes made */
+	R ( file_flush ( fi ) );
 
+	/* create an empty stage */
 	stage = stage_create ( );
 
-	fi->stages->parser = strdup (format);
+	/* get the *last* stage (so using S_SYNCBASE lets us select the stage to format) */
+	workstage = stage_get_last ( fi->stages );
+
+	/* this is tricky - the format string will get replaced by the parser */
+	workstage->parser = format;
 	
+	/* set the new stage name */
 	stage->name = "NOT SET";
 	stage->flags &= ~FLAGS_FREE_NAME;
 
-	if ( fmt_encode ( fi->stages, stage ) == E_FAIL )
+	/* let the encode encode the stage */
+	if ( fmt_encode ( workstage, stage ) == E_FAIL )
 	{
+		free ( workstage->parser );
 		stage_release ( stage );
 		return E_FAIL;
 	}
 
+	/* release *all* stages in the current fileinfo */
 	stage_release ( fi->stages );
+	/* and set this as the new (and only) stage */
 	fi->stages = stage;
-	file_sync ( fi->stages );
+
+	/* and re-parse everything */
+	file_sync ( fi );
 
 	return E_OK;
 }
@@ -289,7 +320,7 @@ file_write ( char *filename, t_fileinfo * fi )
 	/*
 		in any case, first sync the changes
 	*/
-	file_sync ( fi->stages );
+	file_sync ( fi );
 
 	/*
 		then save the modified version, since we now create a diff
@@ -325,7 +356,7 @@ file_write ( char *filename, t_fileinfo * fi )
 		stage_release_all ( fi->stages_mod );
 		fi->stages_mod = NULL;
 		// and rebuild the stages
-		file_sync ( fi->stages );
+		file_sync ( fi );
 		// stages_org is kept saved
 	}
 

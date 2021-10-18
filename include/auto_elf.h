@@ -117,7 +117,7 @@ void elf_dump_object ();
 	"typedef int Elf32_Sword;\n"\
 	"typedef unsigned int Elf32_Word;\n"\
 	"\n"\
-	"#define ELFARCH_ARM 0x28\n"\
+	"#define EM_ARM 0x28\n"\
 	"\n"\
 	"#define SHN_UNDEF 0\n"\
 	"#define SHN_LORESERVE 0xff00\n"\
@@ -283,7 +283,7 @@ void elf_dump_object ();
 	"<font color=\"#000080\"><b>typedef</b></font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">Elf32_Sword</font>;<br>"\
 	"<font color=\"#000080\"><b>typedef</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">Elf32_Word</font>;<br>"\
 	"<br>"\
-	"<font color=\"#008000\">#define&nbsp;ELFARCH_ARM&nbsp;0x28<br></font>"\
+	"<font color=\"#008000\">#define&nbsp;EM_ARM&nbsp;0x28<br></font>"\
 	"<br>"\
 	"<font color=\"#008000\">#define&nbsp;SHN_UNDEF&nbsp;0<br></font>"\
 	"<font color=\"#008000\">#define&nbsp;SHN_LORESERVE&nbsp;0xff00<br></font>"\

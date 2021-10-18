@@ -52,7 +52,8 @@ t_fmt_handler wintesla_handler = {
 unsigned int
 fmt_wintesla_init (  )
 {
-    fmt_register_handler ( &wintesla_handler );
+	// this is not supported... dont register :)
+    //fmt_register_handler ( &wintesla_handler );
     return E_OK;
 }
 

@@ -11,6 +11,8 @@ struct file_io_funcs
 	unsigned int (*release) ( t_fileinfo * fi);
 	unsigned int (*release_all) ( t_fileinfo * fi);
 	unsigned int (*write) ( const char *filename, const t_fileinfo * fi);
+ 	int (*create_directory) ( char *dirname);
+ 	t_fileinfo *(*open_directory) ( char *path, unsigned int *ret_entries);
 };
 
 /* trixplug struct initializer */
@@ -24,6 +26,8 @@ unsigned int file_io_plug_init ( ) \
 		return E_FAIL;\
 	ft->file_io = &file_io_functions;\
 	ft->file_io->create_empty = file_io_create_empty;\
+	ft->file_io->create_directory = file_io_create_directory;\
+	ft->file_io->open_directory = file_io_open_directory;\
 	ft->file_io->open = file_io_open;\
 	ft->file_io->write = file_io_write;\
 	ft->file_io->release = file_io_release;\

@@ -29,140 +29,140 @@ struct fmt_funcs fmt_functions;
 FMT_PLUG_INIT;
 
 /*
-    t_fmt_handler *fmt_get_handler ( char *name )
-   -----------------------------------------------------
+	t_fmt_handler *fmt_get_handler ( char *name )
+	-----------------------------------------------------
 
-    Internal:
+	Internal:
 		Yes
 
-    Description:
-        Get the format handler by its name
+	Description:
+		Get the format handler by its name
 
-    Return value:
-        returns handler on success NULL on error
+	Return value:
+		returns handler on success NULL on error
 */
 t_fmt_handler *
 fmt_get_handler ( char *name )
 {
-    t_fmt_table *entry = fmt_table; // get the format parser table
+	t_fmt_table *entry = fmt_table; // get the format parser table
 
-    if ( !name )
-        return NULL;
+	if ( !name )
+		return NULL;
 
-    while ( entry )             // scan for a format parser called *name
-    {
-        if ( !strcmp ( entry->handler->name, name ) )
-            return entry->handler;  // found, return the handler routines struct
-        entry = entry->next;    // else next one
-    }
-    return NULL;
+	while ( entry )	// scan for a format parser called *name
+	{
+		if ( !strcmp ( entry->handler->name, name ) )
+			return entry->handler;	// found, return the handler routines struct
+		entry = entry->next;	// else next one
+	}
+	return NULL;
 }
 
 
 /*
-    int fmt_decode ( t_stage * s, char *type )
-   -----------------------------------------------------
+	int fmt_decode ( t_stage * s, char *type )
+	-----------------------------------------------------
 
-    Internal:
+	Internal:
 		Yes
 
-    Description:
-        Starts the decoding procedure starting from stage *s.
+	Description:
+		Starts the decoding procedure starting from stage *s.
 
-    Return value:
-        returns E_OK on success E_FAIL on error
+	Return value:
+		returns E_OK on success E_FAIL on error
 */
 unsigned int
 fmt_decode ( t_stage * s, char *type )
 {
-    t_fmt_table *entry = NULL;
-    t_stage *d = NULL;
-    unsigned int next = 1;
+	t_fmt_table *entry = NULL;
+	t_stage *d = NULL;
+	unsigned int next = 1;
 
-    while ( next )
-    {
-        entry = fmt_table;      // get the format parser table
-        d = stage_add ( s );	// add a blank stage
-        if ( !d )
-            return E_FAIL;
+	while ( next )
+	{
+		entry = fmt_table;	// get the format parser table
+		d = stage_add ( s );	// add a blank stage
+		if ( !d )
+			return E_FAIL;
 
-        next = 0;
+		next = 0;
 
-        while ( entry && !next )    // run through all parsers
-        { 
+		while ( entry && !next )	// run through all parsers
+		{
 			// if we are forced to run just one type, check that
-            if ( !type || !strcmp ( entry->handler->type, type ) )
-            {
-                if ( entry->handler->decode ( s, d ) == E_OK )
-                {
-                    s = d;
-                    next = 1;
-                }
-            }
-            entry = entry->next;    // else next one
-        }
-    }
+			if ( !type || !strcmp ( entry->handler->type, type ) )
+			{
+				if ( entry->handler->decode ( s, d ) == E_OK )
+				{
+					s = d;
+					next = 1;
+				}
+			}
+			entry = entry->next;	// else next one
+		}
+	}
 
-    R ( stage_release ( d ) );
+	R ( stage_release ( d ) );
 
-    return E_OK;
+	return E_OK;
 }
 
 /*
-    int fmt_encode ( t_stage * s, t_stage * d )
-   -----------------------------------------------------
+	int fmt_encode ( t_stage * s, t_stage * d )
+	-----------------------------------------------------
 
-    Internal:
+	Internal:
 		Yes
 
-    Description:
-        Encodes stage *s into stage *d
+	Description:
+		Encodes stage *s into stage *d
 
-    Return value:
-        returns E_OK on success E_FAIL on error
+	Return value:
+		returns E_OK on success E_FAIL on error
 */
 unsigned int
 fmt_encode ( t_stage * s, t_stage * d )
 {
-    t_fmt_handler *h = NULL;
+	t_fmt_handler *h = NULL;
 
-    if ( !s )
-        return E_FAIL;
+	if ( !s )
+		return E_FAIL;
 
-    h = fmt_get_handler ( s->parser );
-    if ( !h )
-        return E_FAIL;
+	h = fmt_get_handler ( s->parser );
+	if ( !h )
+		return E_FAIL;
 
 	if ( h->encode )
 		R ( h->encode ( s, d ) );
 
-    return E_OK;
+	return E_OK;
 }
 
 /*
-    int fmt_encode_diff ( t_stage * s1, t_stage * s2, t_stage * d )
-   -----------------------------------------------------
+	int fmt_encode_diff ( t_stage * s1, t_stage * s2, t_stage * d )
+	-----------------------------------------------------
 
-    Internal:
+	Internal:
 		Yes
 
-    Description:
-        Encodes differences between stage *s1 and s2 into stage *d
+	Description:
+		Encodes differences between stage *s1 and s2 into stage *d
 
-    Return value:
-        returns E_OK on success E_FAIL on error
+	Return value:
+		returns E_OK on success E_FAIL on error
 */
 unsigned int
 fmt_encode_diff ( t_stage * s1, t_stage * s2, t_stage * d )
 {
-    t_fmt_handler *h = NULL;
+	t_fmt_handler *h = NULL;
 
-    if ( !s1 || !s2 )
-        return E_FAIL;
+	if ( !s1 || !s2 )
+		return E_FAIL;
 
-    h = fmt_get_handler ( s1->parser );
-    if ( !h )
-        return E_FAIL;
+	h = fmt_get_handler ( s1->parser );
+	if ( !h )
+		return E_FAIL;
 
 	if ( h->encode_diff )
 	{
@@ -171,76 +171,132 @@ fmt_encode_diff ( t_stage * s1, t_stage * s2, t_stage * d )
 	else
 		return E_FAIL;
 
-    return E_OK;
+	return E_OK;
 }
 
 /*
-    int fmt_free_priv ( t_stage * s )
-   -----------------------------------------------------
+	int fmt_free_priv ( t_stage * s )
+	-----------------------------------------------------
 
-    Internal:
+	Internal:
 		Yes
 
-    Description:
-        Free up the private data.
+	Description:
+		Free up the private data.
 
-    Return value:
-        returns E_OK on success E_FAIL on error
+	Return value:
+		returns E_OK on success E_FAIL on error
 */
 unsigned int
 fmt_free_priv ( t_stage * s )
 {
-    t_fmt_handler *h = NULL;
+	t_fmt_handler *h = NULL;
 
-    if ( !s )
-        return E_OK;
+	if ( !s )
+		return E_OK;
 
-    h = fmt_get_handler ( s->parser );
-    if ( !h )
+	h = fmt_get_handler ( s->parser );
+	if ( !h )
 	{
 		/* special case... file_io_open has no handler but data needs to be freed */
 		if ( s->segments )
 			segment_release_all ( s->segments );
 		s->segments = NULL;
-        return E_OK;
+		return E_OK;
 	}
 
-    if ( h->free_priv )
-        R ( h->free_priv ( s ) );
+	if ( h->free_priv )
+		R ( h->free_priv ( s ) );
 
-    return E_OK;
+	return E_OK;
+}
+
+
+/*
+	int fmt_unregister_handler ( char *name )
+	-----------------------------------------------------
+
+	Internal:
+		Yes
+
+	Description:
+		Unregister a handler.
+
+	Return value:
+		returns E_OK on success E_FAIL on error
+*/
+unsigned int
+fmt_unregister_handler ( char *name )
+{
+	t_fmt_table *entry = fmt_table;
+
+	if ( !name )
+		return E_FAIL;
+
+	while ( entry )
+	{
+		if ( !entry->handler )
+		{
+			printf ( "ERROR: FMT parser entry without handle\r\n" );
+			return E_FAIL;
+		}
+
+		if ( !strcmp ( name, entry->handler->name ) )
+		{
+			if ( entry == fmt_table )
+			{
+				fmt_table = entry->next;
+				fmt_table->prev = NULL;
+			}
+			else
+			{ 
+				if ( entry->prev )
+					entry->prev->next = entry->next;
+				if ( entry->next )
+					entry->next->prev = entry->prev;
+			}
+
+			free ( entry );
+			fmt_update ( );
+
+			return E_OK;
+		}
+		LIST_NEXT(entry);
+	}
+
+	return E_FAIL;
 }
 
 /*
-    int fmt_register_handler ( t_fmt_handler * handler )
-   -----------------------------------------------------
+	int fmt_register_handler ( t_fmt_handler * handler )
+	-----------------------------------------------------
 
-    Internal:
+	Internal:
 		Yes
 
-    Description:
-        Register a handler.
+	Description:
+		Register a handler.
 
-    Return value:
-        returns E_OK on success E_FAIL on error
+	Return value:
+		returns E_OK on success E_FAIL on error
 */
 unsigned int
 fmt_register_handler ( t_fmt_handler * handler )
 {
-    t_fmt_table *entry;
+	t_fmt_table *entry;
 
-    if ( !handler || !handler->name )
-        return E_FAIL;
+	if ( !handler || !handler->name )
+		return E_FAIL;
 
-    if ( fmt_get_handler ( handler->name ) )    // if it already exists
-        return E_FAIL;
+	if ( fmt_get_handler ( handler->name ) )	// if it already exists
+		return E_FAIL;
 
 	entry = LIST_NEW(fmt_table, t_fmt_table);
-    entry->handler = handler;
-    entry->struct_magic = M_FORMAT;
+	entry->handler = handler;
+	entry->struct_magic = M_FORMAT;
 
 	if ( !fmt_table )
-        fmt_table = entry;
+		fmt_table = entry;
 
 	fmt_update ( );
 
@@ -248,18 +304,18 @@ fmt_register_handler ( t_fmt_handler * handler )
 }
 
 /*
-    int fmt_add_seer_entry ( char *n, void *f, char **i, int p )
-   -----------------------------------------------------
+	int fmt_add_seer_entry ( char *n, void *f, char **i, int p )
+	-----------------------------------------------------
 
-    Internal:
+	Internal:
 		Yes
 
-    Description:
-        Updates the import list at *n and registers the symbol
+	Description:
+		Updates the import list at *n and registers the symbol
 		of the given routine.
 
-    Return value:
-        returns E_OK on success E_FAIL on error
+	Return value:
+		returns E_OK on success E_FAIL on error
 */
 unsigned int
 fmt_add_seer_entry ( char *n, void *f, char **i, int p )
@@ -304,17 +360,17 @@ fmt_add_seer_entry ( char *n, void *f, char **i, int p )
 }
 
 /*
-    int fmt_add_seer ( t_fmt_handler *h, char **i )
-   -----------------------------------------------------
+	int fmt_add_seer ( t_fmt_handler *h, char **i )
+	-----------------------------------------------------
 
-    Internal:
+	Internal:
 		Yes
 
-    Description:
-        Registers the given handler in seer subsystem.
+	Description:
+		Registers the given handler in seer subsystem.
 
-    Return value:
-        returns E_OK on success E_FAIL on error
+	Return value:
+		returns E_OK on success E_FAIL on error
 */
 unsigned int
 fmt_add_seer ( t_fmt_handler *h, char **i )
@@ -333,7 +389,7 @@ fmt_add_seer ( t_fmt_handler *h, char **i )
 }
 
 /*
-int fmt_plug_init (  )
+int fmt_plug_init ( )
 {
 	if ( !ft )
 		return E_FAIL;
@@ -349,9 +405,9 @@ int fmt_plug_init (  )
 */
 
 /* Update the SEER entries */
-unsigned int fmt_update (  ) 
+unsigned int fmt_update ( )
 {
-    t_fmt_table *entry = NULL;
+	t_fmt_table *entry = NULL;
 	static char *imports = NULL;
 
 	if ( imports )
@@ -365,36 +421,37 @@ unsigned int fmt_update (  )
 	}
 	scAdd_Internal_Header ( "fmt_parsers", imports );
 
-    return E_OK;
+	return E_OK;
 }
 
 /*
-    int fmt_init (  )
-   -----------------------------------------------------
+	int fmt_init ( )
+	-----------------------------------------------------
 
-    Internal:
+	Internal:
 		Yes
 
-    Description:
-        Initialize format subsystem.
+	Description:
+		Initialize format subsystem.
 
-    Return value:
-        returns E_OK on success E_FAIL on error
+	Return value:
+		returns E_OK on success E_FAIL on error
 */
 unsigned int
-fmt_init (  )
+fmt_init ( )
 {
 	// call the "hardcoded" format handlers
-	fmt_elf_init (  );
-	fmt_bz2_init (  );
-	fmt_epoc_init (  );
-    fmt_dct3flash_init (  );
-    fmt_wintesla_init (  );
-    fmt_phoenix_init (  );
-    fmt_dct4crypt_init (  );
-	fmt_trixcrypt_init (  );
-	fmt_pdb_init (  );
-	
+	fmt_elf_init ( );
+	fmt_bz2_init ( );
+	fmt_epoc_init ( );
+	fmt_dct3flash_init ( );
+	fmt_wintesla_init ( );
+	fmt_phoenix_init ( );
+	fmt_dct4crypt_init ( );
+	fmt_trixcrypt_init ( );
+	fmt_pdb_init ( );
+	fmt_pe_init ( );
+
 	return E_OK;
 }
 

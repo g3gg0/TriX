@@ -1,5 +1,5 @@
 #! /bin/sh
-# $Id: headers.sh,v 1.1 2006/06/28 13:53:39 geggo Exp $
+# $Id: headers.sh 1521 2006-06-28 13:53:39Z geggo $
 #
 # Adjust includes for header files that reside in a subdirectory of
 # /usr/include, etc.

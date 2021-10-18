@@ -150,7 +150,6 @@ workspace_memmap_add ( t_workspace *ws, t_stage *stage, t_segment *seg )
 unsigned int 
 workspace_release ( t_workspace *ws )
 {
-
 	if ( !ws )
 		return E_FAIL;
 
@@ -213,6 +212,35 @@ workspace_memmap_sort ( t_workspace *ws )
 }
 
 unsigned int
+workspace_memmap_reverse ( t_workspace *ws )
+{
+	t_memmap current;
+	t_memmap *mm = NULL;
+	t_memmap *list = NULL;
+
+	if ( !ws || !ws->memmap )
+		return E_FAIL;
+
+	list = ws->memmap;
+	ws->memmap = NULL;
+
+	mm = list;
+	LIST_FFWD(mm);
+	if ( !mm )
+		return E_FAIL;
+
+	do
+	{
+		workspace_memmap_add ( ws, mm->stage, mm->segment );
+		LIST_PREV(mm);
+	} while ( mm );
+
+	LIST_FREE(list);
+
+	return E_OK;
+}
+
+unsigned int
 workspace_update_memmap ( t_workspace *ws )
 {
 	t_fileinfo *fi = NULL;
@@ -246,6 +274,7 @@ workspace_update_memmap ( t_workspace *ws )
 	}
 
 	workspace_memmap_sort ( ws );
+//	workspace_memmap_reverse ( ws );
 	v_cache_flush ();
 
 	return E_OK;

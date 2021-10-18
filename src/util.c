@@ -53,6 +53,11 @@ int cache_enabled = 1;
 int cache_start = -1;
 int cache_end = -1;
 int cache_dirty = 0;
+int cache_read_hits = 0;
+int cache_write_hits = 0;
+int cache_read_misses = 0;
+int cache_write_misses = 0;
+
 t_workspace *cache_ws = NULL;
 t_memmap *cache_mm = NULL;
 char *cache_data = NULL;
@@ -78,6 +83,11 @@ void util_set_debuglevel ( int lvl )
 void util_set_errorlevel ( int lvl )
 {
     errorlevel = lvl;
+}
+
+int util_script_is_aborted ()
+{
+	return seer_is_aborted ();
 }
 
 char *util_get_line ( char *text, unsigned int line )
@@ -171,6 +181,26 @@ char *util_get_line ( char *text, unsigned int line )
 
 
 void *
+util_smalloc_init ( void *ptr, int size, char *name )
+{
+	if ( size >= sizeof ( t_priv ) )
+	{
+		((t_priv*)ptr)->struct_magic = M_UNDEF;
+		((t_priv*)ptr)->struct_name = name;
+		((t_priv*)ptr)->struct_size = size;
+		((t_priv*)ptr)->struct_refs = 0;
+		((t_priv*)ptr)->flags = 0;
+	}
+	if ( size >= sizeof ( t_list ) )
+	{
+		((t_list*)ptr)->prev = NULL;
+		((t_list*)ptr)->next = NULL;
+	}
+
+	return ptr;
+}
+
+void *
 util_smalloc ( int size, char *name )
 {
 	void *ret = NULL;
@@ -181,19 +211,8 @@ util_smalloc ( int size, char *name )
 	if ( !ret )
 		return NULL;
 
-	if ( size >= sizeof ( t_priv ) )
-	{
-		((t_priv*)ret)->struct_magic = M_UNDEF;
-		((t_priv*)ret)->struct_name = name;
-		((t_priv*)ret)->struct_size = size;
-		((t_priv*)ret)->struct_refs = 0;
-		((t_priv*)ret)->flags = 0;
-	}
-	if ( size >= sizeof ( t_list ) )
-	{
-		((t_list*)ret)->prev = NULL;
-		((t_list*)ret)->next = NULL;
-	}
+	util_smalloc_init ( ret, size, name );
+
 	return ret;
 }
 
@@ -249,19 +268,20 @@ v_call_plug ( t_workspace *ws, t_memmap *mm, unsigned int address, unsigned int 
 {
 	unsigned int ret = E_FAIL;
 	unsigned int (*handler) ( t_workspace *ws, unsigned int address, unsigned char type, unsigned int value );
+	t_segment *seg = mm->segment;
 
 	handler = (unsigned int) trixplug_get_global_plugin_symbol ( mm->segment->capture_plug );
 
 	if ( handler )
 	{
-		mm->segment->capture_plug_active = 1;
+		seg->capture_plug_active = 1;
 		ret = handler ( ws, address, mode | width, value );
-		mm->segment->capture_plug_active = 0;
+		seg->capture_plug_active = 0;
 	}
 	else
 	{
 		printf ( "Capture plug <%s> for area 0x%08X-0x%08X failed, removed\n", mm->segment->capture_plug, mm->segment->start, mm->segment->end  );
-		mm->segment->capture_plug = NULL;
+		seg->capture_plug = NULL;
 	}
 
 	return ret;
@@ -408,6 +428,7 @@ v_set_inline ( t_workspace *ws, unsigned int address, unsigned int value, unsign
 
 	if ( cache_enabled && address >= cache_start && (address+width-1) < cache_end && ws == cache_ws )
 	{
+		cache_write_hits++;
 		v_set_inline_raw ( ws, cache_data, address - cache_start, value, width );
 		if ( !cache_dirty )
 		{
@@ -418,6 +439,7 @@ v_set_inline ( t_workspace *ws, unsigned int address, unsigned int value, unsign
 
 		return 0;
 	}
+	cache_write_misses++;
 
 	if ( !ws || !ws->memmap )
 		return MEM_FAIL;
@@ -425,14 +447,25 @@ v_set_inline ( t_workspace *ws, unsigned int address, unsigned int value, unsign
 	mm = ws->memmap;
 	while ( mm )
 	{
-		if ( address >= mm->start && (address+width) < mm->end && mm->segment )
+		if ( address >= mm->start && address < mm->end && (address+width-1) < mm->end && mm->segment )
 		{
 			if ( mm->segment->capture_plug && mm->segment->capture_plug_active == 0 )
-				v_call_plug ( ws, mm, address, value, MODE_WRITE, width );
+			{
+				return v_call_plug ( ws, mm, address, value, MODE_WRITE, width );
+			}
 			else
 			{
+				/* sparse memory has no storage, reads fail */
+				if(mm->segment->flags & FLAGS_SPARSE)
+				{
+					return MEM_FAIL;
+				}
+
+				/* only update cache if there is no plugin that handles accesses */
 				if ( mm->segment->capture_plug == NULL )
+				{
 					v_cache_update ( ws, mm );
+				}
 
 				v_set_inline_raw ( ws, mm->segment->data, address - mm->start, value, width );
 				stage_set_modified (mm->stage);
@@ -455,7 +488,11 @@ v_get_inline ( t_workspace *ws, unsigned int address, unsigned char width )
 
 	// if segment cached
 	if ( cache_enabled && address >= cache_start && (address+width-1) < cache_end && ws == cache_ws )
+	{
+		cache_read_hits++;
 		return v_get_inline_raw ( ws, cache_data, address - cache_start, width );
+	}
+	cache_read_misses++;
 
 	if ( !ws || !ws->memmap || address == E_FAIL )
 		return MEM_FAIL;
@@ -463,14 +500,25 @@ v_get_inline ( t_workspace *ws, unsigned int address, unsigned char width )
 	mm = ws->memmap;
 	while ( mm )
 	{
-		if ( address >= mm->start && address < mm->end  && (address+width) < mm->end && mm->segment )
+		if ( address >= mm->start && address < mm->end  && (address+width-1) < mm->end && mm->segment )
 		{
 			if ( mm->segment->capture_plug && mm->segment->capture_plug_active == 0 )
+			{
 				return v_call_plug ( ws, mm, address, 0, MODE_READ, width );
+			}
 			else
 			{
+				/* sparse memory has no storage, reads fail. also caching makes no sense */
+				if(mm->segment->flags & FLAGS_SPARSE)
+				{
+					return MEM_FAIL;
+				}
+
+				/* only update cache if there is no plugin that handles accesses */
 				if ( mm->segment->capture_plug == NULL )
+				{
 					v_cache_update ( ws, mm );
+				}
 
 				return v_get_inline_raw ( ws, mm->segment->data, address - mm->start, width );
 			}
@@ -522,6 +570,87 @@ v_set_w_inline ( t_workspace *ws, unsigned int address, unsigned int value )
 
 
 INLINE_MODE unsigned int
+v_set_b_raw_inline ( t_priv *s, unsigned int address, unsigned int value )
+{
+	t_segment *segment = NULL;
+	t_stage *stage = NULL;
+
+	if ( !s )
+		return MEM_FAIL;
+
+	if ( is_type ( s, "t_stage" ) )
+	{
+		stage = (t_stage*)s;
+		if ( !stage->segments )
+			return MEM_FAIL;
+
+		segment = stage->segments;
+		while ( segment )
+		{
+			// for stage access, check if the segment is mapped into memory to prevent file sections to override real data
+			if ( address >= segment->start && address < segment->start + segment->length && segment_is_mapped ( segment )  )
+			{
+				if(segment_is_sparse(segment))
+				{
+					return MEM_FAIL;
+				}
+				segment->data[address - segment->start] = value;
+				return 0;
+			}
+			LIST_NEXT(segment);
+		}
+	}
+	if ( is_type ( s, "t_segment" ) )
+	{
+		segment = (t_segment*)s;
+		if ( address >= segment->start && address < segment->start + segment->length  )
+		{
+			if(segment_is_sparse(segment))
+			{
+				return MEM_FAIL;
+			}
+			segment->data[address - segment->start] = value;
+			return 0;
+		}
+	}
+
+	return MEM_FAIL;
+}
+
+
+INLINE_MODE unsigned int
+v_set_h_raw_inline ( t_stage *s, unsigned int address, unsigned int value )
+{
+	if ( (s->flags&FLAGS_ENDIANESS) == FLAGS_ENDIANESS_BE )
+	{
+		v_set_b_raw_inline(s,address, value>>8);
+		v_set_b_raw_inline(s,address+1, value&0xFF);
+	}
+	else
+	{
+		v_set_b_raw_inline(s,address+1, value>>8);
+		v_set_b_raw_inline(s,address, value&0xFF);
+	}
+	return 0;
+}
+
+INLINE_MODE unsigned int
+v_set_w_raw_inline ( t_stage *s, unsigned int address, unsigned int value )
+{
+	if ( (s->flags&FLAGS_ENDIANESS) == FLAGS_ENDIANESS_BE )
+	{
+		v_set_h_raw_inline(s,address, value>>16);
+		v_set_h_raw_inline(s,address+2, value&0xFFFF);
+	}
+	else
+	{
+		v_set_h_raw_inline(s,address+2, value>>16);
+		v_set_h_raw_inline(s,address, value&0xFFFF);
+	}
+	return 0;
+}
+
+INLINE_MODE unsigned int
 v_get_b_raw_inline ( t_priv *s, unsigned int address )
 {
 	t_segment *segment = NULL;
@@ -539,16 +668,28 @@ v_get_b_raw_inline ( t_priv *s, unsigned int address )
 		segment = stage->segments;
 		while ( segment )
 		{
-			if ( address >= segment->start && address < segment->start + segment->length  )
-				return segment->data[address - segment->start] & 0xFF;
+			// for stage access, check if the segment is mapped into memory to prevent file sections to override real data
+			if ( address >= segment->start && address < segment->start + segment->length && segment_is_mapped ( segment )  )
+			{
+			}
 			LIST_NEXT(segment);
 		}
 	}
 	if ( is_type ( s, "t_segment" ) )
 	{
 		segment = (t_segment*)s;
-		if ( address >= segment->start && address < segment->start + segment->length  )
+		if ( address >= segment->start && address < segment->start + segment->length )
+		{
+			if(segment_is_sparse(segment))
+			{
+				return MEM_FAIL;
+			}
+            if(!segment->data || address < segment->start || (address - segment->start) > segment->length)
+            {
+                return MEM_FAIL;
+            }
 			return segment->data[address - segment->start] & 0xFF;
+		}
 	}
 
 	return MEM_FAIL;
@@ -573,9 +714,6 @@ v_get_w_raw_inline ( t_stage *s, unsigned int address )
 		return ((v_get_h_raw_inline(s,address+2)<<16)|v_get_h_raw_inline(s,address)) & 0xFFFFFFFF;
 }
 
-
-
-
 // special case!!    v_valid returns   1 on success and   0 on fail
 INLINE_MODE int
 v_valid_inline ( t_workspace *ws, unsigned int address )
@@ -584,7 +722,6 @@ v_valid_inline ( t_workspace *ws, unsigned int address )
 
 	if ( cache_enabled && address >= cache_start && address < cache_end && ws == cache_ws )
 		return 1;
-
 
 	if ( !ws || !ws->memmap )
 		return 0;
@@ -711,6 +848,24 @@ v_set_w ( t_workspace *ws, unsigned int address, unsigned int value )
 }
 
 unsigned int
+v_set_b_raw ( t_stage *s, unsigned int address, unsigned int value )
+{
+	return v_set_b_raw_inline(s,address,value);
+}
+
+unsigned int
+v_set_h_raw ( t_stage *s, unsigned int address, unsigned int value )
+{
+	return v_set_h_raw_inline(s,address,value);
+}
+
+unsigned int
+v_set_w_raw ( t_stage *s, unsigned int address, unsigned int value )
+{
+	return v_set_w_raw_inline(s,address,value);
+}
+
+unsigned int
 v_get_b ( t_workspace *ws, unsigned int address )
 {
 	return v_get_b_inline(ws,address);
@@ -816,7 +971,6 @@ v_get_ptr ( t_workspace *ws, unsigned int address )
 	if ( cache_enabled && address >= cache_start && address < cache_end && ws == cache_ws )
 		return &(cache_data[address - cache_mm->start]);
 
-
 	if ( !ws || !ws->memmap )
 		return NULL;
 
@@ -826,7 +980,14 @@ v_get_ptr ( t_workspace *ws, unsigned int address )
 		if ( address >= mm->start && address < mm->end && mm->segment )
 		{
 			if ( mm->segment->capture_plug == NULL )
+			{
 				v_cache_update ( ws, mm );
+			}
+
+			if(segment_is_sparse(mm->segment))
+			{
+				return NULL;
+			}
 
 			return &(mm->segment->data[address - mm->start]);
 		}
@@ -960,11 +1121,13 @@ v_valid_raw ( t_priv *s, unsigned int address )
 		segment = stage->segments;
 		while ( segment )
 		{
-			if ( address >= segment->start && address < segment->start + segment->length  )
+			// recursion here. but that is safe
+			if ( segment_is_mapped (segment) && v_valid_raw ( segment, address ) )
 				return 1;
 			LIST_NEXT(segment);
 		}
 	}
+
 	if ( is_type ( s, "t_segment" ) )
 	{
 		segment = (t_segment*)s;
@@ -980,7 +1143,9 @@ v_memcpy_get_raw ( t_priv *s, unsigned char *dest, unsigned int src, unsigned in
 	unsigned int pos = 0;
 
 	while ( length-- )
-		dest[pos++] = v_get_b_raw_inline ( s, src++ );
+	{
+		dest[pos++] = (v_get_b_raw_inline ( s, src++ ) & 0xFF);
+	}
 
 	return E_OK;
 }
@@ -992,7 +1157,9 @@ v_memcpy ( t_workspace *ws, unsigned int dest, unsigned int src, unsigned int le
 	unsigned int pos = 0;
 
 	while ( length-- )
+	{
 		v_set_b_inline ( ws, dest++, v_get_b_inline ( ws, src++ ) );
+	}
 
 	return E_OK;
 }
@@ -1001,11 +1168,16 @@ unsigned int
 v_memcpy_get ( t_workspace *ws, unsigned char *dest, unsigned int src, unsigned int length )
 {
 	unsigned int pos = 0;
+
 	if ( !dest )
+	{
 		return E_FAIL;
+	}
 
 	while ( length-- )
+	{
 		dest[pos++] = v_get_b_inline ( ws, src++ );
+	}
 
 	return E_OK;
 }
@@ -1018,51 +1190,81 @@ v_memcpy_put ( t_workspace *ws, unsigned int dest, unsigned char *src, unsigned 
 	t_segment *existing_seg = NULL;
 	t_stage *current_stage = NULL;
 
+	/* quick solution, areas are contiguous and mapped correctly */
+	current_seg = v_get_segment(ws, dest);
+	if(current_seg)
+	{
+		/* its not copying beyond end? */
+		if((current_seg->length - (dest - current_seg->start)) >= length)
+		{
+			/* mapped correctly in memmap? */
+			if(current_seg->data == v_get_ptr(ws, current_seg->start))
+			{
+				memcpy(v_get_ptr(ws, dest), src, length);
+				return E_OK;
+			}
+		}
+	}
+
 	while ( length )
 	{
 		if ( v_valid ( ws, dest ) )
 		{
 			// when initializing with NULL source dont overwrite existing memory areas
 			if ( src )
+			{
 				v_set_b_inline ( ws, dest++, src[pos++] );
+			}
 			else
+			{
 				dest++;
+			}
 
 			current_seg = NULL;
 		}
-		else if ( ws->fileinfo&& ws->fileinfo->stages )
+		else if ( ws->fileinfo && ws->fileinfo->stages )
 		{
-			// create new segment
+			unsigned int maxlen = 0;
+
+			/* find the segment that can be extended */
 			if ( !current_seg ) 
 			{
 				current_stage = stage_get_current ( ws->fileinfo->stages );
 				if ( !current_stage )
 					return E_FAIL;
-                current_seg = segment_find_by_end ( current_stage->segments, dest );
+                current_seg = segment_find_by_end ( current_stage->segments, dest, FLAGS_MAP_IN_MEM );
 
+				/* no segment found, create a new one */
                 if ( !current_seg )
 				{
                     current_seg = segment_add ( current_stage->segments );
 					if ( !current_seg )
 						return E_FAIL;
 
-					current_seg->data = malloc ( 1 );
+					current_seg->data = malloc ( length );
 					current_seg->start = dest;
 					current_seg->end = dest;
 					current_seg->length = 0;
 					current_seg->name = "AUTO";
 				}
+
+				/* try to find the nearest segment to know how large we can make ours */
+				for(maxlen = 1; maxlen < length; maxlen++)
+				{
+					if(segment_find_by_start ( current_stage->segments, dest + maxlen, FLAGS_MAP_IN_MEM ))
+					{
+						break;
+					}
+				}
+
+				current_seg->data = realloc ( current_seg->data, current_seg->length + maxlen );
+				current_seg->length += maxlen;
+				current_seg->end += maxlen;
+
+				/* need some locking!! would crash on simultanous access */
+				/* we need this update since the memmap would not be correct */
+				workspace_update_memmap ( ws );
 			}
-
-			current_seg->length += 1;
-			current_seg->end += 1;
-			current_seg->data = realloc ( current_seg->data, current_seg->length );
-
-			// should not be needed here (?)
-			//
-			// when we dont update the memmap, we still use the old memory map.
-			// thats okay - we will update it later
-			// workspace_update_memmap ( ws );
 
 			if ( src )
 				v_set_b_inline ( ws, dest++, src[pos++] );
@@ -1073,7 +1275,6 @@ v_memcpy_put ( t_workspace *ws, unsigned int dest, unsigned char *src, unsigned 
 		length--;
 	}
 
-	workspace_update_memmap ( ws );
 	return E_OK;
 }
 
@@ -1122,6 +1323,8 @@ unsigned int util_hex_get ( char *data, int *err )
 	int val = 0;
 	int nibbles = 0;
 
+	*err = 0;
+
 	if ( !data )
 	{
 		*err = 1;
@@ -1162,7 +1365,7 @@ unsigned int util_hex_get ( char *data, int *err )
 
 
 /*
-	unsigned int util_hex_get_buffer ( char *data, int *err)
+	unsigned int util_hex_get_buffer ( char *data, int *len)
    -----------------------------------------------------
 
     Description:
@@ -1239,7 +1442,7 @@ unsigned char *util_hex_get_buffer ( char *data, int *len )
 }
 
 /*
-	char *util_hexunpack ( char *data )
+	char *util_hexunpack ( char *data, int *length )
    -----------------------------------------------------
 
     Description:
@@ -1256,10 +1459,19 @@ char *util_hexunpack ( char *data, int *length )
 	int opos = 0;
 	int err = 0;
 
-	if ( !data || !length  )
+	
+	if ( !data || !length )
 		return NULL;
 
-	buff = malloc ( strlen ( data ) / 2 );
+	buff = malloc ( strlen ( data ) / 2 + 1);
+	if ( !buff )
+		return NULL;
+
+	if ( strlen ( data ) == 0 )
+	{
+		*length = 0;
+		return buff;
+	}
 
 	while ( data[ipos] )
 	{
@@ -1306,7 +1518,6 @@ char *util_hexpack ( unsigned char *data, int bytes )
 	char *buffptr = NULL;
 	char byte[3];
 	int pos = 0;
-	int err = 0;
 
 	if ( !data  )
 		return NULL;
@@ -1324,47 +1535,6 @@ char *util_hexpack ( unsigned char *data, int bytes )
 	return buff;
 }
 
-
-int util_debug_msg ( int level, char *str, ... )
-{
-	va_list args;
-	va_start ( args, str );
-
-	if ( debuglevel & level )
-	{
-		vprintf ( str, args );
-		util_printf_ ( "\n" );
-	}
-
-	va_end ( args );
-	return 0;
-}
-
-int util_error_msg ( int level, char *str, ... )
-{
-	va_list args;
-	va_start ( args, str );
-
-	if ( errorlevel & level )
-	{
-		vprintf ( str, args );
-		util_printf_ ( "\n" );
-	}
-
-	va_end ( args );
-	return 0;
-}
-
-int util_printf_ ( char *str, ... )
-{
-	va_list args;
-	va_start ( args, str );
-
-	vprintf ( str, args );
-
-	va_end ( args );
-	return 0;
-}
 
 t_list *
 util_list_get_last ( t_list *l )
@@ -1500,6 +1670,11 @@ util_check_pattern_raw_inline ( t_stage *s, unsigned int offset, t_locator * loc
 	if ( offset + loc->length > s->segments->length )
         return E_FAIL;
 
+	if(segment_is_sparse(s->segments))
+	{
+		return E_FAIL;
+	}
+
 	while ( pos < loc->length && ( s->segments->data[offset + pos] & loc->mask[pos] ) == ( loc->pattern[pos] & loc->mask[pos] ) )
         pos++;
 
@@ -1567,11 +1742,12 @@ util_simple_find_pattern ( t_workspace *ws, char *pattern, char *mask, unsigned 
 unsigned int
 util_find_pattern ( t_workspace *ws, t_locator * loc, unsigned int start, unsigned int end, int options )
 {
-    int found = 0;
-    unsigned int ret_ofs = 0;
+	int found = 0;
+	unsigned int ret_ofs = 0;
+	unsigned int ofs = 0;
 	unsigned int (*offset_func) (t_workspace *ws, unsigned int addr );
 
-    if ( !ws || !loc )
+	if ( !ws || !loc )
         return E_FAIL;
 
 	if ( start == MEM_AUTO )
@@ -1582,12 +1758,17 @@ util_find_pattern ( t_workspace *ws, t_locator * loc, unsigned int start, unsign
 
     offset_func = (options&LOC_BACKWARD)?v_get_prev_offset:v_get_next_offset;
 
+	 if ( options & LOC_BACKWARD )
+		 ofs = end;
+	 else
+			ofs = start;
+
 	/* needed for util_check_pattern_inline() */
 	v_cache_flush ();
 
-	while ( start <= end && start != E_FAIL )
+	while ( start <= ofs && ofs <= end && ofs != E_FAIL )
     {
-        if ( util_check_pattern_inline ( ws, start, loc ) == E_OK )
+        if ( util_check_pattern_inline ( ws, ofs, loc ) == E_OK )
         {
             if ( options & LOC_UNIQUE )
             {
@@ -1595,12 +1776,12 @@ util_find_pattern ( t_workspace *ws, t_locator * loc, unsigned int start, unsign
                     return E_FAIL;
             }
             else
-                return start;
+                return ofs;
 
             found = 1;
-            ret_ofs = start;
+            ret_ofs = ofs;
         }
-        start = offset_func ( ws, start );
+        ofs = offset_func ( ws, ofs );
     }
 
     if ( found )

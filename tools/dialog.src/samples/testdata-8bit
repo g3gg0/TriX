@@ -1,5 +1,5 @@
 #!/bin/sh
-# $Id: testdata-8bit,v 1.1 2006/06/28 13:53:39 geggo Exp $
+# $Id: testdata-8bit 1521 2006-06-28 13:53:39Z geggo $
 
 # Select one of the "SAMPLE=" lines, to test handling of characters which
 # are nonprinting in a POSIX locale:

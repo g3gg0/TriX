@@ -7,7 +7,7 @@
    File oriented operations on mxml libs. They are mainly shortcut,
    to be used in final program but not in other libraries.
 
-   $Id: mxml_file.h,v 1.3 2007/03/31 15:13:00 geggo Exp $
+   $Id: mxml_file.h 2497 2007-03-31 15:13:03Z geggo $
 */
 
 #ifndef MXML_FILE_H

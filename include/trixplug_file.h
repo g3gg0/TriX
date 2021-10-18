@@ -7,14 +7,14 @@
 struct file_funcs
 {
 	t_fileinfo *(*open) ( char *filename);
-	unsigned int (*flush) ( t_stage * s);
+	unsigned int (*flush) ( t_fileinfo * fi);
 	unsigned int (*flush_diff) ( t_stage * s, t_stage * d);
 	unsigned int (*format) ( t_fileinfo * fi, char *format);
 	unsigned int (*get_options) ( );
 	unsigned int (*release) ( t_fileinfo * fi);
 	unsigned int (*release_all) ( t_fileinfo * fi);
 	unsigned int (*set_options) ( unsigned int options);
-	unsigned int (*sync) ( t_stage * s);
+	unsigned int (*sync) ( t_fileinfo * fi);
 	unsigned int (*write) ( char *filename, t_fileinfo * fi);
 };
 

@@ -85,6 +85,8 @@ unsigned int flash_start = 0;
 unsigned int mcu_flash_start = 0x1000000;        // 6610 NHL4   MCU area start
 unsigned int mcu_crypt_start = 0x84;             //             start offset of encrypted MCU data
 unsigned int fls_endianess = 0;
+unsigned int force_dct4crypt = 0;
+unsigned int dct4crypt_use_algo = 0;		//use table or algorithm to de/encrypt codes
 
 int fmt_dct4flash_detection[3][2][2] =
 {
@@ -400,11 +402,17 @@ fmt_dct4crypt_decode ( t_stage * source, t_stage * target )
 	    DBG ( DEBUG_FMT, " -> %s ( ) already decrypted\n", __FUNCTION__ );
         return E_FAIL;
     }
-	if ( strcmp ( source->parser, "PHOENIX" ) )
+	if ( !force_dct4crypt && strcmp ( source->parser, "PHOENIX" ) )
     {
 	    DBG ( DEBUG_FMT, " -> %s ( ) no PHOENIX file\n", __FUNCTION__ );
         return E_FAIL;
     }
+
+	if ( force_dct4crypt )
+	{
+		source->segments->start = 0x1000000;
+		source->segments->end = source->segments->start + source->segments->length;
+	}
 
 
 	if ( fmt_dct4crypt_try_decode ( source, target, fmt_dct4flash_detection[0] ) != E_OK &&
@@ -476,6 +484,11 @@ fmt_dct4crypt_encode ( t_stage * source, t_stage * target )
 	t->priv->struct_refs++;
 
 
+	/* set the parser again (see file_format() ). all parsers should do this. shouldn't they? */
+	source->parser = "DCT4CRYPT";
+	source->type = "DCT4CRYPT";
+
+
 	if ( stage_replace ( target, t ) != E_OK )
     {
 	    DBG ( DEBUG_FMT, " -> %s ( ) stage_replace() failed !!\n", __FUNCTION__ );
@@ -513,6 +526,9 @@ fmt_dct4crypt_init (  )
 	options_add_core_option ( OPT_BOOL, "fmt.dct4crypt", fls_endianess, "Use Little Endianess" );
 	options_add_core_option ( OPT_HEX, "fmt.dct4crypt", crypt_basecode, "Crypto Basecode" );
 	options_add_core_option ( OPT_BOOL, "fmt.dct4crypt", skip_autobasecode, "Skip Crypto Basecode autodetection" );
+	options_add_core_option ( OPT_BOOL, "fmt.dct4crypt", force_dct4crypt, "Force DCT4crypt (e.g. if no phoenix header used)" );
+	options_add_core_option ( OPT_BOOL, "fmt.dct4crypt", dct4crypt_use_algo, "Use algorithm for codes instead of tables (todo)" );
+	
 
 	return E_OK;
 }

@@ -1,5 +1,5 @@
 #!/bin/sh
-# $Id: inputbox4,v 1.1 2006/06/28 13:53:39 geggo Exp $
+# $Id: inputbox4 1521 2006-06-28 13:53:39Z geggo $
 # An example which does not use temporary files, as suggested by Cary Evans:
 : ${DIALOG=dialog}
 

@@ -735,7 +735,7 @@ unsigned char *treenode_get_content_data ( t_treenode *node )
 }
 
 /*!
- * get the node content in ascii
+ * get the node content in ascii (caller has to free pointer)
  * \param node 
  * \return content
  */
@@ -744,7 +744,7 @@ unsigned char *treenode_get_content_ascii ( t_treenode *node )
 	if ( !node )
 		return NULL;
 
-	return node->content_data;
+	return strdup ( node->content_data );
 }
 
 /*!
@@ -793,7 +793,7 @@ unsigned int treenode_get_content_data_hexval ( t_treenode *node )
 }
 
 /*!
- * get the node content as binary data
+ * get the node content as binary data (caller has to free pointer)
  * \param node 
  * \param length pointer to the returned length 
  * \return content
@@ -890,6 +890,7 @@ unsigned int treenode_release ( t_treenode *node )
 	CHECK_AND_FREE ( node->attributes );
 	CHECK_AND_FREE ( node->name );
 
+	memset ( node, 0xFF, sizeof ( t_treenode ) );
 	free ( node );
 
 	return E_OK;

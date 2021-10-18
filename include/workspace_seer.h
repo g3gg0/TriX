@@ -44,7 +44,7 @@ unsigned int SetWorkStage ( int filenum, int stagenum )
 		if ( !GetWorkspace() || !GetWorkspace()->fileinfo || !GetWorkspace()->fileinfo->stages  ) 
 			ret = E_FAIL; 
 		if ( ret == E_OK && __stage_get_modified ( GetWorkspace()->fileinfo->stages ) ) 
-			__file_sync ( GetWorkspace()->fileinfo->stages ); 
+			__file_sync ( GetWorkspace()->fileinfo ); 
 		if ( ret == E_OK && __stage_set_workspace ( __stage_find_by_num ( GetWorkspace()->fileinfo->stages, stagenum ) ) != E_OK) 
 			ret = E_FAIL; 
 		__workspace_update_memmap ( GetWorkspace() ); 

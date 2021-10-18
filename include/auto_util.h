@@ -6,7 +6,9 @@
 	"import unsigned int __util_init ( );\n"\
 	"import void __util_set_debuglevel ( int lvl);\n"\
 	"import void __util_set_errorlevel ( int lvl);\n"\
+	"import int __util_script_is_aborted ( );\n"\
 	"import char *__util_get_line ( char *text, unsigned int line);\n"\
+	"import void *__util_smalloc_init ( void *ptr, int size, char *name);\n"\
 	"import void *__util_smalloc ( int size, char *name);\n"\
 	"import void __util_dump_bytes ( unsigned char *data, int width, int bytes);\n"\
 	"import unsigned int __v_cache_update ( t_workspace * ws, t_memmap * mm);\n"\
@@ -19,6 +21,9 @@
 	"import unsigned int __v_set_b ( t_workspace * ws, unsigned int address, unsigned int value);\n"\
 	"import unsigned int __v_set_h ( t_workspace * ws, unsigned int address, unsigned int value);\n"\
 	"import unsigned int __v_set_w ( t_workspace * ws, unsigned int address, unsigned int value);\n"\
+	"import unsigned int __v_set_b_raw ( t_stage * s, unsigned int address, unsigned int value);\n"\
+	"import unsigned int __v_set_h_raw ( t_stage * s, unsigned int address, unsigned int value);\n"\
+	"import unsigned int __v_set_w_raw ( t_stage * s, unsigned int address, unsigned int value);\n"\
 	"import unsigned int __v_get_b ( t_workspace * ws, unsigned int address);\n"\
 	"import unsigned int __v_get_h ( t_workspace * ws, unsigned int address);\n"\
 	"import unsigned int __v_get_w ( t_workspace * ws, unsigned int address);\n"\
@@ -47,9 +52,6 @@
 	"import unsigned char *__util_hex_get_buffer ( char *data, int *len);\n"\
 	"import char *__util_hexunpack ( char *data, int *length);\n"\
 	"import char *__util_hexpack ( unsigned char *data, int bytes);\n"\
-	"import int __util_debug_msg ( int level, char *str, ...);\n"\
-	"import int __util_error_msg ( int level, char *str, ...);\n"\
-	"import int __util_printf_ ( char *str, ...);\n"\
 	"import t_list *__util_list_get_last ( t_list * l);\n"\
 	"import unsigned int __util_list_add ( t_list * l1, t_list * l2);\n"\
 	"import t_list *__util_list_add_new ( t_list * l1, int size, char *name);\n"\
@@ -81,7 +83,9 @@
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__util_init</font>&nbsp;(&nbsp;);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">void</font>&nbsp;<font color=\"#000000\">__util_set_debuglevel</font>&nbsp;(&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">lvl</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">void</font>&nbsp;<font color=\"#000000\">__util_set_errorlevel</font>&nbsp;(&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">lvl</font>);<br>"\
+	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__util_script_is_aborted</font>&nbsp;(&nbsp;);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">__util_get_line</font>&nbsp;(&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">text</font>,&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">line</font>);<br>"\
+	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">void</font>&nbsp;*<font color=\"#000000\">__util_smalloc_init</font>&nbsp;(&nbsp;<font color=\"#800000\">void</font>&nbsp;*<font color=\"#000000\">ptr</font>,&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">size</font>,&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">name</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">void</font>&nbsp;*<font color=\"#000000\">__util_smalloc</font>&nbsp;(&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">size</font>,&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">name</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">void</font>&nbsp;<font color=\"#000000\">__util_dump_bytes</font>&nbsp;(&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">data</font>,&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">width</font>,&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">bytes</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__v_cache_update</font>&nbsp;(&nbsp;<font color=\"#000000\">t_workspace</font>&nbsp;*&nbsp;<font color=\"#000000\">ws</font>,&nbsp;<font color=\"#000000\">t_memmap</font>&nbsp;*&nbsp;<font color=\"#000000\">mm</font>);<br>"\
@@ -94,6 +98,9 @@
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__v_set_b</font>&nbsp;(&nbsp;<font color=\"#000000\">t_workspace</font>&nbsp;*&nbsp;<font color=\"#000000\">ws</font>,&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">address</font>,&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">value</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__v_set_h</font>&nbsp;(&nbsp;<font color=\"#000000\">t_workspace</font>&nbsp;*&nbsp;<font color=\"#000000\">ws</font>,&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">address</font>,&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">value</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__v_set_w</font>&nbsp;(&nbsp;<font color=\"#000000\">t_workspace</font>&nbsp;*&nbsp;<font color=\"#000000\">ws</font>,&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">address</font>,&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">value</font>);<br>"\
+	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__v_set_b_raw</font>&nbsp;(&nbsp;<font color=\"#000000\">t_stage</font>&nbsp;*&nbsp;<font color=\"#000000\">s</font>,&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">address</font>,&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">value</font>);<br>"\
+	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__v_set_h_raw</font>&nbsp;(&nbsp;<font color=\"#000000\">t_stage</font>&nbsp;*&nbsp;<font color=\"#000000\">s</font>,&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">address</font>,&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">value</font>);<br>"\
+	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__v_set_w_raw</font>&nbsp;(&nbsp;<font color=\"#000000\">t_stage</font>&nbsp;*&nbsp;<font color=\"#000000\">s</font>,&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">address</font>,&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">value</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__v_get_b</font>&nbsp;(&nbsp;<font color=\"#000000\">t_workspace</font>&nbsp;*&nbsp;<font color=\"#000000\">ws</font>,&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">address</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__v_get_h</font>&nbsp;(&nbsp;<font color=\"#000000\">t_workspace</font>&nbsp;*&nbsp;<font color=\"#000000\">ws</font>,&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">address</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__v_get_w</font>&nbsp;(&nbsp;<font color=\"#000000\">t_workspace</font>&nbsp;*&nbsp;<font color=\"#000000\">ws</font>,&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">address</font>);<br>"\
@@ -122,9 +129,6 @@
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">__util_hex_get_buffer</font>&nbsp;(&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">data</font>,&nbsp;<font color=\"#800000\">int</font>&nbsp;*<font color=\"#000000\">len</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">__util_hexunpack</font>&nbsp;(&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">data</font>,&nbsp;<font color=\"#800000\">int</font>&nbsp;*<font color=\"#000000\">length</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">__util_hexpack</font>&nbsp;(&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">data</font>,&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">bytes</font>);<br>"\
-	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__util_debug_msg</font>&nbsp;(&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">level</font>,&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">str</font>,&nbsp;<font color=\"#800080\">...</font>);<br>"\
-	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__util_error_msg</font>&nbsp;(&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">level</font>,&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">str</font>,&nbsp;<font color=\"#800080\">...</font>);<br>"\
-	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__util_printf_</font>&nbsp;(&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">str</font>,&nbsp;<font color=\"#800080\">...</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#000000\">t_list</font>&nbsp;*<font color=\"#000000\">__util_list_get_last</font>&nbsp;(&nbsp;<font color=\"#000000\">t_list</font>&nbsp;*&nbsp;<font color=\"#000000\">l</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__util_list_add</font>&nbsp;(&nbsp;<font color=\"#000000\">t_list</font>&nbsp;*&nbsp;<font color=\"#000000\">l1</font>,&nbsp;<font color=\"#000000\">t_list</font>&nbsp;*&nbsp;<font color=\"#000000\">l2</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#000000\">t_list</font>&nbsp;*<font color=\"#000000\">__util_list_add_new</font>&nbsp;(&nbsp;<font color=\"#000000\">t_list</font>&nbsp;*&nbsp;<font color=\"#000000\">l1</font>,&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">size</font>,&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">name</font>);<br>"\
@@ -157,7 +161,9 @@
 	scAddExtSymInt ( util_init );\
 	scAddExtSymInt ( util_set_debuglevel );\
 	scAddExtSymInt ( util_set_errorlevel );\
+	scAddExtSymInt ( util_script_is_aborted );\
 	scAddExtSymInt ( util_get_line );\
+	scAddExtSymInt ( util_smalloc_init );\
 	scAddExtSymInt ( util_smalloc );\
 	scAddExtSymInt ( util_dump_bytes );\
 	scAddExtSymInt ( v_cache_update );\
@@ -170,6 +176,9 @@
 	scAddExtSymInt ( v_set_b );\
 	scAddExtSymInt ( v_set_h );\
 	scAddExtSymInt ( v_set_w );\
+	scAddExtSymInt ( v_set_b_raw );\
+	scAddExtSymInt ( v_set_h_raw );\
+	scAddExtSymInt ( v_set_w_raw );\
 	scAddExtSymInt ( v_get_b );\
 	scAddExtSymInt ( v_get_h );\
 	scAddExtSymInt ( v_get_w );\
@@ -198,9 +207,6 @@
 	scAddExtSymInt ( util_hex_get_buffer );\
 	scAddExtSymInt ( util_hexunpack );\
 	scAddExtSymInt ( util_hexpack );\
-	scAddExtSymInt ( util_debug_msg );\
-	scAddExtSymInt ( util_error_msg );\
-	scAddExtSymInt ( util_printf_ );\
 	scAddExtSymInt ( util_list_get_last );\
 	scAddExtSymInt ( util_list_add );\
 	scAddExtSymInt ( util_list_add_new );\
@@ -231,7 +237,9 @@
 void util_init ();
 void util_set_debuglevel ();
 void util_set_errorlevel ();
+void util_script_is_aborted ();
 void util_get_line ();
+void util_smalloc_init ();
 void util_smalloc ();
 void util_dump_bytes ();
 void v_cache_update ();
@@ -244,6 +252,9 @@ void v_get_end ();
 void v_set_b ();
 void v_set_h ();
 void v_set_w ();
+void v_set_b_raw ();
+void v_set_h_raw ();
+void v_set_w_raw ();
 void v_get_b ();
 void v_get_h ();
 void v_get_w ();
@@ -272,9 +283,6 @@ void util_hex_get ();
 void util_hex_get_buffer ();
 void util_hexunpack ();
 void util_hexpack ();
-void util_debug_msg ();
-void util_error_msg ();
-void util_printf_ ();
 void util_list_get_last ();
 void util_list_add ();
 void util_list_add_new ();

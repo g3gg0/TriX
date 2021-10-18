@@ -1,5 +1,5 @@
 /*
- * $Id: mouse.c,v 1.1 2006/06/28 13:53:39 geggo Exp $
+ * $Id: mouse.c 1521 2006-06-28 13:53:39Z geggo $
  *
  * mouse.c -- mouse support for dialog
  *

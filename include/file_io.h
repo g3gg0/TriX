@@ -25,5 +25,7 @@ unsigned int file_io_release ( t_fileinfo * fi );
 t_fileinfo *file_io_create_empty (  );
 unsigned int file_io_release ( t_fileinfo * fi );
 unsigned int file_io_release_all ( t_fileinfo * fi );
+t_fileinfo *file_io_open_directory ( char *path, unsigned int *ret_entries );
+int file_io_create_directory ( char *dirname );
 
 #endif

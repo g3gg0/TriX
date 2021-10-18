@@ -5,11 +5,26 @@
 
    Author: Giancarlo Niccolai <gian@niccolai.ws>
 
-   $Id: mxml_node.c,v 1.5 2008-03-06 21:41:50 geggo Exp $
+   $Id: mxml_node.c 3608 2009-09-05 21:59:31Z kubica.bartek $
 */
 
-#include <stdio.h>
-#include <ctype.h>
+//#include <stdio.h>
+//#include <ctype.h>
+
+#include "defines.h"
+#include "seer.h"
+#include "segment.h"
+#include "stage.h"
+#include "file_io.h"
+#include "file.h"
+#include "workspace.h"
+#include "util.h"
+#include "options.h"
+#include "mem.h"
+#include "treenode.h"
+#include "trixplug.h"
+extern struct trix_functions *ft;
+#include "trixplug_wrapper.h"
 
 #include "mxml.h"
 
@@ -705,7 +720,7 @@ MXML_STATUS mxml_node_read( MXML_REFIL *ref, MXML_NODE *pNode, MXML_DOCUMENT *do
                case MXML_LINE_TERMINATOR: doc->iLine++; break;
                // We repeat line terminator here for portability
                case MXML_SOFT_LINE_TERMINATOR: break;
-               case ' ': case '\t': break;
+               //case ' ': case '\t': break;
                case '<': iStatus = 1; break;
                default:  // it is a data node
                   mxml_refil_ungetc( ref, chr );

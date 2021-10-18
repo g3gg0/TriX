@@ -12,7 +12,7 @@ typedef unsigned int Elf32_Off;
 typedef int Elf32_Sword;
 typedef unsigned int Elf32_Word;
 
-#define ELFARCH_ARM 0x28
+#define EM_ARM 0x28
 
 #define SHN_UNDEF 0
 #define SHN_LORESERVE 0xff00

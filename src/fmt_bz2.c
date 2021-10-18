@@ -242,6 +242,9 @@ fmt_bz2_encode ( t_stage * source, t_stage * target )
     if ( !compressed || !length )
         return E_FAIL;
 
+
+	if ( target->segments )
+		segment_release ( target->segments );
     target->segments = segment_create (  );
     target->segments->name = "DATA";
     target->segments->start = 0;
@@ -253,6 +256,10 @@ fmt_bz2_encode ( t_stage * source, t_stage * target )
     target->length = length;
     target->parser = "BZ2";
     target->type = "BZ2";
+
+	/* set the parser again (see file_format() ). all parsers should do this. shouldn't they? */
+	source->parser = "BZ2";
+	source->type = "BZ2";
 
 	DBG ( DEBUG_FMT, " ## %s ( %s, %s ) done\n", __FUNCTION__, source->name, target->name );
     return E_OK;

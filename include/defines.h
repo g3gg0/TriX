@@ -16,8 +16,9 @@
 
 #endif
 
+typedef unsigned int t_address;
 
-#define __TRIX_VERSION__ "v0.81"
+#define __TRIX_VERSION__ "v0.9 "
 
 #define STRUCT_HEADER \
 	int struct_magic;\
@@ -34,7 +35,7 @@
 #ifdef WIN32
 #define strncasecmp strnicmp
 #define strcasecmp stricmp
-//#define DEBUG_FAULTS
+
 #define DIR_SEP '\\'
 #define DIR_SEP_STR "\\"
 #else
@@ -42,6 +43,17 @@
 #define DIR_SEP_STR "/"
 #endif
 
+#define DEFAULT_SCRIPT \
+	"#include trix\n" \
+	"\n" \
+	"int main ( )\n" \
+	"{\n"\
+	"\tchar *buffer = NULL;\n"\
+	"\tUiDlgString ( \"Just press enter if you're bored ;).\", &buffer );\n" \
+	"}\n"
+
+
+//#define DEBUG_FAULTS
 
 #ifdef DEBUG_FAULTS
 #define HEAP_CHECK _heapchk()
@@ -49,8 +61,13 @@
 #define HEAP_CHECK while(0){}
 #endif
 
-#define TRIX_PRINTF_BUFSIZE 32768
+#define TRIX_PRINTF_BUFSIZE 4*1024*1024
 
+#if defined(_MSC_VER) && ( _MSC_VER >= 1600 )
+// _set_sbh_threshold is removed from VS 2010 since there is no long small block heap.
+// http://connect.microsoft.com/VisualStudio/feedback/details/511177/set-sbh-threshold-identifier-not-found
+#define _set_sbh_threshold(...)
+#endif
 
 #ifndef NULL
 #define NULL (0L)
@@ -75,7 +92,15 @@
 #define DEFAULT_ERROR_LEVEL 255
 #define DEFAULT_DEBUG_LEVEL 0
 
-#define ABS(x) (((x) < 0) ? -(x) : (x))
+#define ABS(x)				(((x) < 0) ? -(x) : (x))
+#define SWAP(x,y)           (((x) ^ (y)) && ((y) ^= (x) ^= (y), (x) ^= (y)))
+#define ALIGN2(x)           ( ( ( x ) + 1 ) & ~1 )
+#define ALIGN4(x)           ( ( ( x ) + 3 ) & ~3 )
+#define ALIGN8(x)           ( ( ( x ) + 7 ) & ~7 )
+#define ALIGN16(x)          ( ( ( x ) + 15 ) & ~15 )
+#define ALIGN_WORD(x)       ( ( ( x ) + 3 ) & ~3 )
+#define ALIGN_HALF(x)       ( ( ( x ) + 1 ) & ~1 )
+#define ALIGN_BY(x,y)       ( ( ( x ) % ( y ) ) ? ( ( x ) + ( y ) - ( x ) % ( y ) ) : ( x ) )
 
 #define LIST_COUNT(x)  util_list_count ( (t_list *)x )
 #define LIST_END(x)    util_list_get_last ( (t_list *)x )
@@ -112,9 +137,9 @@
 									}}
 
 
-int util_printf_ ( char *str, ... );
-int util_debug_msg ( int level, char *str, ... );
-int util_error_msg ( int level, char *str, ... );
+int ui_printf_msg ( char *str, ... );
+int ui_debug_msg ( int level, char *str, ... );
+int ui_error_msg ( int level, char *str, ... );
 #define R(x) {if ( x != E_OK ) return E_FAIL;}
 #define CHECK_AND_FREE(x) if ( x ) { free ( x ); x = NULL; }
 
@@ -126,9 +151,9 @@ int util_error_msg ( int level, char *str, ... );
 //#define free   ft->mem->free
 //#define ralloc ft->mem->realloc
 #else
-#define DBG util_debug_msg
-#define ERR util_error_msg
-#define printf util_printf_
+#define DBG ui_debug_msg
+#define ERR ui_error_msg
+#define printf ui_printf_msg
 #endif
 
 
@@ -136,13 +161,18 @@ int util_error_msg ( int level, char *str, ... );
 #ifdef QT_CORE_LIB
 int __cdecl	qt_vprintf (const char *format, va_list args );
 
+char * __cdecl	      qt_dlg_load_file ( const char *msg, const char *ext );
+char * __cdecl	      qt_dlg_save_file ( const char *msg, const char *ext );
 unsigned int __cdecl	qt_dlg_msg ( char *text, int type );
 char * __cdecl	        qt_dlg_string ( char *def, char *text );
 unsigned int __cdecl	qt_dlg_bool ( char *text );
 unsigned int __cdecl    qt_dlg_box_create ( unsigned char *title );
 unsigned int __cdecl    qt_dlg_box_process ( );
+unsigned int __cdecl    qt_dlg_memviewer_process ();
+unsigned int __cdecl    qt_dlg_workspace_process ();
 unsigned int __cdecl	qt_dlg_box_clear ( unsigned int id );
 unsigned int __cdecl	qt_dlg_box_msg ( unsigned int id, unsigned char *msg );
+unsigned int __cdecl	qt_dlg_box_set_keypress_ptr ( unsigned int id, int *ptr );
 unsigned int __cdecl	qt_dlg_box_release ( unsigned int id );
 unsigned int __cdecl	qt_dlg_box_release_all ( );
 unsigned int __cdecl	qt_dlg_box_release ( unsigned int id );
@@ -150,7 +180,6 @@ unsigned int __cdecl	qt_dlg_box_size ( unsigned int id, unsigned int width, unsi
 
 
 #include "treenode.h"
-#define vprintf qt_vprintf
 #endif
 
 #define M_SEGMENT      'SEGM'
@@ -170,6 +199,8 @@ unsigned int __cdecl	qt_dlg_box_size ( unsigned int id, unsigned int width, unsi
 #define DEBUG_ELF       0x0080
 #define DEBUG_FMT_EPOC  0x0100
 #define DEBUG_PLUG      0x0200
+#define DEBUG_NETRIX    0x0400
+#define DEBUG_FMT_PE    0x0800
 
 #define FLAGS_ENDIANESS    0x00030000
 #define FLAGS_ENDIANESS_LE 0x00010000
@@ -177,6 +208,14 @@ unsigned int __cdecl	qt_dlg_box_size ( unsigned int id, unsigned int width, unsi
 #define FLAGS_FREE_NAME    0x00040000
 #define FLAGS_REPLACE      0x00080000
 #define FLAGS_HIDE_IN_MEM  0x00100000
+#define FLAGS_MAP_IN_MEM   0x00200000
+#define FLAGS_MAP_ANY      0x00300000
+#define FLAGS_SPARSE       0x00400000
+#define FLAGS_SHADOW       0x00800000
+
+// new macro for shift + and to get a byte from a word
+// will make code more readable than all those ((variable>>24)&0xFF) | ((variable>>16)&0xFF) ...
+#define BYTEPOS(val,pos) (((val)>>((pos)*8))&0xFF)
 
 /*
 	         JUST FOR TESTING
@@ -196,5 +235,15 @@ unsigned int __cdecl	qt_dlg_box_size ( unsigned int id, unsigned int width, unsi
 #define SET_HALF(x,y,z) {SET_BYTE(x,(y),((z)>>8)&0xFF);SET_BYTE(x,(y)+1,(z)&0xFF)}
 #define SET_BYTE(x,y,z) {x->segments->data[y]=z;}
 #define SET_SIZE(x,y)   {x->segments->length=y;}
+
+#define GET_WORD_RAW(buffer,pos) ((GET_HALF_RAW(buffer,(pos))<<16)|GET_HALF_RAW(buffer,(pos+2)))
+#define GET_TRIP_RAW(buffer,pos) ((GET_BYTE_RAW(buffer,(pos))<<16)|GET_HALF_RAW(buffer,(pos+1)))
+#define GET_HALF_RAW(buffer,pos) ((GET_BYTE_RAW(buffer,(pos))<<8)|GET_BYTE_RAW(buffer,(pos+1)))
+#define GET_BYTE_RAW(buffer,pos) (((unsigned char*)(buffer))[pos])
+
+#define SET_WORD_RAW(buffer,pos,data) {SET_HALF_RAW(buffer,(pos),((data)>>16)&0xFFFF);SET_HALF_RAW(buffer,(pos)+2,(data)&0xFFFF)}
+#define SET_TRIP_RAW(buffer,pos,data) {SET_BYTE_RAW(buffer,(pos),((data)>>16)&0xFF);SET_HALF_RAW(buffer,(pos)+1,(data)&0xFFFF)}
+#define SET_HALF_RAW(buffer,pos,data) {SET_BYTE_RAW(buffer,(pos),((data)>>8)&0xFF);SET_BYTE_RAW(buffer,(pos)+1,(data)&0xFF)}
+#define SET_BYTE_RAW(buffer,pos,data) {((unsigned char*)(buffer))[pos]=data;}
 
 #endif

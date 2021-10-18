@@ -3,10 +3,13 @@
 
 
 // MEM_SEC_ZONE MUST BE WORD-ALIGNED (4 byte steps)
-#define MEM_SEC_ZONE 0x0008
-#define MEM_DEBUG
-//#define MEM_KEEP_MALLOCED
-#define MEM_HASH_MAX      0xF00
+#define MEM_SEC_ZONE 0x0020
+//#define MEM_DEBUG           // runtime beyond-buffer-write checks 
+//#define MEM_KEEP_MALLOCED   // allows checking even after memory was free'd
+#define MEM_HASH_MAX      0xFFFF
+
+#define MEM_MARK_BEFORE  0xD1
+#define MEM_MARK_AFTER   0xCE
 
 #define MEM_MARK_DEFAULT  0xAC01D1CE
 
@@ -47,19 +50,16 @@ struct s_mem_list
 #include "trixplug_mem.h"
 
 
-
+// force all allocations to go through TriX' mem.c
+// else we will face HEAP problems, thanks to MSVCRT....
+// no idea how to work around this else
 #ifndef __TRIX_MEM_C__
-#ifdef MEM_DEBUG
 #define calloc(x,y)      mem_calloc(x,y,__FUNCTION__,__LINE__)
 #define malloc(x)        mem_allocate(x,__FUNCTION__,__LINE__)
 #define tmalloc(x,type)  mem_allocate_type(x,__FUNCTION__,__LINE__,type)
 #define realloc(x,y)     mem_reallocate(x,y,__FUNCTION__,__LINE__)
 #define free(x)          mem_release(x,__FUNCTION__,__LINE__)
 #define strdup(x)        mem_strduplicate(x,__FUNCTION__,__LINE__)
-unsigned int mem_is_valid ( void *ptr );
-#else
-#define tmalloc(x,type)  malloc(x)
-#endif
 #endif
 
 

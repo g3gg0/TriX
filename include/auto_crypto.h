@@ -9,11 +9,16 @@
 	"import char *__crypto_get_signopt ( char *signature);\n"\
 	"import t_crypt_key *__crypto_get_key ( unsigned char key_id, t_crypt_key * keys);\n"\
 	"import char *__crypto_get_keyname ( unsigned char key_id, t_crypt_key * keys);\n"\
+	"import int __crypto_unfold ( char **in_data, int length, t_crypt_key * keys);\n"\
 	"import char *__crypto_check_integrity ( char **in_data, int length, t_crypt_key * keys);\n"\
 	"import char *__crypto_generate_cert ( char *data, int length, char *signature, t_crypt_key * key);\n"\
+	"import unsigned int __crypto_init_algokey ( unsigned char *algokey_data, unsigned int algokey_length, t_crypt_key * rsa_key);\n"\
+	"import unsigned int __crypto_init_algoiv ( unsigned char *algoiv_data, unsigned int algoiv_length, t_crypt_key * rsa_key);\n"\
 	"import unsigned char *__crypto_encrypt_buffer ( unsigned char *in_buffer, int *length, t_crypt_key * key);\n"\
 	"import unsigned char *__crypto_decrypt_buffer ( unsigned char *in_buffer, int *length, t_crypt_key * key);\n"\
 	"import unsigned int __crypto_generate_key ( int nbits, t_crypt_key * priv_key, t_crypt_key * pub_key);\n"\
+	"import unsigned int __crypto_generate_sha1 ( const unsigned char *data, unsigned int length, char *hash);\n"\
+	"import unsigned int __crypto_generate_md5 ( const unsigned char *data, unsigned int length, char *hash);\n"\
 
 
 
@@ -25,11 +30,16 @@
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">__crypto_get_signopt</font>&nbsp;(&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">signature</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#000000\">t_crypt_key</font>&nbsp;*<font color=\"#000000\">__crypto_get_key</font>&nbsp;(&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">char</font>&nbsp;<font color=\"#000000\">key_id</font>,&nbsp;<font color=\"#000000\">t_crypt_key</font>&nbsp;*&nbsp;<font color=\"#000000\">keys</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">__crypto_get_keyname</font>&nbsp;(&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">char</font>&nbsp;<font color=\"#000000\">key_id</font>,&nbsp;<font color=\"#000000\">t_crypt_key</font>&nbsp;*&nbsp;<font color=\"#000000\">keys</font>);<br>"\
+	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__crypto_unfold</font>&nbsp;(&nbsp;<font color=\"#800000\">char</font>&nbsp;**<font color=\"#000000\">in_data</font>,&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">length</font>,&nbsp;<font color=\"#000000\">t_crypt_key</font>&nbsp;*&nbsp;<font color=\"#000000\">keys</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">__crypto_check_integrity</font>&nbsp;(&nbsp;<font color=\"#800000\">char</font>&nbsp;**<font color=\"#000000\">in_data</font>,&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">length</font>,&nbsp;<font color=\"#000000\">t_crypt_key</font>&nbsp;*&nbsp;<font color=\"#000000\">keys</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">__crypto_generate_cert</font>&nbsp;(&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">data</font>,&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">length</font>,&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">signature</font>,&nbsp;<font color=\"#000000\">t_crypt_key</font>&nbsp;*&nbsp;<font color=\"#000000\">key</font>);<br>"\
+	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__crypto_init_algokey</font>&nbsp;(&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">algokey_data</font>,&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">algokey_length</font>,&nbsp;<font color=\"#000000\">t_crypt_key</font>&nbsp;*&nbsp;<font color=\"#000000\">rsa_key</font>);<br>"\
+	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__crypto_init_algoiv</font>&nbsp;(&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">algoiv_data</font>,&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">algoiv_length</font>,&nbsp;<font color=\"#000000\">t_crypt_key</font>&nbsp;*&nbsp;<font color=\"#000000\">rsa_key</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">__crypto_encrypt_buffer</font>&nbsp;(&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">in_buffer</font>,&nbsp;<font color=\"#800000\">int</font>&nbsp;*<font color=\"#000000\">length</font>,&nbsp;<font color=\"#000000\">t_crypt_key</font>&nbsp;*&nbsp;<font color=\"#000000\">key</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">__crypto_decrypt_buffer</font>&nbsp;(&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">in_buffer</font>,&nbsp;<font color=\"#800000\">int</font>&nbsp;*<font color=\"#000000\">length</font>,&nbsp;<font color=\"#000000\">t_crypt_key</font>&nbsp;*&nbsp;<font color=\"#000000\">key</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__crypto_generate_key</font>&nbsp;(&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">nbits</font>,&nbsp;<font color=\"#000000\">t_crypt_key</font>&nbsp;*&nbsp;<font color=\"#000000\">priv_key</font>,&nbsp;<font color=\"#000000\">t_crypt_key</font>&nbsp;*&nbsp;<font color=\"#000000\">pub_key</font>);<br>"\
+	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__crypto_generate_sha1</font>&nbsp;(&nbsp;<font color=\"#800000\">const</font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">data</font>,&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">length</font>,&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">hash</font>);<br>"\
+	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__crypto_generate_md5</font>&nbsp;(&nbsp;<font color=\"#800000\">const</font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">data</font>,&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">length</font>,&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">hash</font>);<br>"\
 	"<br>"\
 	"		</font>"\
 
@@ -42,11 +52,16 @@
 	scAddExtSymInt ( crypto_get_signopt );\
 	scAddExtSymInt ( crypto_get_key );\
 	scAddExtSymInt ( crypto_get_keyname );\
+	scAddExtSymInt ( crypto_unfold );\
 	scAddExtSymInt ( crypto_check_integrity );\
 	scAddExtSymInt ( crypto_generate_cert );\
+	scAddExtSymInt ( crypto_init_algokey );\
+	scAddExtSymInt ( crypto_init_algoiv );\
 	scAddExtSymInt ( crypto_encrypt_buffer );\
 	scAddExtSymInt ( crypto_decrypt_buffer );\
 	scAddExtSymInt ( crypto_generate_key );\
+	scAddExtSymInt ( crypto_generate_sha1 );\
+	scAddExtSymInt ( crypto_generate_md5 );\
 
 
 /* seer function declaration for crypto.c */
@@ -57,11 +72,16 @@ void crypto_get_signee ();
 void crypto_get_signopt ();
 void crypto_get_key ();
 void crypto_get_keyname ();
+void crypto_unfold ();
 void crypto_check_integrity ();
 void crypto_generate_cert ();
+void crypto_init_algokey ();
+void crypto_init_algoiv ();
 void crypto_encrypt_buffer ();
 void crypto_decrypt_buffer ();
 void crypto_generate_key ();
+void crypto_generate_sha1 ();
+void crypto_generate_md5 ();
 
 #endif
 /* additional seer includes from crypto_seer.h */
@@ -81,6 +101,8 @@ void crypto_generate_key ();
 #define CRYPTO_AUTO_MISC_POST \
 	"\n"\
 	"unsigned int CryptoGenerateKey ( int bits, t_crypt_key *priv_key, t_crypt_key *pub_key ) { return __crypto_generate_key ( bits, priv_key, pub_key ); }\n"\
+	"unsigned int CryptoGenerateSHA1 ( const unsigned char *data, unsigned int length, char *hash ) { return __crypto_generate_sha1 ( data, length, hash ); }\n"\
+	"unsigned int CryptoGenerateMD5 ( const unsigned char *data, unsigned int length, char *hash ) { return __crypto_generate_md5 ( data, length, hash ); }\n"\
 	"char *CryptoCheckIntegrity ( char **data, int length, t_crypt_key *key ) { return __crypto_check_integrity ( data, length, key ) ;}\n"\
 	"char *CryptoGenerateCert ( char *data, int length, char *signature, t_crypt_key *key ) { return __crypto_generate_cert ( data, length, signature, key );}\n"\
 	"char *CryptoGetSigner ( char *signature ) { return __crypto_get_signer ( signature );}\n"\
@@ -107,6 +129,8 @@ void crypto_generate_key ();
 	"		<font face=\"Monospace\">"\
 	"<br>"\
 	"<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">CryptoGenerateKey</font>&nbsp;(&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">bits</font>,&nbsp;<font color=\"#000000\">t_crypt_key</font>&nbsp;*<font color=\"#000000\">priv_key</font>,&nbsp;<font color=\"#000000\">t_crypt_key</font>&nbsp;*<font color=\"#000000\">pub_key</font>&nbsp;)&nbsp;{&nbsp;<font color=\"#000080\"><b>return</b></font>&nbsp;<font color=\"#000000\">__crypto_generate_key</font>&nbsp;(&nbsp;<font color=\"#000000\">bits</font>,&nbsp;<font color=\"#000000\">priv_key</font>,&nbsp;<font color=\"#000000\">pub_key</font>&nbsp;);&nbsp;}<br>"\
+	"<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">CryptoGenerateSHA1</font>&nbsp;(&nbsp;<font color=\"#800000\">const</font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">data</font>,&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">length</font>,&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">hash</font>&nbsp;)&nbsp;{&nbsp;<font color=\"#000080\"><b>return</b></font>&nbsp;<font color=\"#000000\">__crypto_generate_sha1</font>&nbsp;(&nbsp;<font color=\"#000000\">data</font>,&nbsp;<font color=\"#000000\">length</font>,&nbsp;<font color=\"#000000\">hash</font>&nbsp;);&nbsp;}<br>"\
+	"<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">CryptoGenerateMD5</font>&nbsp;(&nbsp;<font color=\"#800000\">const</font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">data</font>,&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">length</font>,&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">hash</font>&nbsp;)&nbsp;{&nbsp;<font color=\"#000080\"><b>return</b></font>&nbsp;<font color=\"#000000\">__crypto_generate_md5</font>&nbsp;(&nbsp;<font color=\"#000000\">data</font>,&nbsp;<font color=\"#000000\">length</font>,&nbsp;<font color=\"#000000\">hash</font>&nbsp;);&nbsp;}<br>"\
 	"<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">CryptoCheckIntegrity</font>&nbsp;(&nbsp;<font color=\"#800000\">char</font>&nbsp;**<font color=\"#000000\">data</font>,&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">length</font>,&nbsp;<font color=\"#000000\">t_crypt_key</font>&nbsp;*<font color=\"#000000\">key</font>&nbsp;)&nbsp;{&nbsp;<font color=\"#000080\"><b>return</b></font>&nbsp;<font color=\"#000000\">__crypto_check_integrity</font>&nbsp;(&nbsp;<font color=\"#000000\">data</font>,&nbsp;<font color=\"#000000\">length</font>,&nbsp;<font color=\"#000000\">key</font>&nbsp;)&nbsp;;}<br>"\
 	"<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">CryptoGenerateCert</font>&nbsp;(&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">data</font>,&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">length</font>,&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">signature</font>,&nbsp;<font color=\"#000000\">t_crypt_key</font>&nbsp;*<font color=\"#000000\">key</font>&nbsp;)&nbsp;{&nbsp;<font color=\"#000080\"><b>return</b></font>&nbsp;<font color=\"#000000\">__crypto_generate_cert</font>&nbsp;(&nbsp;<font color=\"#000000\">data</font>,&nbsp;<font color=\"#000000\">length</font>,&nbsp;<font color=\"#000000\">signature</font>,&nbsp;<font color=\"#000000\">key</font>&nbsp;);}<br>"\
 	"<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">CryptoGetSigner</font>&nbsp;(&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">signature</font>&nbsp;)&nbsp;{&nbsp;<font color=\"#000080\"><b>return</b></font>&nbsp;<font color=\"#000000\">__crypto_get_signer</font>&nbsp;(&nbsp;<font color=\"#000000\">signature</font>&nbsp;);}<br>"\

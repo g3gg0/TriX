@@ -12,8 +12,8 @@ This notice must always be retained in any copy.
 ******************* END OF COPYRIGHT NOTICE***************************/
 /*
     Last updated:
-    $Date: 2006/04/13 00:20:56 $
-    $Revision: 1.1 $
+    $Date: 2006-04-13 02:20:56 +0200 (Do, 13 Apr 2006) $
+    $Revision: 1415 $
 	$Author: geggo $
 */
 

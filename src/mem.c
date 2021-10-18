@@ -25,6 +25,15 @@ unsigned char mem_state_prefix[2] = { '\000', '\000' };
 unsigned int
 mem_init ( )
 {
+#ifdef WIN32
+	//
+	// prevent fragmentation caused by PPModd etc
+	//
+	// http://www.abstraction.net/content/articles/analyzing%20the%20heaps%20of%20a%20win32%20process.htm
+	// http://msdn.microsoft.com/en-us/library/a6x53890(VS.71).aspx
+	//
+	_set_sbh_threshold ( 1015 );
+#endif
 	options_add_core_option ( OPT_INT, "util", max_heap, "maximum heap used by TriX and scripts (megabytes)" );
 	return E_OK;
 }
@@ -32,7 +41,7 @@ mem_init ( )
 unsigned int
 mem_get_hash ( unsigned int hash )
 {
-	unsigned int pos = (hash>>15);
+	unsigned int pos = (hash>>0);
 	return pos%MEM_HASH_MAX;
 }
 void *
@@ -135,11 +144,14 @@ mem_delete_old_entry ( unsigned int address )
 void *
 mem_allocate_type ( unsigned int bytes, const char *func, int line, char *type )
 {
+#ifndef MEM_DEBUG
+	return malloc ( bytes );
+#else
 	unsigned int hash = 0;
 	t_mem_list *entry = 0;
 	unsigned int address = 0;
 
-	HEAP_CHECK;
+	//HEAP_CHECK;
 	if ( !bytes )
 		return NULL;
 
@@ -159,7 +171,8 @@ mem_allocate_type ( unsigned int bytes, const char *func, int line, char *type )
 
 	if ( !address )
 	{
-//		mem_check_all (  );
+		HEAP_CHECK;
+		mem_check_all (  );
 		return NULL;
 	}
 
@@ -210,10 +223,11 @@ mem_allocate_type ( unsigned int bytes, const char *func, int line, char *type )
 
 	MEM_UNLOCK_WR;
 
-	memset ( entry->address + sizeof(t_mem_list), 0x55, MEM_SEC_ZONE );
-	memset ( entry->address + sizeof(t_mem_list) + MEM_SEC_ZONE + entry->bytes, 0xAA, MEM_SEC_ZONE );
+	memset ( entry->address + sizeof(t_mem_list), MEM_MARK_BEFORE, MEM_SEC_ZONE );
+	memset ( entry->address + sizeof(t_mem_list) + MEM_SEC_ZONE + entry->bytes, MEM_MARK_AFTER, MEM_SEC_ZONE );
 
 	return (void*)(entry->address + sizeof(t_mem_list) + MEM_SEC_ZONE );
+#endif
 }
 
 
@@ -261,8 +275,8 @@ mem_check ( t_mem_list *entry, unsigned int final )
 	{
 		buf_1 = malloc ( MEM_SEC_ZONE );
 		buf_2 = malloc ( MEM_SEC_ZONE );
-		memset ( buf_1, 0x55, MEM_SEC_ZONE );
-		memset ( buf_2, 0xAA, MEM_SEC_ZONE );
+		memset ( buf_1, MEM_MARK_BEFORE, MEM_SEC_ZONE );
+		memset ( buf_2, MEM_MARK_AFTER, MEM_SEC_ZONE );
 	}
 #ifdef MEM_KEEP_MALLOCED
 	if ( !final && entry->freed )
@@ -299,6 +313,9 @@ mem_check ( t_mem_list *entry, unsigned int final )
 unsigned int
 mem_check_overwrite ( void * ptr )
 {
+#ifndef MEM_DEBUG
+   return 1;
+#else
 	unsigned int address = (unsigned int)ptr - MEM_SEC_ZONE - sizeof(t_mem_list);
 	t_mem_list *entry = (t_mem_list *)address;
 
@@ -309,7 +326,7 @@ mem_check_overwrite ( void * ptr )
 	}
 
 	return 1;
-
+#endif
 }
 
 unsigned int
@@ -489,6 +506,9 @@ mem_release_tagged (  )
 void *
 mem_reallocate ( void *ptr, unsigned int bytes, const char *func, int line )
 {
+#ifndef MEM_DEBUG
+	return realloc ( ptr, bytes );
+#else
 	unsigned int hash = 0;
 	unsigned int address = (unsigned int)ptr - MEM_SEC_ZONE - sizeof(t_mem_list);
 	t_mem_list *entry = NULL;
@@ -577,7 +597,7 @@ mem_reallocate ( void *ptr, unsigned int bytes, const char *func, int line )
 
 			last[hash] = entry;
 
-			memset ( entry->address + sizeof(t_mem_list) + MEM_SEC_ZONE + entry->bytes, 0xAA, MEM_SEC_ZONE );
+			memset ( entry->address + sizeof(t_mem_list) + MEM_SEC_ZONE + entry->bytes, MEM_MARK_AFTER, MEM_SEC_ZONE );
 
 			MEM_UNLOCK_WR;
 			return entry->address + sizeof(t_mem_list) + MEM_SEC_ZONE;
@@ -588,11 +608,16 @@ mem_reallocate ( void *ptr, unsigned int bytes, const char *func, int line )
 	printf ( "%s(%i): FAILED !! realloc(%i)\n", func, line, bytes );
 
 	return 0;
+#endif
 }
 
 void
 mem_release ( void *ptr, const char *func, int line )
 {
+#ifndef MEM_DEBUG
+	free ( ptr );
+	return;
+#else
 	unsigned int hash = 0;
 	unsigned int address = (unsigned int)ptr - MEM_SEC_ZONE - sizeof(t_mem_list);
 	t_mem_list *entry = NULL;
@@ -641,10 +666,11 @@ mem_release ( void *ptr, const char *func, int line )
 			heap_used -= (entry->bytes + 2*MEM_SEC_ZONE + sizeof ( t_mem_list ));
 
 			// wipe memory
-			memset ( entry, 0x00, (entry->bytes + 2*MEM_SEC_ZONE + sizeof ( t_mem_list ) ));
+//			memset ( entry, 0x00, (entry->bytes + 2*MEM_SEC_ZONE + sizeof ( t_mem_list ) ));
 			free ( entry );
 #else
 			memset ( ptr, 0xFF, entry->bytes );
+			strncpy ( ptr, "FREE", entry->bytes );
 			if ( func )
 				strncpy ( entry->caller, func, 32 );
 			else
@@ -662,6 +688,7 @@ mem_release ( void *ptr, const char *func, int line )
 	printf ( "%s(%i): FAILED !! free()\n", func, line );
 
 	return;
+#endif
 }
 
 unsigned int
@@ -786,7 +813,16 @@ mem_release_seer ( char *buf )
 void *
 mem_allocate_passthru ( unsigned int bytes )
 {
-	return malloc ( bytes );
+	void *ptr = malloc ( bytes );
+
+	if ( !ptr )
+	{
+		HEAP_CHECK;
+		mem_check_all (  );
+		return NULL;
+	}
+
+	return ptr;
 }
 void
 mem_release_passthru ( char *buf )

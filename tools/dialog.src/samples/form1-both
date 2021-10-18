@@ -1,5 +1,5 @@
 #! /bin/sh
-# $Id: form1-both,v 1.1 2006/06/28 13:53:39 geggo Exp $
+# $Id: form1-both 1521 2006-06-28 13:53:39Z geggo $
 : ${DIALOG=dialog}
 
 backtitle="An Example for the use of --form:"

@@ -14,6 +14,7 @@
 	"import unsigned int __workspace_release ( t_workspace * ws);\n"\
 	"import unsigned int __workspace_memmap_release ( t_workspace * ws);\n"\
 	"import unsigned int __workspace_memmap_sort ( t_workspace * ws);\n"\
+	"import unsigned int __workspace_memmap_reverse ( t_workspace * ws);\n"\
 	"import unsigned int __workspace_update_memmap ( t_workspace * ws);\n"\
 
 
@@ -31,6 +32,7 @@
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__workspace_release</font>&nbsp;(&nbsp;<font color=\"#000000\">t_workspace</font>&nbsp;*&nbsp;<font color=\"#000000\">ws</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__workspace_memmap_release</font>&nbsp;(&nbsp;<font color=\"#000000\">t_workspace</font>&nbsp;*&nbsp;<font color=\"#000000\">ws</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__workspace_memmap_sort</font>&nbsp;(&nbsp;<font color=\"#000000\">t_workspace</font>&nbsp;*&nbsp;<font color=\"#000000\">ws</font>);<br>"\
+	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__workspace_memmap_reverse</font>&nbsp;(&nbsp;<font color=\"#000000\">t_workspace</font>&nbsp;*&nbsp;<font color=\"#000000\">ws</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__workspace_update_memmap</font>&nbsp;(&nbsp;<font color=\"#000000\">t_workspace</font>&nbsp;*&nbsp;<font color=\"#000000\">ws</font>);<br>"\
 	"<br>"\
 	"		</font>"\
@@ -49,6 +51,7 @@
 	scAddExtSymInt ( workspace_release );\
 	scAddExtSymInt ( workspace_memmap_release );\
 	scAddExtSymInt ( workspace_memmap_sort );\
+	scAddExtSymInt ( workspace_memmap_reverse );\
 	scAddExtSymInt ( workspace_update_memmap );\
 
 
@@ -65,6 +68,7 @@ void workspace_memmap_add ();
 void workspace_release ();
 void workspace_memmap_release ();
 void workspace_memmap_sort ();
+void workspace_memmap_reverse ();
 void workspace_update_memmap ();
 
 #endif
@@ -120,7 +124,7 @@ void workspace_update_memmap ();
 	"		if ( !GetWorkspace() || !GetWorkspace()->fileinfo || !GetWorkspace()->fileinfo->stages  ) \n"\
 	"			ret = E_FAIL; \n"\
 	"		if ( ret == E_OK && __stage_get_modified ( GetWorkspace()->fileinfo->stages ) ) \n"\
-	"			__file_sync ( GetWorkspace()->fileinfo->stages ); \n"\
+	"			__file_sync ( GetWorkspace()->fileinfo ); \n"\
 	"		if ( ret == E_OK && __stage_set_workspace ( __stage_find_by_num ( GetWorkspace()->fileinfo->stages, stagenum ) ) != E_OK) \n"\
 	"			ret = E_FAIL; \n"\
 	"		__workspace_update_memmap ( GetWorkspace() ); \n"\
@@ -186,7 +190,7 @@ void workspace_update_memmap ();
 	"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color=\"#000080\"><b>if</b></font>&nbsp;(&nbsp;!<font color=\"#000000\">GetWorkspace</font>()&nbsp;||&nbsp;!<font color=\"#000000\">GetWorkspace</font>()-&gt;<font color=\"#000000\">fileinfo</font>&nbsp;||&nbsp;!<font color=\"#000000\">GetWorkspace</font>()-&gt;<font color=\"#000000\">fileinfo</font>-&gt;<font color=\"#000000\">stages</font>&nbsp;&nbsp;)&nbsp;<br>"\
 	"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color=\"#000000\">ret</font>&nbsp;=&nbsp;<font color=\"#000000\">E_FAIL</font>;&nbsp;<br>"\
 	"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color=\"#000080\"><b>if</b></font>&nbsp;(&nbsp;<font color=\"#000000\">ret</font>&nbsp;==&nbsp;<font color=\"#000000\">E_OK</font>&nbsp;&amp;&amp;&nbsp;<font color=\"#000000\">__stage_get_modified</font>&nbsp;(&nbsp;<font color=\"#000000\">GetWorkspace</font>()-&gt;<font color=\"#000000\">fileinfo</font>-&gt;<font color=\"#000000\">stages</font>&nbsp;)&nbsp;)&nbsp;<br>"\
-	"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color=\"#000000\">__file_sync</font>&nbsp;(&nbsp;<font color=\"#000000\">GetWorkspace</font>()-&gt;<font color=\"#000000\">fileinfo</font>-&gt;<font color=\"#000000\">stages</font>&nbsp;);&nbsp;<br>"\
+	"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color=\"#000000\">__file_sync</font>&nbsp;(&nbsp;<font color=\"#000000\">GetWorkspace</font>()-&gt;<font color=\"#000000\">fileinfo</font>&nbsp;);&nbsp;<br>"\
 	"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color=\"#000080\"><b>if</b></font>&nbsp;(&nbsp;<font color=\"#000000\">ret</font>&nbsp;==&nbsp;<font color=\"#000000\">E_OK</font>&nbsp;&amp;&amp;&nbsp;<font color=\"#000000\">__stage_set_workspace</font>&nbsp;(&nbsp;<font color=\"#000000\">__stage_find_by_num</font>&nbsp;(&nbsp;<font color=\"#000000\">GetWorkspace</font>()-&gt;<font color=\"#000000\">fileinfo</font>-&gt;<font color=\"#000000\">stages</font>,&nbsp;<font color=\"#000000\">stagenum</font>&nbsp;)&nbsp;)&nbsp;!=&nbsp;<font color=\"#000000\">E_OK</font>)&nbsp;<br>"\
 	"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color=\"#000000\">ret</font>&nbsp;=&nbsp;<font color=\"#000000\">E_FAIL</font>;&nbsp;<br>"\
 	"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color=\"#000000\">__workspace_update_memmap</font>&nbsp;(&nbsp;<font color=\"#000000\">GetWorkspace</font>()&nbsp;);&nbsp;<br>"\

@@ -15,6 +15,7 @@
 	"import t_stage *__stage_find_by_num ( t_stage * s, unsigned int num);\n"\
 	"import t_stage *__stage_get_last ( t_stage * s);\n"\
 	"import unsigned int __stage_restore_info ( t_stage * s, t_stage_info * i);\n"\
+	"import unsigned int __stage_release_info ( t_stage_info * info);\n"\
 	"import t_stage_info *__stage_save_info ( t_stage * s);\n"\
 	"import unsigned int __stage_count ( t_stage * s);\n"\
 	"import unsigned int __stage_get_num ( t_stage * s);\n"\
@@ -48,6 +49,7 @@
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#000000\">t_stage</font>&nbsp;*<font color=\"#000000\">__stage_find_by_num</font>&nbsp;(&nbsp;<font color=\"#000000\">t_stage</font>&nbsp;*&nbsp;<font color=\"#000000\">s</font>,&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">num</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#000000\">t_stage</font>&nbsp;*<font color=\"#000000\">__stage_get_last</font>&nbsp;(&nbsp;<font color=\"#000000\">t_stage</font>&nbsp;*&nbsp;<font color=\"#000000\">s</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__stage_restore_info</font>&nbsp;(&nbsp;<font color=\"#000000\">t_stage</font>&nbsp;*&nbsp;<font color=\"#000000\">s</font>,&nbsp;<font color=\"#000000\">t_stage_info</font>&nbsp;*&nbsp;<font color=\"#000000\">i</font>);<br>"\
+	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__stage_release_info</font>&nbsp;(&nbsp;<font color=\"#000000\">t_stage_info</font>&nbsp;*&nbsp;<font color=\"#000000\">info</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#000000\">t_stage_info</font>&nbsp;*<font color=\"#000000\">__stage_save_info</font>&nbsp;(&nbsp;<font color=\"#000000\">t_stage</font>&nbsp;*&nbsp;<font color=\"#000000\">s</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__stage_count</font>&nbsp;(&nbsp;<font color=\"#000000\">t_stage</font>&nbsp;*&nbsp;<font color=\"#000000\">s</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__stage_get_num</font>&nbsp;(&nbsp;<font color=\"#000000\">t_stage</font>&nbsp;*&nbsp;<font color=\"#000000\">s</font>);<br>"\
@@ -82,6 +84,7 @@
 	scAddExtSymInt ( stage_find_by_num );\
 	scAddExtSymInt ( stage_get_last );\
 	scAddExtSymInt ( stage_restore_info );\
+	scAddExtSymInt ( stage_release_info );\
 	scAddExtSymInt ( stage_save_info );\
 	scAddExtSymInt ( stage_count );\
 	scAddExtSymInt ( stage_get_num );\
@@ -114,6 +117,7 @@ void stage_create ();
 void stage_find_by_num ();
 void stage_get_last ();
 void stage_restore_info ();
+void stage_release_info ();
 void stage_save_info ();
 void stage_count ();
 void stage_get_num ();

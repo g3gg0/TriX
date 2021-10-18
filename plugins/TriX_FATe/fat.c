@@ -31,21 +31,18 @@
 #include "util.h"
 #include "options.h"
 #include "mem.h"
-
 #include "trixplug.h"
-
-extern int dump_chunks;
-extern int recompress;
-extern int bitmask_depth;
-extern int endianess_be;
-extern struct trix_functions *ft;
-
-#include "trixplug_wrapper.h"
 
 #include "fat.h"
 #include "fatconf.h"
 #include "fattime.h"
 #include "fate.h"
+
+extern struct trix_functions *ft;
+
+#include "trixplug_wrapper.h"
+
+extern unsigned int force_fat16;
 
 // globals
 u8 SectorBuffer[8192];	// Sector Buffer
@@ -55,6 +52,27 @@ u8 FatCache[8192];		// Fat Buffer
 TFILE File;									// File Information
 
 #define DRIVE0    0
+
+// no idea why strupr causes resolve errors during runtime
+//
+//    symbol lookup error: .....  undefined symbol: strupr
+//
+// so lets use our own functions
+
+unsigned char* string_uppercase ( unsigned char *string )
+{
+	unsigned char *ret = string;
+
+    while ( *string )
+    {
+		if ( *string >= 'a' && *string <= 'z' )
+			*string -= 0x20;
+		string++;
+    }
+
+	return ret;
+}
+
 
 //*****************************************************************************
 // Function: fatClustToSect
@@ -96,31 +114,47 @@ u32 fatSectToClust( t_fat_info *info, u32 sect)
 //
 // Description: Get FAT info from ATA dispositive and initialize internal variables
 //*****************************************************************************
-t_fat_info *fatInit ( t_workspace *workspace, unsigned char prPartType )
+t_fat_info *fatInit ( t_workspace *workspace, unsigned int start_address )
 {
 	t_fat_info *info = malloc ( sizeof ( t_fat_info ) );
 	struct bpb710 *bpb = malloc ( sizeof ( struct bpb710 ) );
 
 	info->bpb = bpb;
 	info->ws = workspace;
+	info->start_address = start_address;
 
-	bpb->bpbBytesPerSec = v_get_h ( workspace, 0x0B );
-	bpb->bpbSecPerClust  = v_get_b ( workspace, 0x0D );
-	bpb->bpbResSectors  = v_get_h ( workspace, 0x0E );
-	bpb->bpbFATs  = v_get_b ( workspace, 0x10 );
-	bpb->bpbRootDirEnts  = v_get_h ( workspace, 0x11 );
-	bpb->bpbSectors  = v_get_h ( workspace, 0x13 );
-	bpb->bpbMedia  = v_get_b ( workspace, 0x15 );
-	bpb->bpbFATsecs  = v_get_h ( workspace, 0x16 );
-	bpb->bpbSecPerTrack  = v_get_h ( workspace, 0x18 );
-	bpb->bpbHeads  = v_get_h ( workspace, 0x1A );
-	bpb->bpbHiddenSecs  = v_get_w ( workspace, 0x1C );
-	bpb->bpbHugeSectors  = v_get_w ( workspace, 0x20 );
+	if ( v_get_h ( workspace, start_address + 0x1FE ) != 0xAA55 )
+	{
+		free ( info );
+		free ( bpb );
+		printf ( " [i] FAT identification not found\n     should be 0xAA55 but is 0x%04X\n",
+			v_get_h ( workspace, start_address + 0x1FE ) );
+		return NULL;
+	}
 
-	bpb->bpbBigFATsecs  = v_get_w ( workspace, 0x24 );
-	bpb->bpbExtFlags  = v_get_h ( workspace, 0x28 );
+	bpb->bpbBytesPerSec = v_get_h ( workspace, start_address + 0x0B );
+	bpb->bpbSecPerClust  = v_get_b ( workspace, start_address + 0x0D );
+	bpb->bpbResSectors  = v_get_h ( workspace, start_address + 0x0E );
+	bpb->bpbFATs  = v_get_b ( workspace, start_address + 0x10 );
+	bpb->bpbRootDirEnts  = v_get_h ( workspace, start_address + 0x11 );
+	bpb->bpbSectors  = v_get_h ( workspace, start_address + 0x13 );
+	bpb->bpbMedia  = v_get_b ( workspace, start_address + 0x15 );
+	bpb->bpbFATsecs  = v_get_h ( workspace, start_address + 0x16 );
+	bpb->bpbSecPerTrack  = v_get_h ( workspace, start_address + 0x18 );
+	bpb->bpbHeads  = v_get_h ( workspace, start_address + 0x1A );
+	bpb->bpbHiddenSecs  = v_get_w ( workspace, start_address + 0x1C );
+	bpb->bpbHugeSectors  = v_get_w ( workspace, start_address + 0x20 );
 
-	info->prPartType = prPartType;
+	bpb->bpbBigFATsecs  = v_get_w ( workspace, start_address + 0x24 );
+	bpb->bpbExtFlags  = v_get_h ( workspace, start_address + 0x28 );
+
+	if ( bpb->bpbSecPerClust == 0 )
+	{
+		free ( info );
+		free ( bpb );
+		printf ( " [i] sectors per cluster is zero\n" );
+		return NULL;
+	}
 
 	// setup global disk constants
 	info->FirstDataSector	= 0;
@@ -141,7 +175,39 @@ t_fat_info *fatInit ( t_workspace *workspace, unsigned char prPartType )
 
 	// initialize Volume Label
 
-	switch ( prPartType )
+	/*
+	From:
+		Microsoft Extensible Firmware Initiative FAT32 File System Specification 
+		FAT: General Overview of On-Disk Format
+
+		Version 1.03, December 6, 2000
+		Microsoft Corporation
+
+		"This is the one and only way that FAT type is determined. There is no 
+		such thing as a FAT12 volume that has more than 4084 clusters. 
+		There is no such thing as a FAT16 volume that has less than 4085 
+		clusters or more than 65,524 clusters. There is no such thing as a 
+		FAT32 volume that has less than 65,525 clusters."
+	*/
+	if(info->NumClusters < 4085) {
+		/* Volume is FAT12 */
+		info->prPartType = PART_TYPE_FAT12; 
+
+	} else if(info->NumClusters < 65525) {
+		/* Volume is FAT16 */
+		info->prPartType = PART_TYPE_FAT16;
+	} else {
+		/* Volume is FAT32 */
+		info->prPartType = PART_TYPE_FAT32;
+	}
+
+
+	if ( force_fat16 )
+		info->prPartType = PART_TYPE_FAT16;
+
+
+
+	switch ( info->prPartType )
 	{
 		case PART_TYPE_DOSFAT16:
 		case PART_TYPE_FAT16:
@@ -149,9 +215,12 @@ t_fat_info *fatInit ( t_workspace *workspace, unsigned char prPartType )
 			// first directory cluster is 2 by default (clusters range 2->big)
 			info->FirstDirCluster	= CLUST_FIRST;
 			// push data sector pointer to end of root directory area
-			info->FirstDataSector += (bpb->bpbRootDirEnts)/DIRENTRIES_PER_SECTOR;
+			if ( (bpb->bpbRootDirEnts)/DIRENTRIES_PER_SECTOR > 0 )
+				info->FirstDataSector += (bpb->bpbRootDirEnts)/DIRENTRIES_PER_SECTOR;
+			else 
+				info->FirstDataSector += 1;
 			info->Fat32Enabled = FALSE;
-			v_memcpy_get ( workspace, info->VolLabel, 0x2B, 11 );
+			v_memcpy_get ( workspace, info->VolLabel, start_address + 0x2B, 11 );
 			info->VolLabel[11]='\0';
 			break;
 		case PART_TYPE_FAT32LBA:
@@ -161,11 +230,15 @@ t_fat_info *fatInit ( t_workspace *workspace, unsigned char prPartType )
 			// push data sector pointer to end of root directory area
 			// need this? FirstDataSector += (bpb->bpbRootDirEnts)/DIRENTRIES_PER_SECTOR;
 			info->Fat32Enabled = TRUE;
-			v_memcpy_get ( workspace, info->VolLabel, 0x47, 11 );
+			v_memcpy_get ( workspace, info->VolLabel, start_address + 0x47, 11 );
 			info->VolLabel[11]='\0';
 			break;
+		case PART_TYPE_FAT12:
+			printf ( " [i] FAT12 not supported\n" );
+			return NULL;
 		default:
 			//Found: No Partition!
+			printf ( " [i] found no valid partition\n" );
 			return NULL;
 			break;
 	}
@@ -219,8 +292,8 @@ u32 fatNextCluster (  t_fat_info *info, u32 cluster )
 	offset = fatOffset % BYTES_PER_SECTOR;
 
 	// if we don't already have this FAT chunk loaded, go get it
-	v_memcpy_put ( info->ws, sector * BYTES_PER_SECTOR, NULL, BYTES_PER_SECTOR );
-	v_memcpy_get ( info->ws, (u8*)FAT_CACHE_ADDR, sector * BYTES_PER_SECTOR, BYTES_PER_SECTOR );
+	v_memcpy_put ( info->ws, info->start_address + sector * BYTES_PER_SECTOR, NULL, BYTES_PER_SECTOR );
+	v_memcpy_get ( info->ws, (u8*)FAT_CACHE_ADDR, info->start_address + sector * BYTES_PER_SECTOR, BYTES_PER_SECTOR );
 //	ataReadSectors( info, DRIVE0, sector, (u8*)FAT_CACHE_ADDR, &(info->FatInCache));
 
 
@@ -237,6 +310,19 @@ u32 fatNextCluster (  t_fat_info *info, u32 cluster )
 
 
 //*****************************************************************************
+// Function: fatSectorSize
+// Parameters: none
+// Returns: the size of a cluster in sectors
+//
+// Description: return the number of bytes per sector
+//*****************************************************************************
+u16 fatSectorSize( t_fat_info *info)
+{
+	return info->bpb->bpbBytesPerSec;
+}
+
+
+//*****************************************************************************
 // Function: fatClusterSize
 // Parameters: none
 // Returns: the size of a cluster in sectors
@@ -245,7 +331,7 @@ u32 fatNextCluster (  t_fat_info *info, u32 cluster )
 //*****************************************************************************
 u16 fatClusterSize( t_fat_info *info)
 {
-	return info->SectorsPerCluster;
+	return info->SectorsPerCluster * info->bpb->bpbBytesPerSec;
 }
 
 
@@ -336,33 +422,33 @@ fatWriteDirentry (  t_fat_info *info, struct direntry *de )
 	de->srcaddr = (de->deSector*BYTES_PER_SECTOR) + (de->deEntry*DIRENTRY_SIZE);
 
 	// initialize memory
-	v_memcpy_put ( de->info->ws, de->srcaddr, NULL, 32 );
+	v_memcpy_put ( de->info->ws, de->info->start_address + de->srcaddr, NULL, 32 );
 
 	if ( de->deWriteRaw )
 	{
 		// copy raw direntry content
-		v_memcpy_put ( de->info->ws, de->srcaddr + 0, de->deRaw, 0x20 );
+		v_memcpy_put ( de->info->ws, de->info->start_address + de->srcaddr + 0, de->deRaw, 0x20 );
 	}
 	else
 	{
-		v_memcpy_put ( de->info->ws, de->srcaddr + 0, de->deName, 8 );
-		v_memcpy_put ( de->info->ws, de->srcaddr + 8, de->deExtension, 3 );
+		v_memcpy_put ( de->info->ws, de->info->start_address + de->srcaddr + 0, de->deName, 8 );
+		v_memcpy_put ( de->info->ws, de->info->start_address + de->srcaddr + 8, de->deExtension, 3 );
 
-		v_set_b ( de->info->ws, de->srcaddr + 11, de->deAttributes );
-		v_set_b ( de->info->ws, de->srcaddr + 12, de->deLowerCase );
-		v_set_b ( de->info->ws, de->srcaddr + 13, de->deCHundredth );
+		v_set_b ( de->info->ws, de->info->start_address + de->srcaddr + 11, de->deAttributes );
+		v_set_b ( de->info->ws, de->info->start_address + de->srcaddr + 12, de->deLowerCase );
+		v_set_b ( de->info->ws, de->info->start_address + de->srcaddr + 13, de->deCHundredth );
 
-		v_memcpy_put ( de->info->ws, de->srcaddr + 14, de->deCTime, 2 );
-		v_memcpy_put ( de->info->ws, de->srcaddr + 16, de->deCDate, 2 );
-		v_memcpy_put ( de->info->ws, de->srcaddr + 18, de->deADate, 2 );
+		v_memcpy_put ( de->info->ws, de->info->start_address + de->srcaddr + 14, de->deCTime, 2 );
+		v_memcpy_put ( de->info->ws, de->info->start_address + de->srcaddr + 16, de->deCDate, 2 );
+		v_memcpy_put ( de->info->ws, de->info->start_address + de->srcaddr + 18, de->deADate, 2 );
 
-		v_set_h ( de->info->ws, de->srcaddr + 20, de->deHighClust );
+		v_set_h ( de->info->ws, de->info->start_address + de->srcaddr + 20, de->deHighClust );
 
-		v_memcpy_put ( de->info->ws, de->srcaddr + 22, de->deCDate, 2 );
-		v_memcpy_put ( de->info->ws, de->srcaddr + 24, de->deADate, 2 );
+		v_memcpy_put ( de->info->ws, de->info->start_address + de->srcaddr + 22, de->deCDate, 2 );
+		v_memcpy_put ( de->info->ws, de->info->start_address + de->srcaddr + 24, de->deADate, 2 );
 
-		v_set_h ( de->info->ws, de->srcaddr + 26, de->deStartCluster );
-		v_set_w ( de->info->ws, de->srcaddr + 28, de->deFileSize );
+		v_set_h ( de->info->ws, de->info->start_address + de->srcaddr + 26, de->deStartCluster );
+		v_set_w ( de->info->ws, de->info->start_address + de->srcaddr + 28, de->deFileSize );
 	}
 	return 0;
 }
@@ -380,29 +466,33 @@ fatGetDirentry ( t_fat_info *info, struct direntry *de, unsigned int sector, uns
 	de->info = info;
 
 	// copy raw direntry content
-	v_memcpy_get ( info->ws, de->deRaw, (sector*BYTES_PER_SECTOR) + (entry*DIRENTRY_SIZE) + 0, 0x20 );
+	v_memcpy_get ( info->ws, de->deRaw, info->start_address + (sector*BYTES_PER_SECTOR) + (entry*DIRENTRY_SIZE) + 0, 0x20 );
 	de->deWriteRaw = 0;
 
-	v_memcpy_get ( info->ws, de->deName, (sector*BYTES_PER_SECTOR) + (entry*DIRENTRY_SIZE) + 0, 8 );
-	v_memcpy_get ( info->ws, de->deExtension, (sector*BYTES_PER_SECTOR) + (entry*DIRENTRY_SIZE) + 8, 3 );
+	v_memcpy_get ( info->ws, de->deName, info->start_address + (sector*BYTES_PER_SECTOR) + (entry*DIRENTRY_SIZE) + 0, 8 );
+	v_memcpy_get ( info->ws, de->deExtension, info->start_address + (sector*BYTES_PER_SECTOR) + (entry*DIRENTRY_SIZE) + 8, 3 );
 	de->deName[8] = '\000';
 	de->deExtension[3] = '\000';
 
-	de->deAttributes = v_get_b ( info->ws, (sector*BYTES_PER_SECTOR) + (entry*DIRENTRY_SIZE) + 11 );
-	de->deLowerCase = v_get_b ( info->ws, (sector*BYTES_PER_SECTOR) + (entry*DIRENTRY_SIZE) + 12 );
-	de->deCHundredth = v_get_b ( info->ws, (sector*BYTES_PER_SECTOR) + (entry*DIRENTRY_SIZE) + 13 );
+	strncpy ( de->deNameExt, de->deName, 8 );
+	strncpy ( de->deNameExt+8, de->deExtension, 3 );
+	de->deNameExt[11] = '\000';
 
-	v_memcpy_get ( info->ws, de->deCTime, (sector*BYTES_PER_SECTOR) + (entry*DIRENTRY_SIZE) + 14, 2 );
-	v_memcpy_get ( info->ws, de->deCDate, (sector*BYTES_PER_SECTOR) + (entry*DIRENTRY_SIZE) + 16, 2 );
-	v_memcpy_get ( info->ws, de->deADate, (sector*BYTES_PER_SECTOR) + (entry*DIRENTRY_SIZE) + 18, 2 );
+	de->deAttributes = v_get_b ( info->ws, info->start_address + (sector*BYTES_PER_SECTOR) + (entry*DIRENTRY_SIZE) + 11 );
+	de->deLowerCase = v_get_b ( info->ws, info->start_address + (sector*BYTES_PER_SECTOR) + (entry*DIRENTRY_SIZE) + 12 );
+	de->deCHundredth = v_get_b ( info->ws, info->start_address + (sector*BYTES_PER_SECTOR) + (entry*DIRENTRY_SIZE) + 13 );
 
-	de->deHighClust = v_get_h ( info->ws, (sector*BYTES_PER_SECTOR) + (entry*DIRENTRY_SIZE) + 20 );
+	v_memcpy_get ( info->ws, de->deCTime, info->start_address + (sector*BYTES_PER_SECTOR) + (entry*DIRENTRY_SIZE) + 14, 2 );
+	v_memcpy_get ( info->ws, de->deCDate, info->start_address + (sector*BYTES_PER_SECTOR) + (entry*DIRENTRY_SIZE) + 16, 2 );
+	v_memcpy_get ( info->ws, de->deADate, info->start_address + (sector*BYTES_PER_SECTOR) + (entry*DIRENTRY_SIZE) + 18, 2 );
 
-	v_memcpy_get ( info->ws, de->deCDate, (sector*BYTES_PER_SECTOR) + (entry*DIRENTRY_SIZE) + 22, 2 );
-	v_memcpy_get ( info->ws, de->deADate, (sector*BYTES_PER_SECTOR) + (entry*DIRENTRY_SIZE) + 24, 2 );
+	de->deHighClust = v_get_h ( info->ws, info->start_address + (sector*BYTES_PER_SECTOR) + (entry*DIRENTRY_SIZE) + 20 );
 
-	de->deStartCluster = v_get_h ( info->ws, (sector*BYTES_PER_SECTOR) + (entry*DIRENTRY_SIZE) + 26 );
-	de->deFileSize = v_get_w ( info->ws, (sector*BYTES_PER_SECTOR) + (entry*DIRENTRY_SIZE) + 28 );
+	v_memcpy_get ( info->ws, de->deCDate, info->start_address + (sector*BYTES_PER_SECTOR) + (entry*DIRENTRY_SIZE) + 22, 2 );
+	v_memcpy_get ( info->ws, de->deADate, info->start_address + (sector*BYTES_PER_SECTOR) + (entry*DIRENTRY_SIZE) + 24, 2 );
+
+	de->deStartCluster = v_get_h ( info->ws, info->start_address + (sector*BYTES_PER_SECTOR) + (entry*DIRENTRY_SIZE) + 26 );
+	de->deFileSize = v_get_w ( info->ws, info->start_address + (sector*BYTES_PER_SECTOR) + (entry*DIRENTRY_SIZE) + 28 );
 
 	de->deLFNValid = 0;
 
@@ -475,8 +565,9 @@ int fatProcessLFN ( struct direntry *lfn_de, struct direntry *de )
 LFNrestart:
 	if ( !lfn_de->deLFNstate )
 	{
-		memset ( lfn_de->deLFNName, 0x00, 257 );
+		memset ( lfn_de->deLFNName, 0x00, FAT_LFN_LENGTH );
 		lfn_de->deLFNValid = 0;
+		lfn_de->deLFNcount = 0;
 	}
 
 	if ( de->deAttributes == ATTR_LONG_FILENAME )
@@ -549,14 +640,14 @@ LFNrestart:
 	}
 	else
 	{
-		if ( lfn_de->deLFNstate == lfn_de->deLFNcount )
+		if ( lfn_de->deLFNstate > 0 && lfn_de->deLFNstate == lfn_de->deLFNcount )
 		{
 			if ( fatLFNchecksum ( de ) == lfn_de->deLFNchecksum )
 			{
 				de->deLFNValid = 1;
 				de->deLFNFirstSector = lfn_de->deLFNFirstSector;
 				de->deLFNFirstEntry = lfn_de->deLFNFirstEntry;
-				memcpy ( de->deLFNName, lfn_de->deLFNName, 257 );
+				memcpy ( de->deLFNName, lfn_de->deLFNName, FAT_LFN_LENGTH );
 			}
 		}
 		lfn_de->deLFNstate = 0;
@@ -618,7 +709,7 @@ struct direntry *fatGetFileInfo( t_fat_info *info, struct direntry *rde, char *s
 				{
 					// when we got a 8.3 name, then check these fields
 					// else just compare the long filename
-					if ( (strlen (shortName) == 11 && (!strncmp(de.deName, Name, 8) && !strncmp(de.deExtension, Name+8, 3))) 
+					if ( (strlen (Name) == 11 && (!strncmp(de.deName, Name, 8) && !strncmp(de.deExtension, Name+8, 3))) 
 						|| (de.deLFNValid && !strcasecmp ( shortName, de.deLFNName )  ) )
 					{
 						memcpy ( rde, &de, sizeof (struct direntry) );
@@ -771,7 +862,7 @@ u8 fatMkdir( t_fat_info *info, char *path)
 	// write all the sectors of this new cluster.
 	memset (SectorBuffer, '\000', BYTES_PER_SECTOR);
 	for (i = 0; i< info->SectorsPerCluster; i++)
-		v_memcpy_put ( info->ws, (fatClustToSect(info, freeCluster)+i) * BYTES_PER_SECTOR, SectorBuffer, BYTES_PER_SECTOR );
+		v_memcpy_put ( info->ws, info->start_address + (fatClustToSect(info, freeCluster)+i) * BYTES_PER_SECTOR, SectorBuffer, BYTES_PER_SECTOR );
 
 	// create the files "." and ".."
 	de = (struct direntry *)SectorBuffer;
@@ -1099,7 +1190,7 @@ int fatExtendCurrentDir ( t_fat_info *info )
 	newDirEntrySector = fatClustToSect(info, freeCluster);			// Calculate the start sector address of this new cluster
 	info->SectorInCache = newDirEntrySector;						// the sector in memory is this new direntry allocated
 	for ( i=1; i< info->SectorsPerCluster; i++)						// write zeros in all the new cluster allocated
-		v_memcpy_put ( info->ws, (newDirEntrySector+i) * BYTES_PER_SECTOR, SectorBuffer, BYTES_PER_SECTOR );
+		v_memcpy_put ( info->ws, info->start_address + (newDirEntrySector+i) * BYTES_PER_SECTOR, SectorBuffer, BYTES_PER_SECTOR );
 
 	return TRUE;
 }
@@ -1216,8 +1307,8 @@ TFILE* fatFopen( t_fat_info *info, char *shortName)
 	file->info = info;
 
 	// initialize if not existing
-	v_memcpy_put ( info->ws, file->currentSector*BYTES_PER_SECTOR, NULL, BYTES_PER_SECTOR );
-	v_memcpy_get ( info->ws, file->buffer, file->currentSector*BYTES_PER_SECTOR, BYTES_PER_SECTOR );
+	v_memcpy_put ( info->ws, info->start_address + file->currentSector*BYTES_PER_SECTOR, NULL, BYTES_PER_SECTOR );
+	v_memcpy_get ( info->ws, file->buffer, info->start_address + file->currentSector*BYTES_PER_SECTOR, BYTES_PER_SECTOR );
 
 	return file;
 }
@@ -1244,7 +1335,7 @@ u8 fatFclose( TFILE *fp)
 	fp->bytePointer=0;
 	if (fatFflush ( fp))
 	{
-		if ((de=fatGetFileInfo(fp->info, &rde, fp->de.deName)) == NULL) // if the file don't exist
+		if ((de=fatGetFileInfo(fp->info, &rde, fp->de.deNameExt)) == NULL) // if the file don't exist
 			return FALSE;
 		de->deFileSize= fileSize; // refresh the file size
 		fatGetCurTime(&t);
@@ -1283,7 +1374,7 @@ u8 fatFflush( TFILE *fp )
 {
 	if ( fp->sectorHasChanged )
 	{
-		v_memcpy_put ( fp->info->ws, fp->currentSector * BYTES_PER_SECTOR, fp->buffer, BYTES_PER_SECTOR );
+		v_memcpy_put ( fp->info->ws, fp->info->start_address + fp->currentSector * BYTES_PER_SECTOR, fp->buffer, BYTES_PER_SECTOR );
 		fp->sectorHasChanged=FALSE;
 	}
 	return TRUE;
@@ -1343,9 +1434,9 @@ u16 fatFseek( TFILE *fp, u32 offSet, u8 mode)
 	fp->currentSector = fatClustToSect(fp->info, curCluster) + numSector;
 
 	// initialize if not existing
-	v_memcpy_put ( fp->info->ws, fp->currentSector*BYTES_PER_SECTOR, NULL, BYTES_PER_SECTOR );
+	v_memcpy_put ( fp->info->ws, fp->info->start_address + fp->currentSector*BYTES_PER_SECTOR, NULL, BYTES_PER_SECTOR );
 	// read that sector
-	v_memcpy_get ( fp->info->ws, fp->buffer, fp->currentSector*BYTES_PER_SECTOR, BYTES_PER_SECTOR );
+	v_memcpy_get ( fp->info->ws, fp->buffer, fp->info->start_address + fp->currentSector*BYTES_PER_SECTOR, BYTES_PER_SECTOR );
 
 	return TRUE;
 }
@@ -1392,9 +1483,9 @@ unsigned char fatFgetc( TFILE *fp )
 			fp->currentSector= fatClustToSect(fp->info, cluster);
 		}
 		// initialize if not existing
-		v_memcpy_put ( fp->info->ws, fp->currentSector*BYTES_PER_SECTOR, NULL, BYTES_PER_SECTOR );
+		v_memcpy_put ( fp->info->ws, fp->info->start_address + fp->currentSector*BYTES_PER_SECTOR, NULL, BYTES_PER_SECTOR );
 		// read that sector
-		v_memcpy_get ( fp->info->ws, fp->buffer, fp->currentSector * BYTES_PER_SECTOR, BYTES_PER_SECTOR );
+		v_memcpy_get ( fp->info->ws, fp->buffer, fp->info->start_address + fp->currentSector * BYTES_PER_SECTOR, BYTES_PER_SECTOR );
 	}
 
 	return retval;
@@ -1429,7 +1520,7 @@ u8 fatFputc( TFILE *fp, unsigned char c )
 
 	if ( !bufferPointer )	// if we need to allocate a new sector to the file
 	{
-		v_memcpy_put ( fp->info->ws, fp->currentSector * BYTES_PER_SECTOR, fp->buffer, BYTES_PER_SECTOR );
+		v_memcpy_put ( fp->info->ws, fp->info->start_address + fp->currentSector * BYTES_PER_SECTOR, fp->buffer, BYTES_PER_SECTOR );
 
 		if( fp->de.deFileSize > fp->bytePointer )	// sector already exist
 		{
@@ -1448,8 +1539,8 @@ u8 fatFputc( TFILE *fp, unsigned char c )
 				fp->currentSector= fatClustToSect(fp->info, cluster);
 			}
 			// initialize if not existing
-			v_memcpy_put ( fp->info->ws, fp->currentSector*BYTES_PER_SECTOR, NULL, BYTES_PER_SECTOR );
-			v_memcpy_get ( fp->info->ws, fp->buffer, fp->currentSector * BYTES_PER_SECTOR, BYTES_PER_SECTOR );
+			v_memcpy_put ( fp->info->ws, fp->info->start_address + fp->currentSector*BYTES_PER_SECTOR, NULL, BYTES_PER_SECTOR );
+			v_memcpy_get ( fp->info->ws, fp->buffer, fp->info->start_address + fp->currentSector * BYTES_PER_SECTOR, BYTES_PER_SECTOR );
 		}
 		else 	// sector isn´t used or the cluster isn´t allocated
 		{
@@ -1573,7 +1664,7 @@ void fatNormalize(t_fat_info *info, char *str_dest)
 	for (; d<11; d++)			// complete the three caracters extension file name with spaces
 		str_dest[d]= ' ';
 
-	strupr(str_dest);
+	string_uppercase(str_dest);
 	str_dest[11]='\0';
 
 }
@@ -1732,7 +1823,7 @@ u32 fatNextFreeCluster( t_fat_info *info, u32 cluster)
 	index=0;
 	do
 	{
-		v_memcpy_get ( info->ws, FatCache, sector * BYTES_PER_SECTOR, BYTES_PER_SECTOR );
+		v_memcpy_get ( info->ws, FatCache, info->start_address + sector * BYTES_PER_SECTOR, BYTES_PER_SECTOR );
 
 		if (info->Fat32Enabled)
 		{
@@ -1802,8 +1893,8 @@ void fatWrite( t_fat_info *info, u32 cluster, u32 data)
 	sector= fatTableClustToSect(info, cluster);
 
 	// initialize if not existing
-	v_memcpy_put ( info->ws, sector*BYTES_PER_SECTOR, NULL, BYTES_PER_SECTOR );
-	v_memcpy_get ( info->ws, FatCache, sector * BYTES_PER_SECTOR, BYTES_PER_SECTOR );
+	v_memcpy_put ( info->ws, info->start_address + sector*BYTES_PER_SECTOR, NULL, BYTES_PER_SECTOR );
+	v_memcpy_get ( info->ws, FatCache, info->start_address + sector * BYTES_PER_SECTOR, BYTES_PER_SECTOR );
 
 	// write the data to Fat Cache
 	if (info->Fat32Enabled)
@@ -1817,8 +1908,8 @@ void fatWrite( t_fat_info *info, u32 cluster, u32 data)
 		Fat16CacheInt[offset]= (Fat16CacheInt[offset]&(~FAT16_MASK)) | (data&FAT16_MASK);
 	}
 	// write Fat Cache in the HardDisk
-	v_memcpy_put ( info->ws, sector * BYTES_PER_SECTOR, FatCache, BYTES_PER_SECTOR );
-	v_memcpy_put ( info->ws, (sector+(info->FirstFAT2Sector-info->FirstFATSector)) * BYTES_PER_SECTOR, FatCache, BYTES_PER_SECTOR );
+	v_memcpy_put ( info->ws, info->start_address + sector * BYTES_PER_SECTOR, FatCache, BYTES_PER_SECTOR );
+	v_memcpy_put ( info->ws, info->start_address + (sector+(info->FirstFAT2Sector-info->FirstFATSector)) * BYTES_PER_SECTOR, FatCache, BYTES_PER_SECTOR );
 }
 #endif
 ////////////////////

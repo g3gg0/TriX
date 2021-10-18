@@ -137,7 +137,7 @@ unsigned int ppmodify_text_comp_dict_finish ( t_comp_dict *dict, unsigned char *
 	}
 
 	// type 0x90 compression, set the token start
-	if ( (flags1 & 0xF0) == 0x90 )
+	if ( flags1 & TEXT_COMP_1 )
 	{
 		tokenbuffer[2*0xFF  ] = token_start;
 		tokenbuffer[2*0xFF+1] = 0xFF;
@@ -285,14 +285,17 @@ unsigned char *ppmodify_text_comp_retrieve_tokenbuf ( t_comp_dict *dict, unsigne
 	unsigned int pos = 0;
 	unsigned char *buffer = NULL;
 
-	if ( !dict || !length || entry > dict->data_entries )
+	if ( !dict ||!dict->data || !length || entry > dict->data_entries )
 		return NULL;
 
 	buffer = malloc ( 1 );
+	if ( !buffer )
+		return NULL;
+
 	while ( pos < dict->data[entry].entries )
 	{
 		buffer = realloc ( buffer, bytes + 1 );
-		if ( !buffer )
+		if ( !buffer || !dict->data[entry].data )
 			return NULL;
 		buffer[bytes] = dict->data[entry].data[pos].value;
 		bytes++;
@@ -312,7 +315,7 @@ unsigned int ppmodify_text_comp_dict_add_tokenchar ( t_comp_dict *dict, unsigned
 	if ( !ppmodify_text_comp_dict_is_free ( dict, value ) )
 		return E_FAIL;
 
-	if ( dict->dict_entries >= dict->dict_allocated )
+	if ( dict->dict_entries >= (dict->dict_allocated-1) )
 	{
 		dict->dict_allocated++;
 		dict->dict = realloc ( dict->dict, sizeof ( t_compress_buffer ) * dict->dict_allocated );
@@ -330,6 +333,7 @@ unsigned int ppmodify_text_comp_dict_add_tokenchar ( t_comp_dict *dict, unsigned
 	// priv_data will hold the position in the tokentable
 	dict->dict[dict->dict_entries].priv_data = value;
 
+	memset ( &dict->dict[dict->dict_entries+1], 0x00, sizeof ( t_compress_buffer ) );
 	// return the token position
 	return dict->dict_entries++;
 }
@@ -339,7 +343,10 @@ unsigned int ppmodify_text_comp_dict_add_data ( t_comp_dict *dict, unsigned char
 {
 	unsigned int pos = 0;
 
-	if ( dict->data_entries >= dict->data_allocated )
+	if ( !dict ) // TODO: if ( !dict || !buffer )
+		return E_FAIL;
+
+	if ( dict->data_entries >= (dict->data_allocated-1) )
 	{
 		dict->data_allocated++;
 		dict->data = realloc ( dict->data, sizeof ( t_compress_buffer ) * dict->data_allocated );
@@ -352,6 +359,8 @@ unsigned int ppmodify_text_comp_dict_add_data ( t_comp_dict *dict, unsigned char
 
 	while ( pos < length )
 		ppmodify_text_compress_add ( &dict->data[dict->data_entries], TOKEN_TYPE_PLAIN, buffer[pos++] );
+
+	memset ( &dict->data[dict->data_entries+1], 0x00, sizeof ( t_compress_buffer ) );
 
 	dict->data_entries++;
 
@@ -381,7 +390,7 @@ unsigned int ppmodify_text_comp_dict_get_highfreq ( t_comp_dict *dict, t_compres
 	if ( !dict || !dict->data )
 		return E_FAIL;
 
-	if ( (flags1 & 0xF0) == 0xA0 )
+	if ( flags1 & TEXT_COMP_2 )
 	{
 		while ( pos < dict->data_entries )
 		{
@@ -415,7 +424,7 @@ unsigned int ppmodify_text_comp_dict_get_highfreq ( t_comp_dict *dict, t_compres
 			pos++;
 		}
 	}
-	else if ( (flags1 & 0xF0) == 0x90 )
+	else if ( flags1 & TEXT_COMP_1 )
 	{
 		while ( pos < dict->data_entries )
 		{
@@ -502,7 +511,7 @@ unsigned int ppmodify_text_comp_dict_subst_token ( t_comp_dict *dict, t_compress
 	if ( !dict || !dict->data )
 		return E_FAIL;
 
-	if ( (flags1 & 0xF0) == 0xA0 )
+	if ( flags1 & TEXT_COMP_2 )
 	{
 		while ( pos < dict->data_entries )
 		{
@@ -546,7 +555,7 @@ unsigned int ppmodify_text_comp_dict_subst_token ( t_comp_dict *dict, t_compress
 			pos++;
 		}
 	}
-	else if ( (flags1 & 0xF0) == 0x90 )
+	else if ( flags1 & TEXT_COMP_1 )
 	{
 		while ( pos < dict->data_entries )
 		{
@@ -653,10 +662,10 @@ unsigned int ppmodify_text_comp_dict_add_all_chars ( t_comp_dict *dict )
 				int token_pos = ppmodify_text_comp_dict_add_tokenchar ( dict, dict->data[pos].data[entry_pos].value );
 				if ( token_pos != E_FAIL )
 				{
-//					if ( dict->data[pos].data[entry_pos].value > 0x20 && dict->data[pos].data[entry_pos].value < 0x80 )
-//						printf ( "Associated char token %02X ('%c') to token id %02X\n", dict->data[pos].data[entry_pos].value, dict->data[pos].data[entry_pos].value, token_pos );
-//					else
-//						printf ( "Associated char token %02X       to token id %02X\n", dict->data[pos].data[entry_pos].value, token_pos );
+					//if ( dict->data[pos].data[entry_pos].value > 0x20 && dict->data[pos].data[entry_pos].value < 0x80 )
+					//	printf ( "Associated char token %02X ('%c') to token id %02X\n", dict->data[pos].data[entry_pos].value, dict->data[pos].data[entry_pos].value, token_pos );
+					//else
+					//	printf ( "Associated char token %02X       to token id %02X\n", dict->data[pos].data[entry_pos].value, token_pos );
 					used++;
 				}
 			}
@@ -687,7 +696,7 @@ t_compress_buffer *ppmodify_text_comp_build_table ( unsigned char *tokentable, u
 	if ( !token_list )
 		return NULL;
 
-	if ( (flags1 & 0xF0) == 0xA0 )
+	if ( flags1 & TEXT_COMP_2 )
 		max_tokens = 0x100;
 	else
 		max_tokens = 0xFF;
@@ -774,10 +783,10 @@ unsigned int ppmodify_text_comp_decompress ( t_compress_buffer *buffer, unsigned
 		done = 1;
 		while ( pos < buffer->entries )
 		{
-			if ( loop++ > 0x1000000 )
+			if ( loop++ > 0x100000 )
 				PLUGIN_ERROR ( "Deadlock while decompressing?!", E_FAIL );
 
-			if ( (flags1 & 0xF0) == 0xA0 )
+			if ( flags1 & TEXT_COMP_2 )
 			{
 				if ( tokens[2*buffer->data[pos].value] == tokens[2*buffer->data[pos].value+1] &&
 					tokens[2*buffer->data[pos].value] == buffer->data[pos].value )
@@ -804,7 +813,7 @@ unsigned int ppmodify_text_comp_decompress ( t_compress_buffer *buffer, unsigned
 					pos = 0;
 				}
 			}
-			else if ( (flags1 & 0xF0) == 0x90 )
+			else if ( flags1 & TEXT_COMP_1 )
 			{
 				if ( buffer->data[pos].type == TOKEN_TYPE_PLAIN )
 				{
@@ -933,9 +942,9 @@ unsigned int ppmodify_text_comp_compress ( unsigned char *inbuffer, int length, 
 	if ( !inbuffer || !tokens || !buffer )
 		return E_FAIL;
 
-	if ( (flags1 & 0xF0) == 0xA0 )
+	if ( flags1 & TEXT_COMP_2 )
 		comp1 = 1;
-	else if ( (flags1 & 0xF0) != 0x90 )
+	else if ( !(flags1 & TEXT_COMP_1) )
 		printf ( "flags1 of TEXT subchunk probably not supported. Unknown compression.\n" );
 
 	while ( pos < length )
@@ -958,7 +967,7 @@ unsigned int ppmodify_text_comp_compress ( unsigned char *inbuffer, int length, 
 			{
 				if ( pos + 2 > length )
 					return E_FAIL;
-					
+
 				ppmodify_text_compress_add ( buffer, TOKEN_TYPE_PLAIN, inbuffer[pos] );
 				ppmodify_text_compress_add ( buffer, TOKEN_TYPE_PLAIN, inbuffer[pos + 1] );
 				pos += 2;
@@ -981,4 +990,3 @@ unsigned int ppmodify_text_comp_compress ( unsigned char *inbuffer, int length, 
 
 
 #endif
-

@@ -1,4 +1,4 @@
-dnl $Id: configure.in,v 1.1 2006/06/28 13:53:39 geggo Exp $
+dnl $Id: configure.in 1521 2006-06-28 13:53:39Z geggo $
 dnl Process this file with autoconf to produce a configure script.
 dnl
 AC_PREREQ(2.13.20020210)

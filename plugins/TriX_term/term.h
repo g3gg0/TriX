@@ -14,11 +14,12 @@ TRIXPLUGIN_API unsigned int trixplugin_vers ( void );
     "import unsigned int __term_send ( const unsigned char *data, const unsigned int bytes );\n"\
     "import unsigned int __term_receive ( unsigned char *dest, const unsigned int bytes  );\n\n"\
 
-#define TERM_SYMBOLS seer_add_symbol ( term_open );\
-    seer_add_symbol ( term_close );\
-    seer_add_symbol ( term_set_control );\
-    seer_add_symbol ( term_send );\
-    seer_add_symbol ( term_receive );\
+#define TERM_SYMBOLS \
+    REGISTER_SYMBOL ( term_open );\
+    REGISTER_SYMBOL ( term_close );\
+    REGISTER_SYMBOL ( term_set_control );\
+    REGISTER_SYMBOL ( term_send );\
+    REGISTER_SYMBOL ( term_receive );\
 
 unsigned int term_open ( unsigned int port );
 unsigned int term_close ();

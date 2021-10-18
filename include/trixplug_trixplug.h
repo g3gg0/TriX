@@ -11,13 +11,14 @@ struct trixplug_funcs
 	t_plugin_info *(*get) ( t_plugin_info * info, int type);
 	unsigned int (*add_plugin_header) ( t_plugin_info * trix_plugin_info, unsigned char *section, unsigned char *header);
 	unsigned int (*add_plugin_symbol) ( t_plugin_info * trix_plugin_info, char *name, void *func);
+	unsigned int (*handle_load) ( unsigned char **plugin, unsigned int length, unsigned char *desc);
 	unsigned int (*init) ( );
 	unsigned int (*load_plugin) ( char *name);
 	unsigned int (*set_notification) ( void *target, void *object);
 	unsigned int (*unload_plugin) ( unsigned char *name);
 	void (*notify) ( );
+	void *(*get_global_plugin_symbol) ( char *function);
 	void *(*get_plugin_symbol) ( char *name, char *function);
- 	void *(*get_global_plugin_symbol) ( char *function);
 };
 
 /* trixplug struct initializer */
@@ -31,6 +32,7 @@ unsigned int trixplug_plug_init ( ) \
 		return E_FAIL;\
 	ft->trixplug = &trixplug_functions;\
 	ft->trixplug->get = trixplug_get;\
+	ft->trixplug->handle_load = trixplug_handle_load;\
 	ft->trixplug->load_plugin = trixplug_load_plugin;\
 	ft->trixplug->get_plugin_entry = trixplug_get_plugin_entry;\
 	ft->trixplug->unload_plugin = trixplug_unload_plugin;\

@@ -1,7 +1,7 @@
 /********************************************************************************
 ** Form generated from reading ui file 'TextBox.ui'
 **
-** Created: Thu 21. Feb 15:53:13 2008
+** Created: Sun 3. Aug 23:16:31 2014
 **      by: Qt User Interface Compiler version 4.3.2
 **
 ** WARNING! All changes made in this file will be lost when recompiling ui file!

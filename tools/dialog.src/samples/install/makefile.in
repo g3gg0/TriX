@@ -1,4 +1,4 @@
-# $Id: makefile.in,v 1.1 2006/06/28 13:54:32 geggo Exp $
+# $Id: makefile.in 1522 2006-06-28 13:54:32Z geggo $
 # template makefile for DIALOG sample 'install'
 #
 SHELL		= /bin/sh

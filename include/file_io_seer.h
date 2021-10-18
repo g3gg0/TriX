@@ -4,7 +4,8 @@ typedef struct s_fileinfo {
     char *filename;
     char *path;
     t_stage *stages;
-    t_stage *orig;
+    t_stage *stages_org;
+    t_stage *stages_mod;
     void *priv;
     unsigned int options;
 } t_fileinfo;

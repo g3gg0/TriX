@@ -271,9 +271,10 @@ pushint_pmem ( pmem * mem, int x )
 void
 pushstr_pmem ( pmem * mem, char *s, int len )
 {
-    do
+    char c = 0;
+    while ( len-- )
         push_pmem ( mem, 1, ( s++ ) );
-    while ( len-- );
+    push_pmem ( mem, 1, &c );
 }
 
 void

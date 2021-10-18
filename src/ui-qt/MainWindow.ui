@@ -1,162 +1,165 @@
-<ui version="4.0" >
- <author></author>
- <comment></comment>
- <exportmacro></exportmacro>
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
  <class>MainWindow</class>
- <widget class="QMainWindow" name="MainWindow" >
-  <property name="geometry" >
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>912</width>
-    <height>608</height>
+    <width>982</width>
+    <height>818</height>
    </rect>
   </property>
-  <property name="sizePolicy" >
-   <sizepolicy>
-    <hsizetype>1</hsizetype>
-    <vsizetype>1</vsizetype>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
     <horstretch>0</horstretch>
     <verstretch>0</verstretch>
    </sizepolicy>
   </property>
-  <property name="acceptDrops" >
+  <property name="acceptDrops">
    <bool>true</bool>
   </property>
-  <property name="windowTitle" >
+  <property name="windowTitle">
    <string>TriX</string>
   </property>
-  <property name="windowIcon" >
-   <iconset resource="ui_resource.qrc" >:/icons/icons/22x22-gartoon/calculator.png</iconset>
+  <property name="windowIcon">
+   <iconset resource="ui_resource.qrc">
+    <normaloff>:/icons/icons/22x22-gartoon/calculator.png</normaloff>:/icons/icons/22x22-gartoon/calculator.png</iconset>
   </property>
-  <property name="statusTip" >
+  <property name="statusTip">
    <string/>
   </property>
-  <property name="toolButtonStyle" >
+  <property name="toolButtonStyle">
    <enum>Qt::ToolButtonIconOnly</enum>
   </property>
-  <widget class="QWidget" name="centralwidget" >
-   <layout class="QVBoxLayout" >
-    <property name="margin" >
-     <number>9</number>
-    </property>
-    <property name="spacing" >
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QVBoxLayout">
+    <property name="spacing">
      <number>6</number>
     </property>
+    <property name="margin">
+     <number>9</number>
+    </property>
     <item>
-     <widget class="QTabWidget" name="tabWidget" >
-      <property name="sizePolicy" >
-       <sizepolicy>
-        <hsizetype>1</hsizetype>
-        <vsizetype>1</vsizetype>
+     <widget class="QTabWidget" name="tabWidget">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
         <horstretch>0</horstretch>
         <verstretch>0</verstretch>
        </sizepolicy>
       </property>
-      <property name="minimumSize" >
+      <property name="minimumSize">
        <size>
         <width>300</width>
         <height>0</height>
        </size>
       </property>
-      <property name="tabPosition" >
+      <property name="tabPosition">
        <enum>QTabWidget::North</enum>
       </property>
-      <property name="currentIndex" >
+      <property name="currentIndex">
        <number>0</number>
       </property>
-      <widget class="QWidget" name="tab" >
-       <attribute name="title" >
+      <widget class="QWidget" name="tab">
+       <attribute name="icon">
+        <iconset resource="ui_resource.qrc">
+         <normaloff>:/icons/icons/22x22-gartoon/configuration.png</normaloff>:/icons/icons/22x22-gartoon/configuration.png</iconset>
+       </attribute>
+       <attribute name="title">
         <string>General</string>
        </attribute>
-       <attribute name="icon" >
-        <iconset resource="ui_resource.qrc" >:/icons/icons/22x22-gartoon/configuration.png</iconset>
-       </attribute>
-       <layout class="QVBoxLayout" >
-        <property name="margin" >
-         <number>9</number>
-        </property>
-        <property name="spacing" >
+       <layout class="QVBoxLayout">
+        <property name="spacing">
          <number>6</number>
         </property>
+        <property name="margin">
+         <number>9</number>
+        </property>
         <item>
-         <widget class="QGroupBox" name="groupBox_4" >
-          <property name="title" >
+         <widget class="QGroupBox" name="groupBox_4">
+          <property name="title">
            <string>Project type</string>
           </property>
-          <property name="flat" >
+          <property name="flat">
            <bool>true</bool>
           </property>
-          <layout class="QVBoxLayout" >
-           <property name="margin" >
-            <number>9</number>
-           </property>
-           <property name="spacing" >
+          <layout class="QVBoxLayout">
+           <property name="spacing">
             <number>6</number>
            </property>
+           <property name="margin">
+            <number>9</number>
+           </property>
            <item>
-            <widget class="QComboBox" name="cmbFileType" >
-             <property name="currentIndex" >
+            <widget class="QComboBox" name="cmbFileType">
+             <property name="currentIndex">
               <number>1</number>
              </property>
              <item>
-              <property name="text" >
+              <property name="text">
                <string>NeTriX</string>
               </property>
-              <property name="icon" >
-               <iconset resource="ui_resource.qrc" >:/icons/icons/22x22-gartoon/www.png</iconset>
+              <property name="icon">
+               <iconset resource="ui_resource.qrc">
+                <normaloff>:/icons/icons/22x22-gartoon/www.png</normaloff>:/icons/icons/22x22-gartoon/www.png</iconset>
               </property>
              </item>
              <item>
-              <property name="text" >
+              <property name="text">
                <string>Simple</string>
               </property>
-              <property name="icon" >
-               <iconset resource="ui_resource.qrc" >:/icons/icons/22x22-gartoon/item.png</iconset>
+              <property name="icon">
+               <iconset resource="ui_resource.qrc">
+                <normaloff>:/icons/icons/22x22-gartoon/item.png</normaloff>:/icons/icons/22x22-gartoon/item.png</iconset>
               </property>
              </item>
              <item>
-              <property name="text" >
+              <property name="text">
                <string>DCT3 Phone Firmware</string>
               </property>
-              <property name="icon" >
-               <iconset resource="ui_resource.qrc" >:/icons/icons/22x22-gartoon/calculator.png</iconset>
+              <property name="icon">
+               <iconset resource="ui_resource.qrc">
+                <normaloff>:/icons/icons/22x22-gartoon/calculator.png</normaloff>:/icons/icons/22x22-gartoon/calculator.png</iconset>
               </property>
              </item>
              <item>
-              <property name="text" >
+              <property name="text">
                <string>DCT4 Phone Firmware</string>
               </property>
-              <property name="icon" >
-               <iconset resource="ui_resource.qrc" >:/icons/icons/22x22-gartoon/calculator.png</iconset>
+              <property name="icon">
+               <iconset resource="ui_resource.qrc">
+                <normaloff>:/icons/icons/22x22-gartoon/calculator.png</normaloff>:/icons/icons/22x22-gartoon/calculator.png</iconset>
               </property>
              </item>
             </widget>
            </item>
            <item>
-            <widget class="QComboBox" name="cmbSaveMode" >
+            <widget class="QComboBox" name="cmbSaveMode">
              <item>
-              <property name="text" >
+              <property name="text">
                <string>Normal File Saving</string>
               </property>
-              <property name="icon" >
-               <iconset resource="ui_resource.qrc" >:/icons/icons/22x22-gartoon/disk-floppy.png</iconset>
+              <property name="icon">
+               <iconset resource="ui_resource.qrc">
+                <normaloff>:/icons/icons/22x22-gartoon/disk-floppy.png</normaloff>:/icons/icons/22x22-gartoon/disk-floppy.png</iconset>
               </property>
              </item>
              <item>
-              <property name="text" >
+              <property name="text">
                <string>Dry-mode (no writes)</string>
               </property>
-              <property name="icon" >
-               <iconset resource="ui_resource.qrc" >:/icons/icons/22x22-gartoon/ghostview.png</iconset>
+              <property name="icon">
+               <iconset resource="ui_resource.qrc">
+                <normaloff>:/icons/icons/22x22-gartoon/ghostview.png</normaloff>:/icons/icons/22x22-gartoon/ghostview.png</iconset>
               </property>
              </item>
              <item>
-              <property name="text" >
+              <property name="text">
                <string>Partial Writing (DCT-4 Flashes)</string>
               </property>
-              <property name="icon" >
-               <iconset resource="ui_resource.qrc" >:/icons/icons/22x22-gartoon/science.png</iconset>
+              <property name="icon">
+               <iconset resource="ui_resource.qrc">
+                <normaloff>:/icons/icons/22x22-gartoon/science.png</normaloff>:/icons/icons/22x22-gartoon/science.png</iconset>
               </property>
              </item>
             </widget>
@@ -165,48 +168,49 @@
          </widget>
         </item>
         <item>
-         <widget class="QFrame" name="frmSimple" >
-          <property name="frameShape" >
+         <widget class="QFrame" name="frmSimple">
+          <property name="frameShape">
            <enum>QFrame::NoFrame</enum>
           </property>
-          <property name="frameShadow" >
+          <property name="frameShadow">
            <enum>QFrame::Raised</enum>
           </property>
-          <layout class="QVBoxLayout" >
-           <property name="margin" >
-            <number>0</number>
-           </property>
-           <property name="spacing" >
+          <layout class="QVBoxLayout">
+           <property name="spacing">
             <number>6</number>
            </property>
+           <property name="margin">
+            <number>0</number>
+           </property>
            <item>
-            <widget class="QGroupBox" name="grpSimpleInput" >
-             <property name="title" >
+            <widget class="QGroupBox" name="grpSimpleInput">
+             <property name="title">
               <string>Input File</string>
              </property>
-             <property name="checkable" >
+             <property name="checkable">
               <bool>true</bool>
              </property>
-             <property name="checked" >
+             <property name="checked">
               <bool>false</bool>
              </property>
-             <layout class="QHBoxLayout" >
-              <property name="margin" >
-               <number>9</number>
-              </property>
-              <property name="spacing" >
+             <layout class="QHBoxLayout">
+              <property name="spacing">
                <number>6</number>
               </property>
+              <property name="margin">
+               <number>9</number>
+              </property>
               <item>
-               <widget class="QLineEdit" name="editSimpleInput" />
+               <widget class="QLineEdit" name="editSimpleInput"/>
               </item>
               <item>
-               <widget class="QToolButton" name="btnSimpleInput" >
-                <property name="text" >
+               <widget class="QToolButton" name="btnSimpleInput">
+                <property name="text">
                  <string>...</string>
                 </property>
-                <property name="icon" >
-                 <iconset resource="ui_resource.qrc" >:/icons/icons/22x22-gartoon/viewer.png</iconset>
+                <property name="icon">
+                 <iconset resource="ui_resource.qrc">
+                  <normaloff>:/icons/icons/22x22-gartoon/viewer.png</normaloff>:/icons/icons/22x22-gartoon/viewer.png</iconset>
                 </property>
                </widget>
               </item>
@@ -214,33 +218,34 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="grpSimpleOutput" >
-             <property name="title" >
+            <widget class="QGroupBox" name="grpSimpleOutput">
+             <property name="title">
               <string>Output File</string>
              </property>
-             <property name="checkable" >
+             <property name="checkable">
               <bool>true</bool>
              </property>
-             <property name="checked" >
+             <property name="checked">
               <bool>false</bool>
              </property>
-             <layout class="QHBoxLayout" >
-              <property name="margin" >
-               <number>9</number>
-              </property>
-              <property name="spacing" >
+             <layout class="QHBoxLayout">
+              <property name="spacing">
                <number>6</number>
               </property>
+              <property name="margin">
+               <number>9</number>
+              </property>
               <item>
-               <widget class="QLineEdit" name="editSimpleOutput" />
+               <widget class="QLineEdit" name="editSimpleOutput"/>
               </item>
               <item>
-               <widget class="QToolButton" name="btnSimpleOutput" >
-                <property name="text" >
+               <widget class="QToolButton" name="btnSimpleOutput">
+                <property name="text">
                  <string>...</string>
                 </property>
-                <property name="icon" >
-                 <iconset resource="ui_resource.qrc" >:/icons/icons/22x22-gartoon/viewer.png</iconset>
+                <property name="icon">
+                 <iconset resource="ui_resource.qrc">
+                  <normaloff>:/icons/icons/22x22-gartoon/viewer.png</normaloff>:/icons/icons/22x22-gartoon/viewer.png</iconset>
                 </property>
                </widget>
               </item>
@@ -251,113 +256,112 @@
          </widget>
         </item>
         <item>
-         <widget class="QFrame" name="frmDCT3" >
-          <property name="frameShape" >
+         <widget class="QFrame" name="frmDCT3">
+          <property name="frameShape">
            <enum>QFrame::NoFrame</enum>
           </property>
-          <property name="frameShadow" >
+          <property name="frameShadow">
            <enum>QFrame::Raised</enum>
           </property>
-          <layout class="QVBoxLayout" >
-           <property name="margin" >
-            <number>0</number>
-           </property>
-           <property name="spacing" >
+          <layout class="QVBoxLayout">
+           <property name="spacing">
             <number>6</number>
            </property>
+           <property name="margin">
+            <number>0</number>
+           </property>
            <item>
-            <widget class="QGroupBox" name="grpDCT3Input" >
-             <property name="title" >
+            <widget class="QGroupBox" name="grpDCT3Input">
+             <property name="title">
               <string>Input Files</string>
              </property>
-             <property name="checkable" >
+             <property name="checkable">
               <bool>true</bool>
              </property>
-             <property name="checked" >
+             <property name="checked">
               <bool>false</bool>
              </property>
-             <layout class="QVBoxLayout" >
-              <property name="margin" >
-               <number>9</number>
-              </property>
-              <property name="spacing" >
+             <layout class="QVBoxLayout">
+              <property name="spacing">
                <number>6</number>
               </property>
+              <property name="margin">
+               <number>9</number>
+              </property>
               <item>
-               <layout class="QGridLayout" >
-                <property name="margin" >
+               <layout class="QGridLayout">
+                <property name="margin">
                  <number>0</number>
                 </property>
-                <property name="spacing" >
+                <property name="spacing">
                  <number>6</number>
                 </property>
-                <item row="1" column="1" >
-                 <widget class="QCheckBox" name="boxDCT3SeparatePPM" >
-                  <property name="enabled" >
+                <item row="1" column="1">
+                 <widget class="QCheckBox" name="boxDCT3SeparatePPM">
+                  <property name="enabled">
                    <bool>false</bool>
                   </property>
-                  <property name="text" >
+                  <property name="text">
                    <string>Separate PPM File</string>
                   </property>
-                  <property name="checked" >
+                  <property name="checked">
                    <bool>true</bool>
                   </property>
                  </widget>
                 </item>
-                <item row="0" column="1" >
-                 <widget class="QLineEdit" name="editDCT3InputMCU" />
+                <item row="0" column="1">
+                 <widget class="QLineEdit" name="editDCT3InputMCU"/>
                 </item>
-                <item row="2" column="1" >
-                 <widget class="QLineEdit" name="editDCT3InputPPM" />
+                <item row="2" column="1">
+                 <widget class="QLineEdit" name="editDCT3InputPPM"/>
                 </item>
-                <item row="0" column="0" >
-                 <widget class="QLabel" name="label_10" >
-                  <property name="text" >
+                <item row="0" column="0">
+                 <widget class="QLabel" name="label_10">
+                  <property name="text">
                    <string>MCU</string>
                   </property>
                  </widget>
                 </item>
-                <item row="2" column="2" >
-                 <widget class="QToolButton" name="btnDCT3InputPPM" >
-                  <property name="text" >
+                <item row="2" column="2">
+                 <widget class="QToolButton" name="btnDCT3InputPPM">
+                  <property name="text">
                    <string>...</string>
                   </property>
-                  <property name="icon" >
-                   <iconset resource="ui_resource.qrc" >:/icons/icons/22x22-gartoon/viewer.png</iconset>
+                  <property name="icon">
+                   <iconset resource="ui_resource.qrc">
+                    <normaloff>:/icons/icons/22x22-gartoon/viewer.png</normaloff>:/icons/icons/22x22-gartoon/viewer.png</iconset>
                   </property>
                  </widget>
                 </item>
-                <item row="2" column="0" >
-                 <widget class="QLabel" name="label_11" >
-                  <property name="text" >
+                <item row="2" column="0">
+                 <widget class="QLabel" name="label_11">
+                  <property name="text">
                    <string>PPM</string>
                   </property>
                  </widget>
                 </item>
-                <item row="3" column="1" >
-                 <layout class="QHBoxLayout" >
-                  <property name="margin" >
-                   <number>0</number>
-                  </property>
-                  <property name="spacing" >
+                <item row="3" column="1">
+                 <layout class="QHBoxLayout">
+                  <property name="spacing">
                    <number>6</number>
                   </property>
+                  <property name="margin">
+                   <number>0</number>
+                  </property>
                   <item>
-                   <widget class="QCheckBox" name="boxDCT3CustomPPM" >
-                    <property name="text" >
+                   <widget class="QCheckBox" name="boxDCT3CustomPPM">
+                    <property name="text">
                      <string>Custom PPM address (hex)</string>
                     </property>
                    </widget>
                   </item>
                   <item>
-                   <widget class="QLineEdit" name="editDCT3CustomPPM" >
-                    <property name="enabled" >
+                   <widget class="QLineEdit" name="editDCT3CustomPPM">
+                    <property name="enabled">
                      <bool>false</bool>
                     </property>
-                    <property name="sizePolicy" >
-                     <sizepolicy>
-                      <hsizetype>0</hsizetype>
-                      <vsizetype>0</vsizetype>
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                       <horstretch>0</horstretch>
                       <verstretch>0</verstretch>
                      </sizepolicy>
@@ -366,10 +370,10 @@
                   </item>
                   <item>
                    <spacer>
-                    <property name="orientation" >
+                    <property name="orientation">
                      <enum>Qt::Horizontal</enum>
                     </property>
-                    <property name="sizeHint" >
+                    <property name="sizeHint" stdset="0">
                      <size>
                       <width>40</width>
                       <height>20</height>
@@ -379,13 +383,14 @@
                   </item>
                  </layout>
                 </item>
-                <item row="0" column="2" >
-                 <widget class="QToolButton" name="btnDCT3InputMCU" >
-                  <property name="text" >
+                <item row="0" column="2">
+                 <widget class="QToolButton" name="btnDCT3InputMCU">
+                  <property name="text">
                    <string>...</string>
                   </property>
-                  <property name="icon" >
-                   <iconset resource="ui_resource.qrc" >:/icons/icons/22x22-gartoon/viewer.png</iconset>
+                  <property name="icon">
+                   <iconset resource="ui_resource.qrc">
+                    <normaloff>:/icons/icons/22x22-gartoon/viewer.png</normaloff>:/icons/icons/22x22-gartoon/viewer.png</iconset>
                   </property>
                  </widget>
                 </item>
@@ -395,67 +400,69 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="grpDCT3Output" >
-             <property name="title" >
+            <widget class="QGroupBox" name="grpDCT3Output">
+             <property name="title">
               <string>Output Files</string>
              </property>
-             <property name="checkable" >
+             <property name="checkable">
               <bool>true</bool>
              </property>
-             <property name="checked" >
+             <property name="checked">
               <bool>false</bool>
              </property>
-             <layout class="QVBoxLayout" >
-              <property name="margin" >
-               <number>9</number>
-              </property>
-              <property name="spacing" >
+             <layout class="QVBoxLayout">
+              <property name="spacing">
                <number>6</number>
               </property>
+              <property name="margin">
+               <number>9</number>
+              </property>
               <item>
-               <layout class="QGridLayout" >
-                <property name="margin" >
+               <layout class="QGridLayout">
+                <property name="margin">
                  <number>0</number>
                 </property>
-                <property name="spacing" >
+                <property name="spacing">
                  <number>6</number>
                 </property>
-                <item row="1" column="2" >
-                 <widget class="QToolButton" name="btnDCT3OutputPPM" >
-                  <property name="text" >
+                <item row="1" column="2">
+                 <widget class="QToolButton" name="btnDCT3OutputPPM">
+                  <property name="text">
                    <string>...</string>
                   </property>
-                  <property name="icon" >
-                   <iconset resource="ui_resource.qrc" >:/icons/icons/22x22-gartoon/viewer.png</iconset>
+                  <property name="icon">
+                   <iconset resource="ui_resource.qrc">
+                    <normaloff>:/icons/icons/22x22-gartoon/viewer.png</normaloff>:/icons/icons/22x22-gartoon/viewer.png</iconset>
                   </property>
                  </widget>
                 </item>
-                <item row="0" column="1" >
-                 <widget class="QLineEdit" name="editDCT3OutputMCU" />
+                <item row="0" column="1">
+                 <widget class="QLineEdit" name="editDCT3OutputMCU"/>
                 </item>
-                <item row="0" column="2" >
-                 <widget class="QToolButton" name="btnDCT3OutputMCU" >
-                  <property name="text" >
+                <item row="0" column="2">
+                 <widget class="QToolButton" name="btnDCT3OutputMCU">
+                  <property name="text">
                    <string>...</string>
                   </property>
-                  <property name="icon" >
-                   <iconset resource="ui_resource.qrc" >:/icons/icons/22x22-gartoon/viewer.png</iconset>
+                  <property name="icon">
+                   <iconset resource="ui_resource.qrc">
+                    <normaloff>:/icons/icons/22x22-gartoon/viewer.png</normaloff>:/icons/icons/22x22-gartoon/viewer.png</iconset>
                   </property>
                  </widget>
                 </item>
-                <item row="1" column="1" >
-                 <widget class="QLineEdit" name="editDCT3OutputPPM" />
+                <item row="1" column="1">
+                 <widget class="QLineEdit" name="editDCT3OutputPPM"/>
                 </item>
-                <item row="0" column="0" >
-                 <widget class="QLabel" name="label_12" >
-                  <property name="text" >
+                <item row="0" column="0">
+                 <widget class="QLabel" name="label_12">
+                  <property name="text">
                    <string>MCU</string>
                   </property>
                  </widget>
                 </item>
-                <item row="1" column="0" >
-                 <widget class="QLabel" name="label_13" >
-                  <property name="text" >
+                <item row="1" column="0">
+                 <widget class="QLabel" name="label_13">
+                  <property name="text">
                    <string>PPM</string>
                   </property>
                  </widget>
@@ -469,75 +476,77 @@
          </widget>
         </item>
         <item>
-         <widget class="QFrame" name="frmDCT4" >
-          <property name="frameShape" >
+         <widget class="QFrame" name="frmDCT4">
+          <property name="frameShape">
            <enum>QFrame::NoFrame</enum>
           </property>
-          <property name="frameShadow" >
+          <property name="frameShadow">
            <enum>QFrame::Raised</enum>
           </property>
-          <layout class="QVBoxLayout" >
-           <property name="margin" >
-            <number>0</number>
-           </property>
-           <property name="spacing" >
+          <layout class="QVBoxLayout">
+           <property name="spacing">
             <number>6</number>
            </property>
+           <property name="margin">
+            <number>0</number>
+           </property>
            <item>
-            <widget class="QGroupBox" name="grpDCT4Input" >
-             <property name="title" >
+            <widget class="QGroupBox" name="grpDCT4Input">
+             <property name="title">
               <string>Input Files</string>
              </property>
-             <property name="checkable" >
+             <property name="checkable">
               <bool>true</bool>
              </property>
-             <property name="checked" >
+             <property name="checked">
               <bool>false</bool>
              </property>
-             <layout class="QGridLayout" >
-              <property name="margin" >
+             <layout class="QGridLayout">
+              <property name="margin">
                <number>9</number>
               </property>
-              <property name="spacing" >
+              <property name="spacing">
                <number>6</number>
               </property>
-              <item row="1" column="0" >
-               <widget class="QLabel" name="label_15" >
-                <property name="text" >
+              <item row="1" column="0">
+               <widget class="QLabel" name="label_15">
+                <property name="text">
                  <string>PPM</string>
                 </property>
                </widget>
               </item>
-              <item row="0" column="0" >
-               <widget class="QLabel" name="label_14" >
-                <property name="text" >
+              <item row="0" column="0">
+               <widget class="QLabel" name="label_14">
+                <property name="text">
                  <string>MCU</string>
                 </property>
                </widget>
               </item>
-              <item row="0" column="2" >
-               <widget class="QToolButton" name="btnDCT4InputMCU" >
-                <property name="text" >
+              <item row="0" column="2">
+               <widget class="QToolButton" name="btnDCT4InputMCU">
+                <property name="text">
                  <string>...</string>
                 </property>
-                <property name="icon" >
-                 <iconset resource="ui_resource.qrc" >:/icons/icons/22x22-gartoon/viewer.png</iconset>
+                <property name="icon">
+                 <iconset resource="ui_resource.qrc">
+                  <normaloff>:/icons/icons/22x22-gartoon/viewer.png</normaloff>:/icons/icons/22x22-gartoon/viewer.png</iconset>
                 </property>
                </widget>
               </item>
-              <item row="1" column="1" >
-               <widget class="QLineEdit" name="editDCT4InputPPM" />
+              <item row="1" column="1">
+               <widget class="QLineEdit" name="editDCT4InputPPM"/>
               </item>
-              <item row="0" column="1" >
-               <widget class="QLineEdit" name="editDCT4InputMCU" />
+              <item row="0" column="1">
+               <widget class="QLineEdit" name="editDCT4InputMCU"/>
               </item>
-              <item row="1" column="2" >
-               <widget class="QToolButton" name="btnDCT4InputPPM" >
-                <property name="text" >
+              <item row="1" column="2">
+               <widget class="QToolButton" name="btnDCT4InputPPM">
+                <property name="text">
                  <string>...</string>
                 </property>
-                <property name="icon" >
-                 <iconset resource="ui_resource.qrc" >:/icons/icons/22x22-gartoon/viewer.png</iconset>
+                <property name="icon">
+                 <iconset resource="ui_resource.qrc">
+                  <normaloff>:/icons/icons/22x22-gartoon/viewer.png</normaloff>:/icons/icons/22x22-gartoon/viewer.png</iconset>
                 </property>
                </widget>
               </item>
@@ -545,60 +554,62 @@
             </widget>
            </item>
            <item>
-            <widget class="QGroupBox" name="grpDCT4Output" >
-             <property name="title" >
+            <widget class="QGroupBox" name="grpDCT4Output">
+             <property name="title">
               <string>Output Files</string>
              </property>
-             <property name="checkable" >
+             <property name="checkable">
               <bool>true</bool>
              </property>
-             <property name="checked" >
+             <property name="checked">
               <bool>false</bool>
              </property>
-             <layout class="QGridLayout" >
-              <property name="margin" >
+             <layout class="QGridLayout">
+              <property name="margin">
                <number>9</number>
               </property>
-              <property name="spacing" >
+              <property name="spacing">
                <number>6</number>
               </property>
-              <item row="1" column="0" >
-               <widget class="QLabel" name="label_17" >
-                <property name="text" >
+              <item row="1" column="0">
+               <widget class="QLabel" name="label_17">
+                <property name="text">
                  <string>PPM</string>
                 </property>
                </widget>
               </item>
-              <item row="0" column="1" >
-               <widget class="QLineEdit" name="editDCT4OutputMCU" />
+              <item row="0" column="1">
+               <widget class="QLineEdit" name="editDCT4OutputMCU"/>
               </item>
-              <item row="0" column="2" >
-               <widget class="QToolButton" name="btnDCT4OutputMCU" >
-                <property name="text" >
+              <item row="0" column="2">
+               <widget class="QToolButton" name="btnDCT4OutputMCU">
+                <property name="text">
                  <string>...</string>
                 </property>
-                <property name="icon" >
-                 <iconset resource="ui_resource.qrc" >:/icons/icons/22x22-gartoon/viewer.png</iconset>
+                <property name="icon">
+                 <iconset resource="ui_resource.qrc">
+                  <normaloff>:/icons/icons/22x22-gartoon/viewer.png</normaloff>:/icons/icons/22x22-gartoon/viewer.png</iconset>
                 </property>
                </widget>
               </item>
-              <item row="1" column="1" >
-               <widget class="QLineEdit" name="editDCT4OutputPPM" />
+              <item row="1" column="1">
+               <widget class="QLineEdit" name="editDCT4OutputPPM"/>
               </item>
-              <item row="0" column="0" >
-               <widget class="QLabel" name="label_16" >
-                <property name="text" >
+              <item row="0" column="0">
+               <widget class="QLabel" name="label_16">
+                <property name="text">
                  <string>MCU</string>
                 </property>
                </widget>
               </item>
-              <item row="1" column="2" >
-               <widget class="QToolButton" name="btnDCT4OutputPPM" >
-                <property name="text" >
+              <item row="1" column="2">
+               <widget class="QToolButton" name="btnDCT4OutputPPM">
+                <property name="text">
                  <string>...</string>
                 </property>
-                <property name="icon" >
-                 <iconset resource="ui_resource.qrc" >:/icons/icons/22x22-gartoon/viewer.png</iconset>
+                <property name="icon">
+                 <iconset resource="ui_resource.qrc">
+                  <normaloff>:/icons/icons/22x22-gartoon/viewer.png</normaloff>:/icons/icons/22x22-gartoon/viewer.png</iconset>
                 </property>
                </widget>
               </item>
@@ -610,10 +621,10 @@
         </item>
         <item>
          <spacer>
-          <property name="orientation" >
+          <property name="orientation">
            <enum>Qt::Vertical</enum>
           </property>
-          <property name="sizeHint" >
+          <property name="sizeHint" stdset="0">
            <size>
             <width>20</width>
             <height>40</height>
@@ -623,125 +634,131 @@
         </item>
        </layout>
       </widget>
-      <widget class="QWidget" name="tab_2" >
-       <property name="cursor" >
-        <cursor>0</cursor>
+      <widget class="QWidget" name="tab_2">
+       <property name="cursor">
+        <cursorShape>ArrowCursor</cursorShape>
        </property>
-       <property name="toolTip" >
+       <property name="toolTip">
         <string/>
        </property>
-       <property name="statusTip" >
+       <property name="statusTip">
         <string/>
        </property>
-       <property name="whatsThis" >
+       <property name="whatsThis">
         <string/>
        </property>
-       <property name="accessibleName" >
+       <property name="accessibleName">
         <string/>
        </property>
-       <property name="accessibleDescription" >
+       <property name="accessibleDescription">
         <string/>
        </property>
-       <attribute name="title" >
+       <attribute name="icon">
+        <iconset resource="ui_resource.qrc">
+         <normaloff>:/icons/icons/22x22-gartoon/modules.png</normaloff>:/icons/icons/22x22-gartoon/modules.png</iconset>
+       </attribute>
+       <attribute name="title">
         <string>Scripts</string>
        </attribute>
-       <attribute name="icon" >
-        <iconset resource="ui_resource.qrc" >:/icons/icons/22x22-gartoon/modules.png</iconset>
-       </attribute>
-       <layout class="QVBoxLayout" >
-        <property name="margin" >
-         <number>9</number>
-        </property>
-        <property name="spacing" >
+       <layout class="QVBoxLayout">
+        <property name="spacing">
          <number>6</number>
         </property>
+        <property name="margin">
+         <number>9</number>
+        </property>
         <item>
-         <widget class="QListWidget" name="listScripts" />
+         <widget class="QListWidget" name="listScripts"/>
         </item>
         <item>
-         <layout class="QHBoxLayout" >
-          <property name="margin" >
-           <number>0</number>
-          </property>
-          <property name="spacing" >
+         <layout class="QHBoxLayout">
+          <property name="spacing">
            <number>6</number>
           </property>
+          <property name="margin">
+           <number>0</number>
+          </property>
           <item>
-           <widget class="QPushButton" name="btnScriptsAdd" >
-            <property name="text" >
+           <widget class="QPushButton" name="btnScriptsAdd">
+            <property name="text">
              <string>Add</string>
             </property>
-            <property name="icon" >
-             <iconset resource="ui_resource.qrc" >:/icons/icons/22x22-gartoon/modules.png</iconset>
+            <property name="icon">
+             <iconset resource="ui_resource.qrc">
+              <normaloff>:/icons/icons/22x22-gartoon/modules.png</normaloff>:/icons/icons/22x22-gartoon/modules.png</iconset>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="btnScriptsRemove" >
-            <property name="enabled" >
+           <widget class="QPushButton" name="btnScriptsRemove">
+            <property name="enabled">
              <bool>false</bool>
             </property>
-            <property name="text" >
+            <property name="text">
              <string>Remove</string>
             </property>
-            <property name="icon" >
-             <iconset resource="ui_resource.qrc" >:/icons/icons/22x22-gartoon/choice-no.png</iconset>
+            <property name="icon">
+             <iconset resource="ui_resource.qrc">
+              <normaloff>:/icons/icons/22x22-gartoon/choice-no.png</normaloff>:/icons/icons/22x22-gartoon/choice-no.png</iconset>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="btnScriptsManual" >
-            <property name="enabled" >
+           <widget class="QPushButton" name="btnScriptsManual">
+            <property name="enabled">
              <bool>false</bool>
             </property>
-            <property name="text" >
+            <property name="text">
              <string>Manual...</string>
             </property>
-            <property name="icon" >
-             <iconset resource="ui_resource.qrc" >:/icons/icons/22x22-gartoon/information.png</iconset>
+            <property name="icon">
+             <iconset resource="ui_resource.qrc">
+              <normaloff>:/icons/icons/22x22-gartoon/information.png</normaloff>:/icons/icons/22x22-gartoon/information.png</iconset>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="btnScriptsOptions" >
-            <property name="enabled" >
+           <widget class="QPushButton" name="btnScriptsOptions">
+            <property name="enabled">
              <bool>true</bool>
             </property>
-            <property name="text" >
+            <property name="text">
              <string>Options...</string>
             </property>
-            <property name="icon" >
-             <iconset resource="ui_resource.qrc" >:/icons/icons/22x22-gartoon/configuration.png</iconset>
+            <property name="icon">
+             <iconset resource="ui_resource.qrc">
+              <normaloff>:/icons/icons/22x22-gartoon/configuration.png</normaloff>:/icons/icons/22x22-gartoon/configuration.png</iconset>
             </property>
            </widget>
           </item>
          </layout>
         </item>
         <item>
-         <layout class="QHBoxLayout" >
-          <property name="margin" >
-           <number>0</number>
-          </property>
-          <property name="spacing" >
+         <layout class="QHBoxLayout">
+          <property name="spacing">
            <number>6</number>
           </property>
+          <property name="margin">
+           <number>0</number>
+          </property>
           <item>
-           <widget class="QLabel" name="label_5" >
-            <property name="text" >
-             <string>&lt;html>&lt;head>&lt;meta name="qrichtext" content="1" />&lt;/head>&lt;body style=" white-space: pre-wrap; font-family:MS Shell Dlg; font-size:8.25pt; font-weight:400; font-style:normal; text-decoration:none;">&lt;p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">&lt;span style=" font-size:8pt;">Script&lt;/span>&lt;/p>&lt;/body>&lt;/html></string>
+           <widget class="QLabel" name="label_5">
+            <property name="text">
+             <string>&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;/head&gt;&lt;body style=&quot; white-space: pre-wrap; font-family:MS Shell Dlg; font-size:8.25pt; font-weight:400; font-style:normal; text-decoration:none;&quot;&gt;&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:8pt;&quot;&gt;Script&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QLineEdit" name="lineScriptsName" />
+           <widget class="QLineEdit" name="lineScriptsName"/>
           </item>
           <item>
-           <widget class="QToolButton" name="btnScriptsLoad" >
-            <property name="text" >
+           <widget class="QToolButton" name="btnScriptsLoad">
+            <property name="text">
              <string>...</string>
             </property>
-            <property name="icon" >
-             <iconset resource="ui_resource.qrc" >:/icons/icons/22x22-gartoon/viewer.png</iconset>
+            <property name="icon">
+             <iconset resource="ui_resource.qrc">
+              <normaloff>:/icons/icons/22x22-gartoon/viewer.png</normaloff>:/icons/icons/22x22-gartoon/viewer.png</iconset>
             </property>
            </widget>
           </item>
@@ -749,23 +766,24 @@
         </item>
        </layout>
       </widget>
-      <widget class="QWidget" name="tab_3" >
-       <attribute name="title" >
+      <widget class="QWidget" name="tab_3">
+       <attribute name="icon">
+        <iconset resource="ui_resource.qrc">
+         <normaloff>:/icons/icons/22x22-gartoon/editor.png</normaloff>:/icons/icons/22x22-gartoon/editor.png</iconset>
+       </attribute>
+       <attribute name="title">
         <string>Editor</string>
        </attribute>
-       <attribute name="icon" >
-        <iconset resource="ui_resource.qrc" >:/icons/icons/22x22-gartoon/editor.png</iconset>
-       </attribute>
-       <layout class="QVBoxLayout" >
-        <property name="margin" >
-         <number>9</number>
-        </property>
-        <property name="spacing" >
+       <layout class="QVBoxLayout">
+        <property name="spacing">
          <number>6</number>
         </property>
+        <property name="margin">
+         <number>9</number>
+        </property>
         <item>
-         <widget class="QTextEdit" name="editScriptBox" >
-          <property name="font" >
+         <widget class="QTextEdit" name="editScriptBox">
+          <property name="font">
            <font>
             <family>Lucida Console</family>
             <pointsize>8</pointsize>
@@ -776,45 +794,47 @@
             <strikeout>false</strikeout>
            </font>
           </property>
-          <property name="documentTitle" >
+          <property name="documentTitle">
            <string/>
           </property>
-          <property name="lineWrapMode" >
+          <property name="lineWrapMode">
            <enum>QTextEdit::NoWrap</enum>
           </property>
-          <property name="tabStopWidth" >
+          <property name="tabStopWidth">
            <number>21</number>
           </property>
-          <property name="acceptRichText" >
+          <property name="acceptRichText">
            <bool>false</bool>
           </property>
          </widget>
         </item>
         <item>
-         <layout class="QHBoxLayout" >
-          <property name="margin" >
-           <number>0</number>
-          </property>
-          <property name="spacing" >
+         <layout class="QHBoxLayout">
+          <property name="spacing">
            <number>6</number>
           </property>
+          <property name="margin">
+           <number>0</number>
+          </property>
           <item>
-           <widget class="QPushButton" name="btnEditImport" >
-            <property name="text" >
-             <string comment="Load a Script from a File" >Import...</string>
+           <widget class="QPushButton" name="btnEditImport">
+            <property name="text">
+             <string comment="Load a Script from a File">Import...</string>
             </property>
-            <property name="icon" >
-             <iconset resource="ui_resource.qrc" >:/icons/icons/22x22-gartoon/folder-open.png</iconset>
+            <property name="icon">
+             <iconset resource="ui_resource.qrc">
+              <normaloff>:/icons/icons/22x22-gartoon/folder-open.png</normaloff>:/icons/icons/22x22-gartoon/folder-open.png</iconset>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="btnEditExport" >
-            <property name="text" >
-             <string comment="Save the Script to a File" >Export...</string>
+           <widget class="QPushButton" name="btnEditExport">
+            <property name="text">
+             <string comment="Save the Script to a File">Export...</string>
             </property>
-            <property name="icon" >
-             <iconset resource="ui_resource.qrc" >:/icons/icons/22x22-gartoon/disk.png</iconset>
+            <property name="icon">
+             <iconset resource="ui_resource.qrc">
+              <normaloff>:/icons/icons/22x22-gartoon/disk.png</normaloff>:/icons/icons/22x22-gartoon/disk.png</iconset>
             </property>
            </widget>
           </item>
@@ -826,141 +846,128 @@
     </item>
    </layout>
   </widget>
-  <widget class="QMenuBar" name="menubar" >
-   <property name="geometry" >
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>912</width>
-     <height>24</height>
+     <width>982</width>
+     <height>21</height>
     </rect>
    </property>
-   <widget class="QMenu" name="menuProject" >
-    <property name="title" >
+   <widget class="QMenu" name="menuProject">
+    <property name="title">
      <string>Project</string>
     </property>
-    <widget class="QMenu" name="menuNew" >
-     <property name="title" >
-      <string>New</string>
-     </property>
-    </widget>
-    <addaction name="actNew" />
-    <addaction name="separator" />
-    <addaction name="actOpen" />
-    <addaction name="actSave" />
-    <addaction name="actSaveAs" />
-    <addaction name="separator" />
-    <addaction name="actQuit" />
+    <addaction name="actNew"/>
+    <addaction name="separator"/>
+    <addaction name="actOpen"/>
+    <addaction name="actSave"/>
+    <addaction name="actSaveAs"/>
+    <addaction name="separator"/>
+    <addaction name="actQuit"/>
    </widget>
-   <widget class="QMenu" name="menuView" >
-    <property name="title" >
-     <string>View</string>
-    </property>
-   </widget>
-   <widget class="QMenu" name="menuEdit" >
-    <property name="title" >
+   <widget class="QMenu" name="menuEdit">
+    <property name="title">
      <string>Edit</string>
     </property>
-    <addaction name="actCut" />
-    <addaction name="actCopy" />
-    <addaction name="actPaste" />
+    <addaction name="actCut"/>
+    <addaction name="actCopy"/>
+    <addaction name="actPaste"/>
    </widget>
-   <widget class="QMenu" name="menuHelp" >
-    <property name="title" >
+   <widget class="QMenu" name="menuHelp">
+    <property name="title">
      <string>Help</string>
     </property>
-    <addaction name="actAbout" />
-    <addaction name="actCommandRef" />
+    <addaction name="actAbout"/>
+    <addaction name="actCommandRef"/>
    </widget>
-   <widget class="QMenu" name="menuProcessing" >
-    <property name="title" >
+   <widget class="QMenu" name="menuProcessing">
+    <property name="title">
      <string>Processing</string>
     </property>
-    <widget class="QMenu" name="menuVerbose" >
-     <property name="title" >
-      <string>Verbose</string>
-     </property>
-    </widget>
-    <addaction name="actStart" />
-    <addaction name="actStop" />
-    <addaction name="separator" />
-    <addaction name="actVerbose" />
-    <addaction name="actShowWorkspace" />
-    <addaction name="actOptions" />
-    <addaction name="separator" />
-    <addaction name="actDebugInfo" />
+    <addaction name="actStart"/>
+    <addaction name="actStop"/>
+    <addaction name="separator"/>
+    <addaction name="actVerbose"/>
+    <addaction name="actShowWorkspace"/>
+    <addaction name="actOptions"/>
+    <addaction name="separator"/>
+    <addaction name="actDebugInfo"/>
    </widget>
-   <addaction name="menuProject" />
-   <addaction name="menuEdit" />
-   <addaction name="menuProcessing" />
-   <addaction name="menuHelp" />
+   <addaction name="menuProject"/>
+   <addaction name="menuEdit"/>
+   <addaction name="menuProcessing"/>
+   <addaction name="menuHelp"/>
   </widget>
-  <widget class="QStatusBar" name="statusbar" />
-  <widget class="QToolBar" name="toolbar" >
-   <property name="windowTitle" >
+  <widget class="QStatusBar" name="statusbar"/>
+  <widget class="QToolBar" name="toolbar">
+   <property name="windowTitle">
     <string>Toolbar</string>
    </property>
-   <property name="orientation" >
+   <property name="orientation">
     <enum>Qt::Horizontal</enum>
    </property>
-   <property name="toolButtonStyle" >
+   <property name="toolButtonStyle">
     <enum>Qt::ToolButtonTextUnderIcon</enum>
    </property>
-   <attribute name="toolBarArea" >
-    <number>4</number>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
    </attribute>
-   <addaction name="actNew" />
-   <addaction name="actOpen" />
-   <addaction name="actSave" />
-   <addaction name="separator" />
-   <addaction name="actStart" />
-   <addaction name="actStop" />
-   <addaction name="separator" />
-   <addaction name="actVerbose" />
-   <addaction name="actShowWorkspace" />
-   <addaction name="actOptions" />
-   <addaction name="actPlugins" />
-   <addaction name="separator" />
-   <addaction name="actAbout" />
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="actNew"/>
+   <addaction name="actOpen"/>
+   <addaction name="actSave"/>
+   <addaction name="separator"/>
+   <addaction name="actStart"/>
+   <addaction name="actStop"/>
+   <addaction name="separator"/>
+   <addaction name="actVerbose"/>
+   <addaction name="actShowWorkspace"/>
+   <addaction name="actOptions"/>
+   <addaction name="actPlugins"/>
+   <addaction name="separator"/>
+   <addaction name="actAbout"/>
   </widget>
-  <widget class="QDockWidget" name="dockOutput" >
-   <property name="windowIcon" >
-    <iconset resource="ui_resource.qrc" >:/icons/icons/22x22-gartoon/chat.png</iconset>
+  <widget class="QDockWidget" name="dockOutput">
+   <property name="windowIcon">
+    <iconset resource="ui_resource.qrc">
+     <normaloff>:/icons/icons/22x22-gartoon/chat.png</normaloff>:/icons/icons/22x22-gartoon/chat.png</iconset>
    </property>
-   <property name="allowedAreas" >
+   <property name="allowedAreas">
     <set>Qt::AllDockWidgetAreas</set>
    </property>
-   <property name="windowTitle" >
+   <property name="windowTitle">
     <string>Output</string>
    </property>
-   <attribute name="dockWidgetArea" >
+   <attribute name="dockWidgetArea">
     <number>2</number>
    </attribute>
-   <widget class="QWidget" name="dockWidgetContents" >
-    <layout class="QVBoxLayout" >
-     <property name="margin" >
-      <number>9</number>
-     </property>
-     <property name="spacing" >
+   <widget class="QWidget" name="dockWidgetContents">
+    <layout class="QVBoxLayout">
+     <property name="spacing">
       <number>6</number>
      </property>
+     <property name="margin">
+      <number>9</number>
+     </property>
      <item>
-      <widget class="QTextEdit" name="textOutput" >
-       <property name="sizePolicy" >
-        <sizepolicy>
-         <hsizetype>1</hsizetype>
-         <vsizetype>7</vsizetype>
+      <widget class="QTextEdit" name="textOutput">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
          <horstretch>0</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
        </property>
-       <property name="minimumSize" >
+       <property name="minimumSize">
         <size>
          <width>500</width>
          <height>0</height>
         </size>
        </property>
-       <property name="font" >
+       <property name="font">
         <font>
          <family>Lucida Console</family>
          <pointsize>8</pointsize>
@@ -971,75 +978,72 @@
          <strikeout>false</strikeout>
         </font>
        </property>
-       <property name="undoRedoEnabled" >
+       <property name="undoRedoEnabled">
         <bool>false</bool>
        </property>
-       <property name="readOnly" >
+       <property name="readOnly">
         <bool>true</bool>
        </property>
-       <property name="html" >
-        <string>&lt;html>&lt;head>&lt;meta name="qrichtext" content="1" />&lt;/head>&lt;body style=" white-space: pre-wrap; font-family:Lucida Console; font-size:8pt; font-weight:400; font-style:normal; text-decoration:none;">&lt;p style="-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">&lt;/p>&lt;/body>&lt;/html></string>
+       <property name="html">
+        <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
+&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
+p, li { white-space: pre-wrap; }
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'Lucida Console'; font-size:8pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
        </property>
-       <property name="acceptRichText" >
+       <property name="acceptRichText">
         <bool>false</bool>
        </property>
       </widget>
      </item>
      <item>
-      <layout class="QHBoxLayout" >
-       <property name="margin" >
-        <number>0</number>
-       </property>
-       <property name="spacing" >
+      <layout class="QHBoxLayout">
+       <property name="spacing">
         <number>6</number>
        </property>
+       <property name="margin">
+        <number>0</number>
+       </property>
        <item>
-        <widget class="QLabel" name="textInputSymbol" >
-         <property name="sizePolicy" >
-          <sizepolicy>
-           <hsizetype>5</hsizetype>
-           <vsizetype>0</vsizetype>
+        <widget class="QLabel" name="textInputSymbol">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
            <horstretch>0</horstretch>
            <verstretch>0</verstretch>
           </sizepolicy>
          </property>
-         <property name="minimumSize" >
+         <property name="minimumSize">
           <size>
            <width>0</width>
            <height>24</height>
           </size>
          </property>
-         <property name="text" >
+         <property name="text">
           <string/>
-         </property>
-         <property name="pixmap" >
-          <pixmap/>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QLabel" name="textInputMessage" >
-         <property name="sizePolicy" >
-          <sizepolicy>
-           <hsizetype>7</hsizetype>
-           <vsizetype>0</vsizetype>
+        <widget class="QLabel" name="textInputMessage">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
            <horstretch>0</horstretch>
            <verstretch>0</verstretch>
           </sizepolicy>
          </property>
-         <property name="minimumSize" >
+         <property name="minimumSize">
           <size>
            <width>0</width>
            <height>24</height>
           </size>
          </property>
-         <property name="baseSize" >
+         <property name="baseSize">
           <size>
            <width>0</width>
            <height>24</height>
           </size>
          </property>
-         <property name="font" >
+         <property name="font">
           <font>
            <family>MS Shell Dlg 2</family>
            <pointsize>10</pointsize>
@@ -1050,7 +1054,7 @@
            <strikeout>false</strikeout>
           </font>
          </property>
-         <property name="text" >
+         <property name="text">
           <string/>
          </property>
         </widget>
@@ -1058,8 +1062,8 @@
       </layout>
      </item>
      <item>
-      <widget class="QLineEdit" name="textInput" >
-       <property name="enabled" >
+      <widget class="QLineEdit" name="textInput">
+       <property name="enabled">
         <bool>true</bool>
        </property>
       </widget>
@@ -1067,184 +1071,199 @@
     </layout>
    </widget>
   </widget>
-  <action name="actOpen" >
-   <property name="enabled" >
-    <bool>false</bool>
+  <action name="actOpen">
+   <property name="icon">
+    <iconset resource="ui_resource.qrc">
+     <normaloff>:/icons/icons/22x22-gartoon/folder-open.png</normaloff>:/icons/icons/22x22-gartoon/folder-open.png</iconset>
    </property>
-   <property name="icon" >
-    <iconset resource="ui_resource.qrc" >:/icons/icons/22x22-gartoon/folder-open.png</iconset>
-   </property>
-   <property name="text" >
+   <property name="text">
     <string>Open...</string>
    </property>
+   <property name="shortcut">
+    <string>Ctrl+O</string>
+   </property>
   </action>
-  <action name="actSave" >
-   <property name="enabled" >
-    <bool>false</bool>
+  <action name="actSave">
+   <property name="enabled">
+    <bool>true</bool>
    </property>
-   <property name="icon" >
-    <iconset resource="ui_resource.qrc" >:/icons/icons/22x22-gartoon/disk-floppy.png</iconset>
+   <property name="icon">
+    <iconset resource="ui_resource.qrc">
+     <normaloff>:/icons/icons/22x22-gartoon/disk-floppy.png</normaloff>:/icons/icons/22x22-gartoon/disk-floppy.png</iconset>
    </property>
-   <property name="text" >
+   <property name="text">
     <string>Save</string>
    </property>
+   <property name="shortcut">
+    <string>Ctrl+S</string>
+   </property>
   </action>
-  <action name="actSaveAs" >
-   <property name="enabled" >
-    <bool>false</bool>
+  <action name="actSaveAs">
+   <property name="enabled">
+    <bool>true</bool>
    </property>
-   <property name="icon" >
-    <iconset resource="ui_resource.qrc" >:/icons/icons/22x22-gartoon/disk.png</iconset>
+   <property name="icon">
+    <iconset resource="ui_resource.qrc">
+     <normaloff>:/icons/icons/22x22-gartoon/disk.png</normaloff>:/icons/icons/22x22-gartoon/disk.png</iconset>
    </property>
-   <property name="text" >
+   <property name="text">
     <string>Save As...</string>
    </property>
   </action>
-  <action name="actQuit" >
-   <property name="icon" >
-    <iconset resource="ui_resource.qrc" >:/icons/icons/22x22-gartoon/quit.png</iconset>
+  <action name="actQuit">
+   <property name="icon">
+    <iconset resource="ui_resource.qrc">
+     <normaloff>:/icons/icons/22x22-gartoon/quit.png</normaloff>:/icons/icons/22x22-gartoon/quit.png</iconset>
    </property>
-   <property name="text" >
+   <property name="text">
     <string>Quit</string>
    </property>
-   <property name="shortcut" >
+   <property name="shortcut">
     <string>Alt+F4</string>
    </property>
   </action>
-  <action name="actNew" >
-   <property name="enabled" >
-    <bool>false</bool>
+  <action name="actNew">
+   <property name="icon">
+    <iconset resource="ui_resource.qrc">
+     <normaloff>:/icons/icons/22x22-gartoon/file.png</normaloff>:/icons/icons/22x22-gartoon/file.png</iconset>
    </property>
-   <property name="icon" >
-    <iconset resource="ui_resource.qrc" >:/icons/icons/22x22-gartoon/file.png</iconset>
-   </property>
-   <property name="text" >
+   <property name="text">
     <string>New</string>
    </property>
-   <property name="statusTip" >
+   <property name="statusTip">
     <string>Creates a new project</string>
    </property>
+   <property name="shortcut">
+    <string>Ctrl+N</string>
+   </property>
   </action>
-  <action name="actAbout" >
-   <property name="enabled" >
+  <action name="actAbout">
+   <property name="enabled">
     <bool>false</bool>
    </property>
-   <property name="icon" >
-    <iconset resource="ui_resource.qrc" >:/icons/icons/22x22-gartoon/information.png</iconset>
+   <property name="icon">
+    <iconset resource="ui_resource.qrc">
+     <normaloff>:/icons/icons/22x22-gartoon/information.png</normaloff>:/icons/icons/22x22-gartoon/information.png</iconset>
    </property>
-   <property name="text" >
+   <property name="text">
     <string>About</string>
    </property>
   </action>
-  <action name="actStart" >
-   <property name="icon" >
-    <iconset resource="ui_resource.qrc" >:/icons/icons/22x22-gartoon/choice-yes.png</iconset>
+  <action name="actStart">
+   <property name="icon">
+    <iconset resource="ui_resource.qrc">
+     <normaloff>:/icons/icons/22x22-gartoon/choice-yes.png</normaloff>:/icons/icons/22x22-gartoon/choice-yes.png</iconset>
    </property>
-   <property name="text" >
+   <property name="text">
     <string>Start</string>
    </property>
   </action>
-  <action name="actStop" >
-   <property name="enabled" >
+  <action name="actStop">
+   <property name="enabled">
     <bool>false</bool>
    </property>
-   <property name="icon" >
-    <iconset resource="ui_resource.qrc" >:/icons/icons/22x22-gartoon/choice-no.png</iconset>
+   <property name="icon">
+    <iconset resource="ui_resource.qrc">
+     <normaloff>:/icons/icons/22x22-gartoon/choice-no.png</normaloff>:/icons/icons/22x22-gartoon/choice-no.png</iconset>
    </property>
-   <property name="text" >
+   <property name="text">
     <string>Stop</string>
    </property>
   </action>
-  <action name="actCut" >
-   <property name="text" >
+  <action name="actCut">
+   <property name="text">
     <string>Cut</string>
    </property>
-   <property name="shortcut" >
+   <property name="shortcut">
     <string>Ctrl+X</string>
    </property>
   </action>
-  <action name="actCopy" >
-   <property name="text" >
+  <action name="actCopy">
+   <property name="text">
     <string>Copy</string>
    </property>
-   <property name="shortcut" >
+   <property name="shortcut">
     <string>Ctrl+C</string>
    </property>
   </action>
-  <action name="actPaste" >
-   <property name="text" >
+  <action name="actPaste">
+   <property name="text">
     <string>Paste</string>
    </property>
-   <property name="shortcut" >
+   <property name="shortcut">
     <string>Ctrl+V</string>
    </property>
   </action>
-  <action name="actVerbose" >
-   <property name="checkable" >
+  <action name="actVerbose">
+   <property name="checkable">
     <bool>true</bool>
    </property>
-   <property name="enabled" >
+   <property name="enabled">
     <bool>false</bool>
    </property>
-   <property name="icon" >
-    <iconset resource="ui_resource.qrc" >:/icons/icons/22x22-gartoon/ghostview.png</iconset>
+   <property name="icon">
+    <iconset resource="ui_resource.qrc">
+     <normaloff>:/icons/icons/22x22-gartoon/ghostview.png</normaloff>:/icons/icons/22x22-gartoon/ghostview.png</iconset>
    </property>
-   <property name="text" >
+   <property name="text">
     <string>Verbose</string>
    </property>
   </action>
-  <action name="actShowWorkspace" >
-   <property name="checkable" >
+  <action name="actShowWorkspace">
+   <property name="checkable">
     <bool>true</bool>
    </property>
-   <property name="checked" >
+   <property name="checked">
     <bool>false</bool>
    </property>
-   <property name="icon" >
-    <iconset resource="ui_resource.qrc" >:/icons/icons/22x22-gartoon/disk.png</iconset>
+   <property name="icon">
+    <iconset resource="ui_resource.qrc">
+     <normaloff>:/icons/icons/22x22-gartoon/disk.png</normaloff>:/icons/icons/22x22-gartoon/disk.png</iconset>
    </property>
-   <property name="text" >
+   <property name="text">
     <string>Show Workspaces</string>
    </property>
-   <property name="iconText" >
+   <property name="iconText">
     <string>Show Workspaces</string>
    </property>
-   <property name="toolTip" >
+   <property name="toolTip">
     <string>Show Workspaces</string>
    </property>
   </action>
-  <action name="actCommandRef" >
-   <property name="icon" >
-    <iconset resource="ui_resource.qrc" >:/icons/icons/22x22-gartoon/ghostview.png</iconset>
+  <action name="actCommandRef">
+   <property name="icon">
+    <iconset resource="ui_resource.qrc">
+     <normaloff>:/icons/icons/22x22-gartoon/ghostview.png</normaloff>:/icons/icons/22x22-gartoon/ghostview.png</iconset>
    </property>
-   <property name="text" >
+   <property name="text">
     <string>Command Reference</string>
    </property>
   </action>
-  <action name="actOptions" >
-   <property name="icon" >
-    <iconset resource="ui_resource.qrc" >:/icons/icons/22x22-gartoon/editor.png</iconset>
+  <action name="actOptions">
+   <property name="icon">
+    <iconset resource="ui_resource.qrc">
+     <normaloff>:/icons/icons/22x22-gartoon/editor.png</normaloff>:/icons/icons/22x22-gartoon/editor.png</iconset>
    </property>
-   <property name="text" >
+   <property name="text">
     <string>Global Options</string>
    </property>
   </action>
-  <action name="actPlugins" >
-   <property name="icon" >
-    <iconset resource="ui_resource.qrc" >:/icons/icons/22x22-gartoon/modules.png</iconset>
+  <action name="actPlugins">
+   <property name="icon">
+    <iconset resource="ui_resource.qrc">
+     <normaloff>:/icons/icons/22x22-gartoon/modules.png</normaloff>:/icons/icons/22x22-gartoon/modules.png</iconset>
    </property>
-   <property name="text" >
+   <property name="text">
     <string>Plugins</string>
    </property>
   </action>
-  <action name="actDebugInfo" >
-   <property name="text" >
+  <action name="actDebugInfo">
+   <property name="text">
     <string>Debug Info</string>
    </property>
   </action>
  </widget>
- <layoutdefault spacing="0" margin="0" />
- <pixmapfunction></pixmapfunction>
+ <layoutdefault spacing="0" margin="0"/>
  <tabstops>
   <tabstop>cmbFileType</tabstop>
   <tabstop>editSimpleInput</tabstop>
@@ -1284,7 +1303,7 @@
   <tabstop>textOutput</tabstop>
  </tabstops>
  <resources>
-  <include location="ui_resource.qrc" />
+  <include location="ui_resource.qrc"/>
  </resources>
  <connections>
   <connection>
@@ -1293,11 +1312,11 @@
    <receiver>grpSimpleOutput</receiver>
    <slot>setEnabled(bool)</slot>
    <hints>
-    <hint type="sourcelabel" >
+    <hint type="sourcelabel">
      <x>65</x>
      <y>259</y>
     </hint>
-    <hint type="destinationlabel" >
+    <hint type="destinationlabel">
      <x>64</x>
      <y>321</y>
     </hint>
@@ -1309,11 +1328,11 @@
    <receiver>grpDCT3Output</receiver>
    <slot>setEnabled(bool)</slot>
    <hints>
-    <hint type="sourcelabel" >
+    <hint type="sourcelabel">
      <x>23</x>
      <y>367</y>
     </hint>
-    <hint type="destinationlabel" >
+    <hint type="destinationlabel">
      <x>34</x>
      <y>442</y>
     </hint>
@@ -1325,11 +1344,11 @@
    <receiver>grpDCT4Output</receiver>
    <slot>setEnabled(bool)</slot>
    <hints>
-    <hint type="sourcelabel" >
+    <hint type="sourcelabel">
      <x>50</x>
      <y>504</y>
     </hint>
-    <hint type="destinationlabel" >
+    <hint type="destinationlabel">
      <x>54</x>
      <y>565</y>
     </hint>
@@ -1341,11 +1360,11 @@
    <receiver>editDCT3InputPPM</receiver>
    <slot>setEnabled(bool)</slot>
    <hints>
-    <hint type="sourcelabel" >
+    <hint type="sourcelabel">
      <x>141</x>
      <y>361</y>
     </hint>
-    <hint type="destinationlabel" >
+    <hint type="destinationlabel">
      <x>122</x>
      <y>367</y>
     </hint>
@@ -1357,11 +1376,11 @@
    <receiver>boxDCT3CustomPPM</receiver>
    <slot>setEnabled(bool)</slot>
    <hints>
-    <hint type="sourcelabel" >
+    <hint type="sourcelabel">
      <x>180</x>
      <y>361</y>
     </hint>
-    <hint type="destinationlabel" >
+    <hint type="destinationlabel">
      <x>181</x>
      <y>372</y>
     </hint>
@@ -1373,11 +1392,11 @@
    <receiver>editDCT3CustomPPM</receiver>
    <slot>setEnabled(bool)</slot>
    <hints>
-    <hint type="sourcelabel" >
+    <hint type="sourcelabel">
      <x>198</x>
      <y>372</y>
     </hint>
-    <hint type="destinationlabel" >
+    <hint type="destinationlabel">
      <x>313</x>
      <y>372</y>
     </hint>
@@ -1389,11 +1408,11 @@
    <receiver>btnDCT3InputPPM</receiver>
    <slot>setEnabled(bool)</slot>
    <hints>
-    <hint type="sourcelabel" >
+    <hint type="sourcelabel">
      <x>319</x>
      <y>361</y>
     </hint>
-    <hint type="destinationlabel" >
+    <hint type="destinationlabel">
      <x>347</x>
      <y>367</y>
     </hint>

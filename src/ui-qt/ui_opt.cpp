@@ -67,6 +67,7 @@ options::options( bool modal )
 	connect ( pushButton_cancel, SIGNAL ( clicked() ), this, SLOT ( close() ) );
 	connect ( pushButton_default, SIGNAL ( clicked() ), this, SLOT ( default_option() ) );
 	connect ( treeWidget_options, SIGNAL ( itemClicked(QTreeWidgetItem *, int) ), this, SLOT ( sel_changed(QTreeWidgetItem *, int) ) );
+	connect ( treeWidget_options, SIGNAL ( itemDoubleClicked(QTreeWidgetItem *, int) ), this, SLOT ( item_dbl_clicked(QTreeWidgetItem *, int) ) );
 	connect ( lineEdit_current_option, SIGNAL ( textEdited ( const QString& ) ), this, SLOT ( value_edited ( const QString& ) ) );
 
 	refresh_content ();
@@ -156,6 +157,7 @@ void options::refresh_content ()
 			entry->setText ( 2, QString ( "%1" ).arg ( options_get_bool( oneopt ) ) );
 			break;
 		case OPT_INT:
+		case OPT_INTCB:
 			entry->setText ( 1, "int" );
 			entry->setText ( 2, QString ( "%1" ).arg ( options_get_int( oneopt ) ) );
 			break;
@@ -164,6 +166,7 @@ void options::refresh_content ()
 			entry->setText ( 2, QString ( "0x%1" ).arg ( options_get_int( oneopt ), 0, 16 ) );
 			break;
 		case OPT_STR:
+		case OPT_STRCB:
 			entry->setText ( 1, "string" );
 			entry->setText ( 2, QString ( "%1" ).arg ( options_get_string( oneopt ) ) );
 			break;
@@ -255,6 +258,22 @@ void options::sel_changed(QTreeWidgetItem *item, int col)
 
 	resize_all ();
 	lineEdit_current_option->setText ( item->text ( 2 ) );
+}
+
+void options::item_dbl_clicked(QTreeWidgetItem *item, int col)
+{
+	QString option;
+
+	if ( item->childCount() )
+		return;
+
+	if ( !strcmp ( item->text ( 1 ).toAscii().data(), "bool" ) )
+	{
+		if ( item->text ( 2 ).toAscii().at ( 0 ) == '0' )
+			value_edited ( "1" );
+		else
+			value_edited ( "0" );
+	}
 }
 
 void options::test()
@@ -351,8 +370,7 @@ void options::apply_options()
 	//only update options with "changed"-indicator - still a bit overhead
 	QList<QTreeWidgetItem*> items = treeWidget_options->findItems ( "yes", Qt::MatchRecursive, 3 );
 
-#ifdef WIN32
-	for each ( QTreeWidgetItem * item in items )
+	foreach ( QTreeWidgetItem * item, items )
 	{
 		//lineEdit_current_option->setText ( lineEdit_current_option->text() + QString("*%1").arg(item->childCount()) );
 
@@ -398,6 +416,5 @@ void options::apply_options()
 			continue;
 		}
 	}
-#endif
 }
 

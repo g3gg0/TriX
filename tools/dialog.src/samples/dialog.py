@@ -1,4 +1,4 @@
-# $Id: dialog.py,v 1.1 2006/06/28 13:53:39 geggo Exp $
+# $Id: dialog.py 1521 2006-06-28 13:53:39Z geggo $
 # Module: dialog.py
 # Copyright (c) 2000 Robb Shecter <robb@acm.org>
 # All rights reserved.

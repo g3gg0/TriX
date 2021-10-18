@@ -26,7 +26,7 @@
 	"import unsigned int __options_add_option ( int type, char *optionname, char *description, void *target);\n"\
 	"import unsigned int __options_import_script_options ( char *script, t_options * opt);\n"\
 	"import unsigned int __options_delete_script_options ( char *script, t_options * opt);\n"\
-	"import unsigned int __options_add_sysvar ( int type, char *sysvar, char *description, unsigned int defaultval);\n"\
+	"import unsigned int __options_add_sysvar ( int type, char *sysvar, char *description, void *defaultval);\n"\
 	"import unsigned int __options_import_plugin_options ( char *plugin, t_options * opt);\n"\
 	"import unsigned int __options_delete_plugin_options ( char *plugin, t_options * opt);\n"\
 	"import unsigned int __options_set_notification ( void *target, void *object);\n"\
@@ -61,7 +61,7 @@
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__options_add_option</font>&nbsp;(&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">type</font>,&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">optionname</font>,&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">description</font>,&nbsp;<font color=\"#800000\">void</font>&nbsp;*<font color=\"#000000\">target</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__options_import_script_options</font>&nbsp;(&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">script</font>,&nbsp;<font color=\"#000000\">t_options</font>&nbsp;*&nbsp;<font color=\"#000000\">opt</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__options_delete_script_options</font>&nbsp;(&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">script</font>,&nbsp;<font color=\"#000000\">t_options</font>&nbsp;*&nbsp;<font color=\"#000000\">opt</font>);<br>"\
-	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__options_add_sysvar</font>&nbsp;(&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">type</font>,&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">sysvar</font>,&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">description</font>,&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">defaultval</font>);<br>"\
+	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__options_add_sysvar</font>&nbsp;(&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">type</font>,&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">sysvar</font>,&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">description</font>,&nbsp;<font color=\"#800000\">void</font>&nbsp;*<font color=\"#000000\">defaultval</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__options_import_plugin_options</font>&nbsp;(&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">plugin</font>,&nbsp;<font color=\"#000000\">t_options</font>&nbsp;*&nbsp;<font color=\"#000000\">opt</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__options_delete_plugin_options</font>&nbsp;(&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">plugin</font>,&nbsp;<font color=\"#000000\">t_options</font>&nbsp;*&nbsp;<font color=\"#000000\">opt</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__options_set_notification</font>&nbsp;(&nbsp;<font color=\"#800000\">void</font>&nbsp;*<font color=\"#000000\">target</font>,&nbsp;<font color=\"#800000\">void</font>&nbsp;*<font color=\"#000000\">object</font>);<br>"\
@@ -150,6 +150,8 @@ void options_init ();
 	"#define OPT_HEX    0x0003\n"\
 	"#define OPT_STR    0x0004\n"\
 	"#define OPT_LAST   0x0005\n"\
+	"#define OPT_INTCB  0x0006\n"\
+	"#define OPT_STRCB  0x0007\n"\
 	"#define OPT_END    { 0, NULL, NULL, NULL }\n"\
 	"#define OPT_BEGIN  t_options script_options[] = {\n"\
 	"#define OPT_FINISH OPT_END }; export script_options;\n"\
@@ -176,6 +178,8 @@ void options_init ();
 	"<font color=\"#008000\">#define&nbsp;OPT_HEX&nbsp;&nbsp;&nbsp;&nbsp;0x0003<br></font>"\
 	"<font color=\"#008000\">#define&nbsp;OPT_STR&nbsp;&nbsp;&nbsp;&nbsp;0x0004<br></font>"\
 	"<font color=\"#008000\">#define&nbsp;OPT_LAST&nbsp;&nbsp;&nbsp;0x0005<br></font>"\
+	"<font color=\"#008000\">#define&nbsp;OPT_INTCB&nbsp;&nbsp;0x0006<br></font>"\
+	"<font color=\"#008000\">#define&nbsp;OPT_STRCB&nbsp;&nbsp;0x0007<br></font>"\
 	"<font color=\"#008000\">#define&nbsp;OPT_END&nbsp;&nbsp;&nbsp;&nbsp;{&nbsp;0,&nbsp;NULL,&nbsp;NULL,&nbsp;NULL&nbsp;}<br></font>"\
 	"<font color=\"#008000\">#define&nbsp;OPT_BEGIN&nbsp;&nbsp;t_options&nbsp;script_options[]&nbsp;=&nbsp;{<br></font>"\
 	"<font color=\"#008000\">#define&nbsp;OPT_FINISH&nbsp;OPT_END&nbsp;};&nbsp;export&nbsp;script_options;<br></font>"\

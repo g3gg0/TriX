@@ -139,7 +139,7 @@ fmt_dct3flash_encode ( t_stage * source, t_stage * target )
         return E_FAIL;
     }
 
-    if ( !strcmp ( source->parser, "DCT3FLASH" ) )
+    if ( strcmp ( source->parser, "DCT3FLASH" ) )
     {
 	    DBG ( DEBUG_FMT, " -> %s ( %s, %s ) failed !!\n", __FUNCTION__, source->name, target->name );
         return E_FAIL;

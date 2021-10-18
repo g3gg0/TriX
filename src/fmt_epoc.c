@@ -10,6 +10,8 @@
 #include "symbols.h"
 
 #include "fmt.h"
+#include "options.h"
+
 #include "file_io.h"
 #include "file.h"
 #include "workspace.h"
@@ -21,6 +23,7 @@
 
 #include "mem.h"
 
+unsigned int fmt_epoc_enabled = 0;
 
 unsigned int
 fmt_epoc_free ( t_stage * s )
@@ -36,7 +39,7 @@ fmt_epoc_calc_checksum ( unsigned char *data, unsigned int length )
 	unsigned int checksum = 0;
 	unsigned int *ptr = (unsigned int *)data;
 
-	if ( length % 4 )
+	if ( length & 3 )
 		return 0;
 
 	while ( length )
@@ -55,44 +58,32 @@ fmt_epoc_parse_sections_v2 ( t_stage *source, t_stage *target, E32ImageHeaderv2 
 {
 	t_segment *seg = NULL;
 	unsigned char *buffer = NULL;
-	int outlen = 0;
-	int inlen = 0;
 	void *ctx = NULL;
 	int tmp = 0;
 
 	if ( !source || !target )
 		return E_FAIL;
 
-//	if ( header.iCompressionType )
-//	{
+
+	/*	ctx = deflate_init ();
+		if ( !ctx )
+			return E_FAIL;
+
+		outlen = header.iUncompressedSize;
+		inlen = source->segments->length - header.iCodeOffset;
+		buffer = malloc ( outlen );
+		do {
+			tmp = deflate_decompress ( ctx, source->segments->data + header.iCodeOffset, inlen, buffer, &outlen );
+			header.iCodeOffset++;
+			inlen--;
+		} while ( tmp == -1 && inlen && ( tmp || outlen < 0x1000) );
+//		deflate_decompress ( ctx, buffer, outlen, source->segments->data + header.iCodeOffset, &inlen );
+
 //		outlen = header.iUncompressedSize;
 //		inlen = source->segments->length - header.iCodeOffset;
-//
-//		buffer = e32image_deflate_decompress (
-//			source->segments->data + header.iCodeOffset,
-//			inlen,
-//			outlen );
-//		if ( !buffer )
-//			printf ( "%s,%d: could not decompress .text section\n", __FUNCTION__, __LINE__ );
-//	/*	ctx = deflate_init ();
-//		if ( !ctx )
-//			return E_FAIL;
-//
-//		outlen = header.iUncompressedSize;
-//		inlen = source->segments->length - header.iCodeOffset;
-//		buffer = malloc ( outlen );
-//		do {
-//			tmp = deflate_decompress ( ctx, source->segments->data + header.iCodeOffset, inlen, buffer, &outlen );
-//			header.iCodeOffset++;
-//			inlen--;
-//		} while ( tmp == -1 && inlen && ( tmp || outlen < 0x1000) );
-////		deflate_decompress ( ctx, buffer, outlen, source->segments->data + header.iCodeOffset, &inlen );
-//
-////		outlen = header.iUncompressedSize;
-////		inlen = source->segments->length - header.iCodeOffset;
-////		deflate_decompress ( ctx, source->segments->data + header.iCodeOffset, inlen, buffer, &outlen );
-//*/
-//	}
+//		deflate_decompress ( ctx, source->segments->data + header.iCodeOffset, inlen, buffer, &outlen );
+*/
+
 
 	/* check TEXT segment (code/data)*/
 	if ( header.iCodeOffset && header.iCodeSize )
@@ -176,7 +167,7 @@ fmt_epoc_parse_sections_v2 ( t_stage *source, t_stage *target, E32ImageHeaderv2 
 
 		seg->start = 0;
 		seg->length = tmp;
-		seg->end = tmp;
+		seg->end = seg->start + seg->length;
 		seg->flags |= FLAGS_HIDE_IN_MEM;
 		seg->data = malloc ( seg->length );
 		if ( !seg->data )
@@ -212,7 +203,7 @@ fmt_epoc_parse_sections_v2 ( t_stage *source, t_stage *target, E32ImageHeaderv2 
 
 		seg->start = 0;
 		seg->length = tmp;
-		seg->end = 0;
+		seg->end = seg->start + seg->length;
 		seg->flags |= FLAGS_HIDE_IN_MEM;
 		seg->data = malloc ( seg->length );
 		if ( !seg->data )
@@ -242,7 +233,7 @@ fmt_epoc_parse_sections_v2 ( t_stage *source, t_stage *target, E32ImageHeaderv2 
 
 		seg->start = 0;
 		seg->length = tmp;
-		seg->end = 0;
+		seg->end = seg->start + seg->length;
 		seg->flags |= FLAGS_HIDE_IN_MEM;
 		seg->data = malloc ( seg->length );
 		if ( !seg->data )
@@ -346,7 +337,7 @@ fmt_epoc_parse_sections ( t_stage *source, t_stage *target, E32ImageHeader heade
 
 		seg->start = 0;
 		seg->length = tmp;
-		seg->end = 0;
+		seg->end = seg->start + seg->length;
 		seg->flags |= FLAGS_HIDE_IN_MEM;
 		seg->data = malloc ( seg->length );
 		if ( !seg->data )
@@ -382,7 +373,7 @@ fmt_epoc_parse_sections ( t_stage *source, t_stage *target, E32ImageHeader heade
 
 		seg->start = 0;
 		seg->length = tmp;
-		seg->end = 0;
+		seg->end = seg->start + seg->length;
 		seg->flags |= FLAGS_HIDE_IN_MEM;
 		seg->data = malloc ( seg->length );
 		if ( !seg->data )
@@ -412,7 +403,7 @@ fmt_epoc_parse_sections ( t_stage *source, t_stage *target, E32ImageHeader heade
 
 		seg->start = 0;
 		seg->length = tmp;
-		seg->end = 0;
+		seg->end = seg->start + seg->length;
 		seg->flags |= FLAGS_HIDE_IN_MEM;
 		seg->data = malloc ( seg->length );
 		if ( !seg->data )
@@ -485,13 +476,13 @@ fmt_epoc_parse ( t_stage * source, t_stage * target )
 
 		memcpy ( &priv->original_header_v2, &headerv2, sizeof ( E32ImageHeaderv2 ) );
 
-		if ( headerv2.iCompressionType == 0x101F7AFC )
-		{
-			/* TODO create UNCOMPRESSED stage */
+		if ( headerv2.iCompressionType == KUidCompressionDeflate )
+		{			
+			int outlen = headerv2.iUncompressedSize;
+			int inlen = source->segments->length - headerv2.iCodeOffset;
+
 			deflate_buffer = e32image_deflate_decompress (
-				source->segments->data + headerv2.iCodeOffset,
-				source->segments->length - headerv2.iCodeOffset,
-				headerv2.iUncompressedSize );
+				source->segments->data + headerv2.iCodeOffset, inlen, outlen );
 
 			//mem_check_all();
 
@@ -501,21 +492,16 @@ fmt_epoc_parse ( t_stage * source, t_stage * target )
 
 			source->length = headerv2.iUncompressedSize + headerv2.iCodeOffset;
 
-			
-
 			if ( !deflate_buffer )
 			{
 				ERR ( 0, "could not deflate compressed part" );	
 				free ( priv );
 				return E_FAIL;
 			}
-
 			
 			memcpy ( source->segments->data + headerv2.iCodeOffset, deflate_buffer, headerv2.iUncompressedSize );
 
 			//mem_check_all();
-			
-			
 		}
 
 		fmt_epoc_parse_sections_v2 ( source, target, headerv2 );
@@ -560,33 +546,39 @@ unsigned int
 fmt_epoc_decode ( t_stage * source, t_stage * target )
 {
 
+	if ( !fmt_epoc_enabled )
+	{
+		DBG ( DEBUG_FMT, " -> %s ( ) disabled !!\n", __FUNCTION__ );
+		return E_FAIL;
+	}
+
 	DBG ( DEBUG_FMT, " => %s ( ) called\n", __FUNCTION__ );
 
-    if ( !target )
-        target = source->next;
+	if ( !target )
+		target = source->next;
 
-    if ( !source || !target || !source->segments || !source->segments->data )
-    {
-	    DBG ( DEBUG_FMT, " -> %s ( ) failed !!\n", __FUNCTION__ );
-        return E_FAIL;
-    }
+	if ( !source || !target || !source->segments || !source->segments->data )
+	{
+		DBG ( DEBUG_FMT, " -> %s ( ) failed !!\n", __FUNCTION__ );
+		return E_FAIL;
+	}
 
 	if ( source->length < sizeof (E32ImageHeaderv2) )
-    {
-	    DBG ( DEBUG_FMT, " -> %s ( %s, %s ) failed !!\n", __FUNCTION__, source->name, target->name );
-        return E_FAIL;
-    }
+	{
+		DBG ( DEBUG_FMT, " -> %s ( %s, %s ) failed !!\n", __FUNCTION__, source->name, target->name );
+		return E_FAIL;
+	}
 
 	R(fmt_epoc_parse ( source,  target ));
 
-    target->name = "PARSED";
-    target->length = 0;
-    target->parser = "EPOC";
-    target->type = "EPOC";
+	target->name = "PARSED";
+	target->length = 0;
+	target->parser = "EPOC";
+	target->type = "EPOC";
 
 
 	DBG ( DEBUG_FMT, " ## %s ( %s, %s ) done\n", __FUNCTION__, source->name, target->name );
-    return E_OK;
+	return E_OK;
 }
 
 
@@ -595,14 +587,14 @@ fmt_epoc_create ( t_stage * source, unsigned int *ret_length )
 {
 	unsigned int length = 0;
 	char *data = NULL;
-    t_epoc_priv *priv = NULL;
+	t_epoc_priv *priv = NULL;
 	E32ImageHeader header;
 	t_segment *seg = NULL;
 
-    if ( !source || !source->priv )
-        return NULL;
+	if ( !source || !source->priv )
+		return NULL;
 
-    priv = ( t_epoc_priv * ) source->priv;
+	priv = ( t_epoc_priv * ) source->priv;
 
 	length = sizeof ( priv->original_header );
 	data = malloc ( length );
@@ -672,61 +664,71 @@ fmt_epoc_encode ( t_stage * source, t_stage * target )
 	char * data = NULL;
 	unsigned int length = 0;
 
+	if ( !fmt_epoc_enabled )
+	{
+		DBG ( DEBUG_FMT, " -> %s ( ) disabled !!\n", __FUNCTION__ );
+		return E_FAIL;
+	}
+
 	DBG ( DEBUG_FMT, " => %s ( ) called\n", __FUNCTION__ );
-    if ( !target )
-        target = source->next;
+	if ( !target )
+		target = source->next;
 
 
-    if ( !source || !target )
-    {
+	if ( !source || !target )
+	{
 		
-	    DBG ( DEBUG_FMT, " -> %s ( ) failed !!\n", __FUNCTION__ );
-        return E_FAIL;
-    }
+		DBG ( DEBUG_FMT, " -> %s ( ) failed !!\n", __FUNCTION__ );
+		return E_FAIL;
+	}
 
-    if ( segment_count ( source->segments ) < 1 )
-    {
+	if ( segment_count ( source->segments ) < 1 )
+	{
 		
-	    DBG ( DEBUG_FMT, " -> %s ( %s, %s ) failed !!\n", __FUNCTION__, source->name, target->name );
-        return E_FAIL;
-    }
+		DBG ( DEBUG_FMT, " -> %s ( %s, %s ) failed !!\n", __FUNCTION__, source->name, target->name );
+		return E_FAIL;
+	}
 
 	data = fmt_epoc_create ( source, &length );
 
 	if ( !data )
-    {
+	{
 		
-	    DBG ( DEBUG_FMT, " -> %s ( %s, %s ) failed !!\n", __FUNCTION__, source->name, target->name );
-        return E_FAIL;
-    }
+		DBG ( DEBUG_FMT, " -> %s ( %s, %s ) failed !!\n", __FUNCTION__, source->name, target->name );
+		return E_FAIL;
+	}
 
-    target->segments = segment_create (  );
-    target->segments->name = "DATA";
-    target->segments->start = 0;
-    target->segments->end = 0;
-    target->segments->length = length;
-    target->segments->data = data;
+	target->segments = segment_create (  );
+	target->segments->name = "DATA";
+	target->segments->start = 0;
+	target->segments->end = 0;
+	target->segments->length = length;
+	target->segments->data = data;
 
-    target->name = "RAW";
-    target->length = length;
-    target->parser = "EPOC";
-    target->type = "EPOC";
+	target->name = "RAW";
+	target->length = length;
+	target->parser = "EPOC";
+	target->type = "EPOC";
 
-	
+	/* set the parser again (see file_format() ). all parsers should do this. shouldn't they? */
+	source->parser = "EPOC";
+	source->type = "EPOC";
+
+
 	DBG ( DEBUG_FMT, " ## %s ( %s, %s ) done\n", __FUNCTION__, source->name, target->name );
-    return E_OK;
+	return E_OK;
 
 }
 
 t_fmt_handler epoc_handler = {
-    "EPOC",
-    "FORMAT",
-    "fmt_epoc_decode",
-    fmt_epoc_decode,
-    "fmt_epoc_encode",
-    fmt_epoc_encode,
-    "fmt_epoc_free",
-    fmt_epoc_free,
+	"EPOC",
+	"FORMAT",
+	"fmt_epoc_decode",
+	fmt_epoc_decode,
+	"fmt_epoc_encode",
+	fmt_epoc_encode,
+	"fmt_epoc_free",
+	fmt_epoc_free,
 	NULL,
 	NULL
 };
@@ -735,8 +737,9 @@ t_fmt_handler epoc_handler = {
 unsigned int
 fmt_epoc_init ( )
 {
-    fmt_register_handler ( &epoc_handler );
-    return E_OK;
+	fmt_register_handler ( &epoc_handler );
+	options_add_core_option ( OPT_BOOL, "fmt.epoc", fmt_epoc_enabled, "Enable EPOC Format. Disabled by default since there are some bugs" );
+	return E_OK;
 }
 
 #endif

@@ -15,9 +15,13 @@
 #include "trixplug_funcs.h"
 #include "mem.h"
 
+#ifdef WIN32
+#include <windows.h>
+#include <tchar.h>
+#include <stdio.h>
+#endif
 
 FILE_IO_PLUG_INIT;
-
 t_fileinfo *
 file_io_create_empty (  )
 {
@@ -55,6 +59,137 @@ file_io_create_empty (  )
 
 }
 
+/*
+     int file_io_create_directory ( char *dirname )
+   -----------------------------------------------------
+
+    Internal:
+		Yes
+
+    Description:
+        Creates the specified directory
+
+    Return value:
+        returns E_OK on success E_FAIL on error
+*/
+int
+file_io_create_directory ( char *dirname )
+{
+#ifdef WIN32
+	if(!CreateDirectory(dirname, NULL))
+	{
+		return E_FAIL;
+	}
+
+	return E_OK;
+#else
+	/* TODO */
+	return E_FAIL;
+#endif
+}
+
+/*
+     t_fileinfo *file_io_open_directory ( char *filename, unsigned int *entries )
+   -----------------------------------------------------
+
+    Internal:
+		Yes
+
+    Description:
+        Opens a directory and generates a list of files (but doesn't load them)
+
+    Return value:
+        returns a array of t_fileinfo on success, NULL on error.
+		User has to manually free all filename struct members of the returned
+		struct array. User has to free the returned pointer too.
+*/
+
+t_fileinfo *
+file_io_open_directory ( char *path, unsigned int *ret_entries )
+{
+#ifdef WIN32
+	int done = 0;
+	int entries = 0;
+	int entries_allocated = 32;
+	int entries_blocksize = 32;
+	t_fileinfo *file_infos = NULL;
+	WIN32_FIND_DATA file_data;
+	HANDLE hFind;
+
+	hFind = FindFirstFile(path, &file_data);
+	if (hFind == INVALID_HANDLE_VALUE)
+	{	
+		*ret_entries = 0;
+		return NULL;
+	}
+
+	// allocate first block
+	entries_allocated += entries_blocksize;
+	file_infos = malloc ( entries_allocated * sizeof(t_fileinfo) );
+
+	while (!done)
+	{
+		if ( strcmp ( file_data.cFileName, "." ) && strcmp ( file_data.cFileName, ".." ) )
+		{
+			// not enough space, realloc block
+			if(entries >= entries_allocated)
+			{
+				entries_allocated += entries_blocksize;
+				file_infos = realloc ( file_infos, entries_allocated * sizeof(t_fileinfo) );
+
+				if(!file_infos)
+				{
+					entries = 0;
+					ERR(0, "Failed to realloc 'file_infos'");
+					break;
+				}
+			}
+
+			memset ( &file_infos[entries], 0x00, sizeof(t_fileinfo) );
+			util_smalloc_init ( &file_infos[entries], sizeof(t_fileinfo), "t_fileinfo");
+			file_infos[entries].filename = strdup ( file_data.cFileName );
+
+			if ( file_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY )
+			{
+				file_infos[entries].options = FILE_DIRECTORY;
+			}
+			else
+			{
+				file_infos[entries].options = FILE_NORMAL;
+			}
+			entries++;
+		}
+
+
+		if (!FindNextFile(hFind, &file_data))
+		{
+			done = 1;
+			/*
+			if (GetLastError() == ERROR_NO_MORE_FILES)
+			{
+				done = 1;
+			}
+			else
+			{
+				done = 1;
+			}
+			*/
+		}
+	}
+
+	if ( !entries )
+	{
+		CHECK_AND_FREE(file_infos);
+	}
+
+	FindClose(hFind);
+
+	*ret_entries = entries;
+	return file_infos;
+#else
+	return NULL;
+#endif
+}
 
 
 /*
@@ -143,11 +278,12 @@ file_io_open ( const char *path, const char *filename )
     fi->stages_mod = NULL;
     fi->options = file_get_options ();
 
-    if ( fread ( fi->stages->segments->data, fi->stages->length, 1, file_in ) != 1 )
+    if ( fi->stages->length > 0 && fread ( fi->stages->segments->data, fi->stages->length, 1, file_in ) != 1 )
     {
         file_io_release ( fi );
         return NULL;
     }
+	
     fclose ( file_in );
 
 	// in case of text files, make sure it will end with an NULL byte
@@ -193,7 +329,8 @@ file_io_write ( const char *filename, const t_fileinfo * fi )
 	if ( !s )
 		s = fi->stages;
 
-	if ( !s || (segment_count (s->segments) != 1) || !s->segments->data || (s->segments->length < 1) )
+	// empty files should be valid
+	if ( !s || (segment_count (s->segments) != 1) || !s->segments->data /*|| (s->segments->length < 1) */ )
         return E_FAIL;
 
 	/*

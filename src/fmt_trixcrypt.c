@@ -88,7 +88,7 @@ fmt_trixcrypt_decode_data ( char *buf, unsigned int length, unsigned int *o_leng
 	printf ( "\n" );
 */
 
-	if ( memcmp ( buf, "[TriXCrypT-RSA-]", 16 ) )
+	if ( length < 16 || memcmp ( buf, "[TriXCrypT-RSA-]", 16 ) )
         return NULL;
 
 	decoded_length = length-0x10;
@@ -198,6 +198,10 @@ fmt_trixcrypt_encode ( t_stage * source, t_stage * target )
     target->length = length;
     target->parser = "TRIXCRYPT";
     target->type = "TRIXCRYPT";
+
+	/* set the parser again (see file_format() ). all parsers should do this. shouldn't they? */
+	source->parser = "TRIXCRYPT";
+	source->type = "TRIXCRYPT";
 
 	DBG ( DEBUG_FMT, " ## %s ( %s, %s ) done\n", __FUNCTION__, source->name, target->name );
     return E_OK;

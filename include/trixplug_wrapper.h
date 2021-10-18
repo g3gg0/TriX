@@ -1,6 +1,7 @@
 #ifdef TRIXPLUG_MODE
 
 #define trixplug_get ft->trixplug->get
+#define trixplug_handle_load ft->trixplug->handle_load
 #define trixplug_load_plugin ft->trixplug->load_plugin
 #define trixplug_get_plugin_entry ft->trixplug->get_plugin_entry
 #define trixplug_unload_plugin ft->trixplug->unload_plugin
@@ -20,6 +21,10 @@
 #define segment_find_by_start ft->segment->find_by_start
 #define segment_find_by_name ft->segment->find_by_name
 #define segment_count ft->segment->count
+#define segment_is_mapped ft->segment->is_mapped
+#define segment_is_sparse ft->segment->is_sparse
+#define segment_map_in_mem ft->segment->map_in_mem
+#define segment_hide_in_mem ft->segment->hide_in_mem
 #define segment_get_last ft->segment->get_last
 #define segment_add ft->segment->add
 #define segment_create ft->segment->create
@@ -39,6 +44,7 @@
 #define stage_find_by_num ft->stage->find_by_num
 #define stage_get_last ft->stage->get_last
 #define stage_restore_info ft->stage->restore_info
+#define stage_release_info ft->stage->release_info
 #define stage_save_info ft->stage->save_info
 #define stage_count ft->stage->count
 #define stage_get_num ft->stage->get_num
@@ -57,6 +63,8 @@
 #define stage_release_all ft->stage->release_all
 
 #define file_io_create_empty ft->file_io->create_empty
+#define file_io_create_directory ft->file_io->create_directory
+#define file_io_open_directory ft->file_io->open_directory
 #define file_io_open ft->file_io->open
 #define file_io_write ft->file_io->write
 #define file_io_release ft->file_io->release
@@ -84,12 +92,15 @@
 #define workspace_release ft->workspace->release
 #define workspace_memmap_release ft->workspace->memmap_release
 #define workspace_memmap_sort ft->workspace->memmap_sort
+#define workspace_memmap_reverse ft->workspace->memmap_reverse
 #define workspace_update_memmap ft->workspace->update_memmap
 
 #define util_init ft->util->init
 #define util_set_debuglevel ft->util->set_debuglevel
 #define util_set_errorlevel ft->util->set_errorlevel
+#define util_script_is_aborted ft->util->script_is_aborted
 #define util_get_line ft->util->get_line
+#define util_smalloc_init ft->util->smalloc_init
 #define util_smalloc ft->util->smalloc
 #define util_dump_bytes ft->util->dump_bytes
 #define v_cache_update ft->util->v_cache_update
@@ -102,6 +113,9 @@
 #define v_set_b ft->util->v_set_b
 #define v_set_h ft->util->v_set_h
 #define v_set_w ft->util->v_set_w
+#define v_set_b_raw ft->util->v_set_b_raw
+#define v_set_h_raw ft->util->v_set_h_raw
+#define v_set_w_raw ft->util->v_set_w_raw
 #define v_get_b ft->util->v_get_b
 #define v_get_h ft->util->v_get_h
 #define v_get_w ft->util->v_get_w
@@ -130,9 +144,6 @@
 #define util_hex_get_buffer ft->util->hex_get_buffer
 #define util_hexunpack ft->util->hexunpack
 #define util_hexpack ft->util->hexpack
-#define util_debug_msg ft->util->debug_msg
-#define util_error_msg ft->util->error_msg
-#define util_printf_ ft->util->printf_
 #define util_list_get_last ft->util->list_get_last
 #define util_list_add ft->util->list_add
 #define util_list_add_new ft->util->list_add_new
@@ -184,13 +195,19 @@
 #define crypto_get_signopt ft->crypto->get_signopt
 #define crypto_get_key ft->crypto->get_key
 #define crypto_get_keyname ft->crypto->get_keyname
+#define crypto_unfold ft->crypto->unfold
 #define crypto_check_integrity ft->crypto->check_integrity
 #define crypto_generate_cert ft->crypto->generate_cert
+#define crypto_init_algokey ft->crypto->init_algokey
+#define crypto_init_algoiv ft->crypto->init_algoiv
 #define crypto_encrypt_buffer ft->crypto->encrypt_buffer
 #define crypto_decrypt_buffer ft->crypto->decrypt_buffer
 #define crypto_generate_key ft->crypto->generate_key
+#define crypto_generate_sha1 ft->crypto->generate_sha1
+#define crypto_generate_md5 ft->crypto->generate_md5
 
 #define trixcrypt_alloc_priv ft->trixcrypt->alloc_priv
+#define trixcrypt_copy_cryptkey ft->trixcrypt->copy_cryptkey
 #define trixcrypt_set_decryptkey ft->trixcrypt->set_decryptkey
 #define trixcrypt_set_encryptkey ft->trixcrypt->set_encryptkey
 #define trixcrypt_set_cryptkeys ft->trixcrypt->set_cryptkeys
@@ -242,6 +259,9 @@
 #define treenode_unlink ft->treenode->unlink
 #define treenode_dump ft->treenode->dump
 
+#define ui_set_exiting ft->ui->set_exiting
+#define ui_register_cb ft->ui->register_cb
+#define ui_set_callback_state ft->ui->set_callback_state
 #define ui_dlg_msg ft->ui->dlg_msg
 #define ui_dlg_tree ft->ui->dlg_tree
 #define ui_dlg_dumpmem ft->ui->dlg_dumpmem
@@ -252,11 +272,18 @@
 #define ui_dlg_menu ft->ui->dlg_menu
 #define ui_dlg_int ft->ui->dlg_int
 #define ui_dlg_bool ft->ui->dlg_bool
+#define ui_vprintf_func ft->ui->vprintf_func
+#define ui_printf_msg ft->ui->printf_msg
+#define ui_debug_msg ft->ui->debug_msg
+#define ui_error_msg ft->ui->error_msg
 #define ui_dlg_string ft->ui->dlg_string
+#define ui_dlg_load_file ft->ui->dlg_load_file
+#define ui_dlg_save_file ft->ui->dlg_save_file
 #define ui_dlg_box_create ft->ui->dlg_box_create
 #define ui_dlg_box_release ft->ui->dlg_box_release
 #define ui_dlg_box_release_all ft->ui->dlg_box_release_all
 #define ui_dlg_box_msg ft->ui->dlg_box_msg
+#define ui_dlg_box_set_keypress_ptr ft->ui->dlg_box_set_keypress_ptr
 #define ui_dlg_box_clear ft->ui->dlg_box_clear
 #define ui_dlg_box_size ft->ui->dlg_box_size
 
@@ -265,6 +292,7 @@
 #define fmt_encode ft->fmt->encode
 #define fmt_encode_diff ft->fmt->encode_diff
 #define fmt_free_priv ft->fmt->free_priv
+#define fmt_unregister_handler ft->fmt->unregister_handler
 #define fmt_register_handler ft->fmt->register_handler
 #define fmt_add_seer_entry ft->fmt->add_seer_entry
 #define fmt_add_seer ft->fmt->add_seer
@@ -324,8 +352,12 @@
 
 #define arm_init ft->arm->init
 #define arm_set ft->arm->set
+#define arm_set_32 ft->arm->set_32
 #define arm_get_bl ft->arm->get_bl
+#define arm_get_32 ft->arm->get_32
+#define arm_get_32_adv ft->arm->get_32_adv
 #define arm_get ft->arm->get
+#define arm_get_adv ft->arm->get_adv
 #define arm_find ft->arm->find
 #define arm_get_freespace ft->arm->get_freespace
 #define arm_find_src_of_dest ft->arm->find_src_of_dest
@@ -346,6 +378,8 @@
 #define seer_del_header ft->seer->del_header
 #define seer_del_symbol_int ft->seer->del_symbol_int
 
+#define project_free ft->project->free
+#define project_create ft->project->create
 #define project_init ft->project->init
 #define project_add_file ft->project->add_file
 #define project_get_file ft->project->get_file

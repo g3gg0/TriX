@@ -132,6 +132,8 @@ void lcd_draw_rect ( int x1, int x2, int y1, int y2, unsigned int value )
     }
 
 }
+
+/*
 void lcd_init ( )
 {
 
@@ -174,7 +176,7 @@ void lcd_init ( )
 	lcd_clear ();
 
 }
-
+*/
 int  lcd_clear ()
 {
 	int x = 0;

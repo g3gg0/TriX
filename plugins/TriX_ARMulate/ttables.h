@@ -4,7 +4,7 @@ void setup_handle_tables_t (void)
 
 	for (i=0; i<0x400; i++) 
 		opcode_handles_t [i] = tins_unknown;
-	
+
 
 	opcode_handles_t [0x100] = tins_and;
 	opcode_handles_t [0x101] = tins_eor;
@@ -40,10 +40,6 @@ void setup_handle_tables_t (void)
 	opcode_handles_t [0x11C|0x2] = tins_bx;
 	opcode_handles_t [0x11C|0x3] = tins_bx;
 
-	for (i=0; i<0x4; i++) 
-		opcode_handles_t [0x2C0|i] = tins_add_sp;
-	
-
 	/* 7 bits fixed */
 	for (i=0; i<0x8; i++) {
 		opcode_handles_t [0x060|i] = tins_add_3;
@@ -61,7 +57,7 @@ void setup_handle_tables_t (void)
 		opcode_handles_t [0x2D0|i] = tins_push;
 		opcode_handles_t [0x2F0|i] = tins_pop;
 	}	
-	
+
 	/* 5 bits fixed */
 	for (i=0; i<=0x1F; i++) {
 		opcode_handles_t [i] = tins_lsl_imm;
@@ -85,12 +81,21 @@ void setup_handle_tables_t (void)
 		opcode_handles_t [0x300|i] = tins_stmia;
 		opcode_handles_t [0x320|i] = tins_ldmia;
 		opcode_handles_t [0x380|i] = tins_b;
+		opcode_handles_t [0x3A0|i] = tins_bl;
+		opcode_handles_t [0x3C0|i] = tins_bl;
+		opcode_handles_t [0x3E0|i] = tins_bl;
 	}
 
 	/* 4 bits fixed */
 	for (i=0; i<0x3F; i++) {
-		opcode_handles_t [0x3C0|i] = tins_bl;
 		opcode_handles_t [0x340|i] = tins_bcond;
 	}
+
+	for (i=0; i<0x4; i++) 
+	{
+		opcode_handles_t [0x2C0|i] = tins_add_sp;
+		opcode_handles_t [0x37C|i] = tins_swi;
+	}
+
 
 }

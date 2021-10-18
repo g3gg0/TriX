@@ -1,5 +1,5 @@
 #! /bin/sh
-# $Id: form6,v 1.1 2006/06/28 13:53:39 geggo Exp $
+# $Id: form6 1521 2006-06-28 13:53:39Z geggo $
 # form4 with --help-status
 : ${DIALOG=dialog}
 

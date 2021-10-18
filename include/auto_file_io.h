@@ -4,6 +4,8 @@
 
 #define FILE_IO_AUTO_IMPORTS \
 	"import t_fileinfo *__file_io_create_empty ( );\n"\
+	"import int __file_io_create_directory ( char *dirname);\n"\
+	"import t_fileinfo *__file_io_open_directory ( char *path, unsigned int *ret_entries);\n"\
 	"import t_fileinfo *__file_io_open ( const char *path, const char *filename);\n"\
 	"import unsigned int __file_io_write ( const char *filename, const t_fileinfo * fi);\n"\
 	"import unsigned int __file_io_release ( t_fileinfo * fi);\n"\
@@ -14,6 +16,8 @@
 #define FILE_IO_AUTO_IMPORTS_HTML \
 	"		<font face=\"Monospace\">"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#000000\">t_fileinfo</font>&nbsp;*<font color=\"#000000\">__file_io_create_empty</font>&nbsp;(&nbsp;);<br>"\
+	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__file_io_create_directory</font>&nbsp;(&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">dirname</font>);<br>"\
+	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#000000\">t_fileinfo</font>&nbsp;*<font color=\"#000000\">__file_io_open_directory</font>&nbsp;(&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">path</font>,&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;*<font color=\"#000000\">ret_entries</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#000000\">t_fileinfo</font>&nbsp;*<font color=\"#000000\">__file_io_open</font>&nbsp;(&nbsp;<font color=\"#800000\">const</font>&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">path</font>,&nbsp;<font color=\"#800000\">const</font>&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">filename</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__file_io_write</font>&nbsp;(&nbsp;<font color=\"#800000\">const</font>&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">filename</font>,&nbsp;<font color=\"#800000\">const</font>&nbsp;<font color=\"#000000\">t_fileinfo</font>&nbsp;*&nbsp;<font color=\"#000000\">fi</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__file_io_release</font>&nbsp;(&nbsp;<font color=\"#000000\">t_fileinfo</font>&nbsp;*&nbsp;<font color=\"#000000\">fi</font>);<br>"\
@@ -25,6 +29,8 @@
 
 #define FILE_IO_AUTO_REGISTER \
 	scAddExtSymInt ( file_io_create_empty );\
+	scAddExtSymInt ( file_io_create_directory );\
+	scAddExtSymInt ( file_io_open_directory );\
 	scAddExtSymInt ( file_io_open );\
 	scAddExtSymInt ( file_io_write );\
 	scAddExtSymInt ( file_io_release );\
@@ -34,6 +40,8 @@
 /* seer function declaration for file_io.c */
 #ifndef HEADER_SKIP_DECLARATION
 void file_io_create_empty ();
+void file_io_create_directory ();
+void file_io_open_directory ();
 void file_io_open ();
 void file_io_write ();
 void file_io_release ();
@@ -49,7 +57,8 @@ void file_io_release_all ();
 	"    char *filename;\n"\
 	"    char *path;\n"\
 	"    t_stage *stages;\n"\
-	"    t_stage *orig;\n"\
+	"    t_stage *stages_org;\n"\
+	"    t_stage *stages_mod;\n"\
 	"    void *priv;\n"\
 	"    unsigned int options;\n"\
 	"} t_fileinfo;\n"\
@@ -67,7 +76,8 @@ void file_io_release_all ();
 	"&nbsp;&nbsp;&nbsp;&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">filename</font>;<br>"\
 	"&nbsp;&nbsp;&nbsp;&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">path</font>;<br>"\
 	"&nbsp;&nbsp;&nbsp;&nbsp;<font color=\"#000000\">t_stage</font>&nbsp;*<font color=\"#000000\">stages</font>;<br>"\
-	"&nbsp;&nbsp;&nbsp;&nbsp;<font color=\"#000000\">t_stage</font>&nbsp;*<font color=\"#000000\">orig</font>;<br>"\
+	"&nbsp;&nbsp;&nbsp;&nbsp;<font color=\"#000000\">t_stage</font>&nbsp;*<font color=\"#000000\">stages_org</font>;<br>"\
+	"&nbsp;&nbsp;&nbsp;&nbsp;<font color=\"#000000\">t_stage</font>&nbsp;*<font color=\"#000000\">stages_mod</font>;<br>"\
 	"&nbsp;&nbsp;&nbsp;&nbsp;<font color=\"#800000\">void</font>&nbsp;*<font color=\"#000000\">priv</font>;<br>"\
 	"&nbsp;&nbsp;&nbsp;&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">options</font>;<br>"\
 	"}&nbsp;<font color=\"#000000\">t_fileinfo</font>;<br>"\

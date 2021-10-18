@@ -764,7 +764,7 @@ sciReadSubExp ( int i, _value * val, bool ExpRequired )
                     {
                         TwoParamInstr ( 0, ==, opvcpuCMPE, 0, 8, true, false );
                         val->type.flags = typPREDEFINED;
-                        ( valTYPE ) val->type.main = valINT;
+                        val->type.main = valINT;
                     }
                 }
                 else
@@ -777,7 +777,7 @@ sciReadSubExp ( int i, _value * val, bool ExpRequired )
                         if ( !scvalIsImmidiate ( val ) )
                             Gen_Opcode ( opvcpuNOT, val, NULL );
                         val->type.flags = typPREDEFINED;
-                        ( valTYPE ) val->type.main = valINT;
+                        val->type.main = valINT;
                     }
                 }
             }
@@ -806,7 +806,7 @@ sciReadSubExp ( int i, _value * val, bool ExpRequired )
                     {
                         TwoParamInstr ( 0, <, opvcpuCMPL, 0, 9, false, false );
                         val->type.flags = typPREDEFINED;
-                        ( valTYPE ) val->type.main = valINT;
+                        val->type.main = valINT;
                     }
                 }
                 else
@@ -817,7 +817,7 @@ sciReadSubExp ( int i, _value * val, bool ExpRequired )
                     {
                         TwoParamInstr ( 0, <=, opvcpuCMPNG, 0, 9, false, false );
                         val->type.flags = typPREDEFINED;
-                        ( valTYPE ) val->type.main = valINT;
+                        val->type.main = valINT;
                     }
                 }
                 else
@@ -828,7 +828,7 @@ sciReadSubExp ( int i, _value * val, bool ExpRequired )
                     {
                         TwoParamInstr ( 0, >, opvcpuCMPG, 0, 9, false, false );
                         val->type.flags = typPREDEFINED;
-                        ( valTYPE ) val->type.main = valINT;
+                        val->type.main = valINT;
                     }
                 }
                 else
@@ -839,7 +839,7 @@ sciReadSubExp ( int i, _value * val, bool ExpRequired )
                     {
                         TwoParamInstr ( 0, >=, opvcpuCMPNL, 0, 9, false, false );
                         val->type.flags = typPREDEFINED;
-                        ( valTYPE ) val->type.main = valINT;
+                        val->type.main = valINT;
                     }
                 }
             }
@@ -1592,7 +1592,7 @@ sciReadSubExp ( int i, _value * val, bool ExpRequired )
                 data = malloc ( ST->lexema_len ); //scStrdup ( ST->lexema + 1 );
 				memcpy ( data, ST->lexema + 1, ST->lexema_len-2 );
                 data[ST->lexema_len-2] = 0;  //erase "
-                scvalConstantString ( val, data, ST->lexema_len-2 );
+                scvalConstantString ( val, data, ST->lexema_len-2 + 1);
                 Advance;
                 return 1;
             }
@@ -1627,7 +1627,7 @@ sciReadSubExp ( int i, _value * val, bool ExpRequired )
                 val->adr.val.ival = c;
                 val->adr.flags = adrIMMIDIATE;
                 val->type.flags = typPREDEFINED | typCONST;
-                ( valTYPE ) val->type.main = valINT;
+                val->type.main = valINT;
                 val->sym = NULL;
                 Advance;
                 return 1;
@@ -1643,7 +1643,7 @@ sciReadSubExp ( int i, _value * val, bool ExpRequired )
                     val->adr.val.dval = strtod ( ST->lexema, &endp );
                     val->adr.flags = adrIMMIDIATE;
                     val->type.flags = typPREDEFINED | typCONST;
-                    ( valTYPE ) val->type.main = valDOUBLE;
+                    val->type.main = valDOUBLE;
                     val->sym = NULL;
                 }
                 else
@@ -1651,7 +1651,7 @@ sciReadSubExp ( int i, _value * val, bool ExpRequired )
                     val->adr.val.ival = strtoul ( ST->lexema, &endp, 0 );
                     val->adr.flags = adrIMMIDIATE;
                     val->type.flags = typPREDEFINED | typCONST;
-                    ( valTYPE ) val->type.main = valINT;
+                    val->type.main = valINT;
                     val->sym = NULL;
                 }
                 if ( *endp )
@@ -1720,7 +1720,7 @@ sciReadSubExp ( int i, _value * val, bool ExpRequired )
                         scType t = val->type;
                         val->type.flags = typPREDEFINED;
                         val->type.params = NULL;
-                        ( valTYPE ) val->type.main = valINT;
+                        val->type.main = valINT;
                         deb0 ( "Convert imported\n" );
                         scvalPutToRegister ( val, TRUE );   //yep!
                         val->type = t;

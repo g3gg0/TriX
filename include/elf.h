@@ -15,7 +15,68 @@ typedef unsigned int Elf32_Off;
 typedef int Elf32_Sword;
 typedef unsigned int Elf32_Word;
 
-#define ELFARCH_ARM 0x28
+
+// e_ident
+#define EI_MAG0                         0
+#define EI_MAG1                         1
+#define EI_MAG2                         2
+#define EI_MAG3                         3
+#define EI_CLASS                        4
+#define EI_DATA                         5
+#define EI_VERSION                      6
+#define EI_OSABI                        7
+#define EI_ABIVERSION                   8
+#define EI_PAD                          9
+#define EI_NIDENT                       16
+
+// EI_MAG
+#define ELFMAG0                         0x7F
+#define ELFMAG1                         'E'
+#define ELFMAG2                         'L'
+#define ELFMAG3                         'F'
+
+// EI_CLASS
+#define ELFCLASSNONE                    0
+#define ELFCLASS32                      1
+#define ELFCLASS64                      2
+
+// EI_DATA
+#define ELFDATANONE                     0
+#define ELFDATA2LSB                     1
+#define ELFDATA2MSB                     2
+
+// EI_OSABI
+#define ELFOSABI_NONE                   0
+
+// e_type
+#define ET_NONE                         0    // No file type
+#define ET_REL                          1    // Relocatable file
+#define ET_EXEC                         2    // Executable file
+#define ET_DYN                          3    // Shared object file
+#define ET_CORE                         4    // Core file
+
+// e_machine
+#define EM_NONE                         0	 // No machine
+#define EM_ARM                          0x28 // ARM
+
+// e_version
+#define EV_NONE                         0    // Invalid ELF version
+#define EV_CURRENT                      1    // Current version
+
+// p_type
+#define PT_NULL                         0    // Program header table entry unused
+#define PT_LOAD                         1    // Loadable program segment
+#define PT_DYNAMIC                      2    // Dynamic linking information
+#define PT_INTERP                       3    // Program interpreter
+#define PT_NOTE                         4    // Auxiliary information
+#define PT_SHLIB                        5    // Reserved, unspecified semantics
+#define PT_PHDR                         6    // Entry for header table itself
+#define PT_TLS                          7    // Thread local storage segment
+
+// p_flags
+#define PF_X                            1    // Segment is executable
+#define PF_W                            2    // Segment is writable
+#define PF_R                            4    // Segment is readable
 
 #define SHN_UNDEF 0
 #define SHN_LORESERVE 0xff00
@@ -38,29 +99,6 @@ typedef unsigned int Elf32_Word;
 #define STB_WEAK 2
 #define STB_LOPROC 13
 #define STB_HIPROC 15
-
-#define EI_MAG0 0
-#define EI_MAG1 1
-#define EI_MAG2 2
-#define EI_MAG3 3
-#define EI_CLASS 4
-#define EI_DATA 5
-#define EI_VERSION 6
-#define EI_PAD 7
-#define EI_NIDENT 16
-
-#define ELFMAG0 0x7f
-#define ELFMAG1 'E'
-#define ELFMAG2 'L'
-#define ELFMAG3 'F'
-
-#define ELFCLASSNONE 0
-#define ELFCLASS32 1
-#define ELFCLASS64 2
-
-#define ELFDATANONE 0
-#define ELFDATA2LSB 1
-#define ELFDATA2MSB 2
 
 #define SHT_NULL 0
 #define SHT_PROGBITS 1
@@ -101,6 +139,17 @@ typedef struct _Elf32_Ehdr {
 	Elf32_Half e_shnum;
 	Elf32_Half e_shstrndx;
 } Elf32_Ehdr;
+
+typedef struct {
+	Elf32_Word p_type;
+	Elf32_Off p_offset;
+	Elf32_Off p_vaddr;
+	Elf32_Off p_paddr;
+	Elf32_Off p_filesz;
+	Elf32_Off p_memsz;
+	Elf32_Word p_flags;
+	Elf32_Off p_align;
+} Elf32_Phdr;
 
 typedef struct {
 	Elf32_Word sh_name;

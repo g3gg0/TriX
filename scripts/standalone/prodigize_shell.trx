@@ -1,4 +1,4 @@
-#include trix
+﻿#include trix
 
 #plugin trix_prodigize
 #include trix_prodigize
@@ -8,17 +8,17 @@
 //
 // fit to your paths
 /////////////////////////////////////////////////////////
-unsigned int little_endian = 1;
-char *u_2nd = "support\\te_2nd.fia";
-char *u_3rd = "support\\te_shell_v2.fia";
+unsigned int little_endian = 0;
+char *u_2nd = "support\\u_2nd.fia";
+char *u_3rd = "support\\u_shell_v2.fia";
 char *dumpfile = "support\\flashdump.bin";
 char *armadafile = "support\\dynamic_code.asm";
-char *cfile = "support\\dynamic_code.c";
+char *objfile = "dynamic_code.be.o";
 char *binfile = "support\\dynamic_code.bin";
 /////////////////////////////////////////////////////////
 
 
-unsigned int read_address = 0x00000000;
+unsigned int read_address = 0x01000000;
 unsigned int read_bytes = 0x100;
 
 int quiet = 0;
@@ -939,14 +939,14 @@ int do_upload_from_cfile ()
 
 	printf ( "\n" );
 	printf ( "[x] Hot-uploading and executing C-code from\n" );
-	printf ( "    file: %s\n", cfile );
+	printf ( "    file: %s\n", objfile );
 	printf ( "    to  : 0x%08X\n", address );
 	printf ( "\n" );
 
 	__arm_run_makefile ( "support" );
 
 
-	own_funcs = __arm_create_object ( "support", "dynamic_code.o" );
+	own_funcs = __arm_create_object ( "support", objfile );
 	if ( own_funcs )
 	{
 		buffer = malloc ( maxsize );
@@ -1041,7 +1041,6 @@ int do_liveview ( )
 
 	if ( read_mem ( buffer, address, length ) != E_OK )
 	{
-		__ui_dlg_dumpmem_finish (  );
 		free ( buffer );
 		return E_FAIL;
 	}
@@ -1059,6 +1058,8 @@ int do_liveview ( )
 		if ( address == E_FAIL )
 		{
 			printf ( "Invalid address\n" );
+			__ui_dlg_dumpmem_finish (  );
+			free ( buffer );
 			return E_FAIL;
 		}
 		
@@ -1076,8 +1077,6 @@ int do_liveview ( )
 			free ( buffer );
 			return E_FAIL;
 		}
-
-	
 	}
 	__ui_dlg_dumpmem_finish (  );
 	free ( buffer );
@@ -1088,7 +1087,7 @@ int main ( )
 	int repaint = 1;
 	int done = 0;
 	int command = 0;
-	char *menu[] = { "Get UPP ID", "Load 2nd loader", "Load 3rd loader", "Read Mem", "Run function", "Change read address", "Change read bytes", "Scan for memory areas", "Scan for Flashcrypt init", "Dump Memory to file", "Set Byte", "Set Half", "Set Word", "ARMada upload", "GCC code upload", "Binary code/data upload", "Live Memry view" };
+	char *menu[] = { "Get UPP ID", "Load 2nd loader", "Load 3rd loader", "Read Mem", "Run function", "Change read address", "Change read bytes", "Scan for memory areas", "Scan for Flashcrypt init", "Dump Memory to file", "Set Byte", "Set Half", "Set Word", "ARMada upload", "GCC code upload", "Binary code/data upload", "Live Memory view" };
 
 	while ( !done )
 	{

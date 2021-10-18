@@ -1,4 +1,3 @@
-
 //
 // injected directly into the FIA file
 // please change injection offset accordingly
@@ -31,76 +30,76 @@
 
 @Start:
 // success response
-bl	@tx_0
-bl	@read_byte
-bl	@tx_1
+bl   @tx_0
+bl   @read_byte
+bl   @tx_1
 
 @main_loop:
 
 // read command
-bl	@read_byte
+bl   @read_byte
 
-sub	r0, 0x30
-beq	@cmd_30
-sub	r0, 0x01
-beq	@cmd_31
-sub	r0, 0x01
-beq	@cmd_32
+sub   r0, 0x30
+beq   @cmd_30
+sub   r0, 0x01
+beq   @cmd_31
+sub   r0, 0x01
+beq   @cmd_32
 
 // set byte, half and word
-sub	r0, 0x01
-beq	@cmd_33
-sub	r0, 0x01
-beq	@cmd_34
-sub	r0, 0x01
-beq	@cmd_35
+sub   r0, 0x01
+beq   @cmd_33
+sub   r0, 0x01
+beq   @cmd_34
+sub   r0, 0x01
+beq   @cmd_35
 
 // read byte, half and word
-sub	r0, 0x01
-beq	@cmd_36
-sub	r0, 0x01
-beq	@cmd_37
-sub	r0, 0x01
-beq	@cmd_38
+sub   r0, 0x01
+beq   @cmd_36
+sub   r0, 0x01
+beq   @cmd_37
+sub   r0, 0x01
+beq   @cmd_38
 
-b	@main_loop
+b   @main_loop
 
 
 @cmd_30:
-bl	@readmem
-b	@main_loop
+bl   @readmem
+b   @main_loop
 
 @cmd_31:
-bl	@call_func
-b	@main_loop
+bl   @call_func
+b   @main_loop
 
 @cmd_32:
-bl	@upload_code
-b	@main_loop
+bl   @upload_code
+b   @main_loop
 
 @cmd_33:
-bl	@set_byte
-b	@main_loop
+bl   @set_byte
+b   @main_loop
 
 @cmd_34:
-bl	@set_half
-b	@main_loop
+bl   @set_half
+b   @main_loop
 
 @cmd_35:
-bl	@set_word
-b	@main_loop
+bl   @set_word
+b   @main_loop
 
 @cmd_36:
-bl	@get_byte
-b	@main_loop
+bl   @get_byte
+b   @main_loop
 
 @cmd_37:
-bl	@get_half
-b	@main_loop
+bl   @get_half
+b   @main_loop
 
 @cmd_38:
-bl	@get_word
-b	@main_loop
+bl   @get_word
+b   @main_loop
 
 //
 // **********************************************
@@ -177,12 +176,12 @@ bne     @upload_check_failed
 
 mov     r0, 0x55
 bl      @send_byte
-b	@upload_end
+b   @upload_end
 
 @upload_check_failed:
 mov     r0, 0xEE
 bl      @send_byte
-b	@upload_end
+b   @upload_end
 
 @upload_end:
 
@@ -241,7 +240,7 @@ bne     @set_byte_check_failed
 strb    r5, r3, 0
 mov     r0, 0x55
 bl      @send_byte
-b	@set_byte_end
+b   @set_byte_end
 
 @set_byte_check_failed:
 mov     r0, 0xEE
@@ -309,7 +308,7 @@ bne     @set_half_check_failed
 strh    r5, r3, 0
 mov     r0, 0x55
 bl      @send_byte
-b	@set_half_end
+b   @set_half_end
 
 @set_half_check_failed:
 mov     r0, 0xEE
@@ -386,7 +385,7 @@ bne     @set_word_check_failed
 str     r5, r3, 0
 mov     r0, 0x55
 bl      @send_byte
-b	@set_word_end
+b   @set_word_end
 
 @set_word_check_failed:
 mov     r0, 0xEE
@@ -794,5 +793,3 @@ pop     pc
 
 
 //////////////////////////////////////////////////////
-
-

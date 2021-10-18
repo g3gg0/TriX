@@ -507,7 +507,23 @@ elf_parse_reloc ( t_workspace *ws, t_elf_object *obj, t_segment *rel )
 						sprintf ( buf, "%s", elf_get_string ( ws, symbol->st_name ) );
 					imp->type = "CALL";
 				}
+				else if ( (v_get_w_raw(elf_get_section(ws, section), reloc.r_offset) & 0xFFFEF7FF) == 0xFFFEF7FF )
+				{
+					if ( symbol->st_value )
+						sprintf ( buf, "%s+0x%02X", elf_get_string ( ws, symbol->st_name ), symbol->st_value );
+					else
+						sprintf ( buf, "%s", elf_get_string ( ws, symbol->st_name ) );
+					imp->type = "CALL";
+				}
 				else if ( (v_get_w_raw(elf_get_section(ws, section), reloc.r_offset) & 0xEBFFFFFE) == 0xEBFFFFFE )
+				{
+					if ( symbol->st_value )
+						sprintf ( buf, "%s+0x%02X", elf_get_string ( ws, symbol->st_name ), symbol->st_value );
+					else
+						sprintf ( buf, "%s", elf_get_string ( ws, symbol->st_name ) );
+					imp->type = "ARM_CALL";
+				}
+				else if ( (v_get_w_raw(elf_get_section(ws, section), reloc.r_offset) & 0x1AFFFFFE) == 0x1AFFFFFE )
 				{
 					if ( symbol->st_value )
 						sprintf ( buf, "%s+0x%02X", elf_get_string ( ws, symbol->st_name ), symbol->st_value );
@@ -550,6 +566,14 @@ elf_parse_reloc ( t_workspace *ws, t_elf_object *obj, t_segment *rel )
 				{
 					sprintf ( buf, "%s+0x%02X", elf_get_section_name ( ws, symbol->st_shndx ), symbol->st_value );
 					imp->type = "CALL";
+				}
+				else if ( (v_get_w_raw(elf_get_section(ws, section), reloc.r_offset) & 0x1AFFFFFE) == 0x1AFFFFFE )
+				{
+					if ( symbol->st_value )
+						sprintf ( buf, "%s+0x%02X", elf_get_string ( ws, symbol->st_name ), symbol->st_value );
+					else
+						sprintf ( buf, "%s", elf_get_string ( ws, symbol->st_name ) );
+					imp->type = "ARM_CALL";
 				}
 				else
 				{
@@ -741,7 +765,7 @@ elf_create_object ( t_workspace *ws )
     if ( !stage_get_current ( ws->fileinfo->stages ) )
 		return NULL;
 
-    if ( ((t_elf_priv*)(stage_get_current ( ws->fileinfo->stages )->priv))->header.e_machine != ELFARCH_ARM )
+    if ( ((t_elf_priv*)(stage_get_current ( ws->fileinfo->stages )->priv))->header.e_machine != EM_ARM )
         return NULL;
 
 
@@ -876,7 +900,7 @@ elf_dump_object ( t_workspace *ws )
 		return E_FAIL;
 	priv = (t_elf_priv*)stage->priv;
 
-	if ( priv->header.e_machine != ELFARCH_ARM )
+	if ( priv->header.e_machine != EM_ARM )
 		return E_FAIL;
 
 

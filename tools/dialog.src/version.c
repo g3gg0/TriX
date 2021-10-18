@@ -1,5 +1,5 @@
 /*
- *  $Id: version.c,v 1.1 2006/06/28 13:53:39 geggo Exp $
+ *  $Id: version.c 1521 2006-06-28 13:53:39Z geggo $
  *
  *  version.c -- dialog's version string
  *

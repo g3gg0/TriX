@@ -63,30 +63,6 @@ void write_word (unsigned long address, unsigned long data, void *i);
 unsigned long read_aligned_word (unsigned long address, void *i);
 unsigned short read_aligned_hword (unsigned long address, void *i);
 
-/*
-unsigned char read_byte (unsigned long address);
-unsigned short read_hword (unsigned long address);
-unsigned long read_word (unsigned long address);
-*/
-
-/*
-int dis_read_word(DWORD addr)
-{
-	addr -= foffset;
-	return (((DWORD)fdata[addr])<<24)
-		| (((DWORD)fdata[addr+1])<<16)
-		| (((DWORD)fdata[addr+2])<<8)
-		| (((DWORD)fdata[addr+3]));
-}
-
-int dis_read_hword(DWORD addr)
-{
-	addr -= foffset;
-	return (((DWORD)fdata[addr])<<8)
-		| (((DWORD)fdata[addr+1]));
-}
-*/
-//typedef int boolean;
 #define false	0
 #define true	1
 
@@ -746,6 +722,8 @@ print_insn_arm (int pc, long given, void* i)
 		}
 	}
 	abort ();
+
+	return 4;
 }
 
 
@@ -784,10 +762,10 @@ print_insn_thumb (int pc, long given,void *i)
 				} else {
 					DWORD val = 0x7FFFFFFF >> (im1-1);
 					if (r2 == r3)
-						sprintf(tmp, "cst\t%s, 0x%X (0x%X)",
+						sprintf(tmp, "cst  \t%s, 0x%X (0x%X)",
 							arm_regnames[r2], val, 32-im1);
 					else
-						sprintf(tmp, "cst\t%s, %s, 0x%X (0x%X)",
+						sprintf(tmp, "cst  \t%s, %s, 0x%X (0x%X)",
 							arm_regnames[r3], arm_regnames[r2], val, 32-im1);
 					strcat(dis_line, tmp);
 				}
@@ -803,7 +781,7 @@ print_insn_thumb (int pc, long given,void *i)
 
 				if ((given & 0x10000000) == 0)
 				{
-					sprintf(tmp, "blx\t");
+					sprintf(tmp, "blx  \t");
 					strcat(dis_line, tmp);
 
 					/* The spec says that bit 1 of the branch's destination
@@ -818,7 +796,7 @@ print_insn_thumb (int pc, long given,void *i)
 					offset |= ((pc & 0x2) >> 1);
 				}
 				else {
-					strcat(dis_line, "bl \t");
+					strcat(dis_line, "bl   \t");
 				}
 
 				last_addr = offset * 2 + pc + 4;
@@ -1148,7 +1126,7 @@ print_insn_thumb (int pc, long given,void *i)
 the relevant number of data bytes exist.  */
 int print_instruction ( unsigned char *data, unsigned int offset, void *btree, unsigned int pc, int is_thumb, void *i )
 {
-	long given, hi, lo;
+	long given;
 	int size;
 	char rbuf[512];
 

@@ -7,7 +7,6 @@
 struct seer_funcs
 {
 	char *(*str) ( char *str);
-	int (*progresscallback) ( int percent);
 	unsigned int (*add_header) ( unsigned char *section, unsigned char *header);
 	unsigned int (*add_symbol_int) ( char *name, void *func);
 	unsigned int (*del_header) ( unsigned char *section);
@@ -15,6 +14,7 @@ struct seer_funcs
 	unsigned int (*execute) ( scScript sc);
 	unsigned int (*handle_include) ( char **script);
 	unsigned int (*init) ( );
+	unsigned int (*progresscallback) ( int percent);
 	unsigned int (*run) ( char *script);
 	void (*MyDispatcher) ( int *result, void *function, int *params, int paramcount, unsigned int options);
 };

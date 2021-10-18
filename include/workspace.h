@@ -36,6 +36,7 @@ unsigned int workspace_memmap_release ( t_workspace *ws );
 t_workspace *workspace_create_file ( );
 t_workspace *workspace_create_file_from_buffer ( unsigned char *buffer, unsigned int length );
 unsigned int workspace_release ( t_workspace *ws );
+unsigned int workspace_memmap_reverse ( t_workspace *ws );
 
 #define W_MODIFIED    0x0001  // flag set if workspace is modified
 

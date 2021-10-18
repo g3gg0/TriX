@@ -19,7 +19,7 @@ typedef struct s_patch {
 	int     abs;
 } patch;
 
-typedef struct s_imp {
+typedef struct s__imp {
 	char   *name;
 	int     addr;
 } imp;
@@ -96,6 +96,7 @@ typedef struct
 #define MODE_HEX  1
 #define MODE_GSC  2
 #define MODE_TRIX 3
+#define MODE_NRX  4
 
 #define ENDIAN_BE 0
 #define ENDIAN_LE 1
@@ -178,7 +179,7 @@ typedef struct _locator {
 #define  E_UNK_REG       11
 #define  C_ERR   0xFFFFFFFF
 
-#define VER "3.0"
+#define VER "3.4"
 
 
 #define VERSION "// Armada "VER"\r\n// Development release compiled:\r\n//"
@@ -203,8 +204,8 @@ int add_error ( struct code_data *c, char *m, int line );
 int add_warning ( struct code_data *c, char *m, int line );
 
 
-int   comp_code     ( struct code_data *c, char *t, int cmd );
-int   comp_align     ( struct code_data *c, char *t, int cmd );
+int   comp_code    ( struct code_data *c, char *t, int cmd );
+int   comp_align   ( struct code_data *c, char *t, int cmd );
 int   comp_gsc     ( struct code_data *c, char *t, int cmd );
 int   comp_dmp     ( struct code_data *c, char *t, int cmd );
 int   comp_loc     ( struct code_data *c, char *t, int cmd );
@@ -219,14 +220,16 @@ int   comp_uni     ( struct code_data *c, char *t, int cmd );
 int   comp_asc     ( struct code_data *c, char *t, int cmd );
 int   comp_end     ( struct code_data *c, char *t, int cmd );
 int   comp_org     ( struct code_data *c, char *t, int cmd );
-int   comp_size     ( struct code_data *c, char *t, int cmd );
+int   comp_size    ( struct code_data *c, char *t, int cmd );
 int   comp_hex     ( struct code_data *c, char *t, int cmd );
-int   comp_trix     ( struct code_data *c, char *t, int cmd );
+int   comp_trix    ( struct code_data *c, char *t, int cmd );
+int   comp_nrx     ( struct code_data *c, char *t, int cmd );
 int   comp_mov     ( struct code_data *c, char *t, int cmd );
 int   comp_ldr     ( struct code_data *c, char *t, int cmd );
 int   comp_cmp     ( struct code_data *c, char *t, int cmd );
 int   comp_b       ( struct code_data *c, char *t, int cmd );
 int   comp_bl      ( struct code_data *c, char *t, int cmd );
+int   comp_blx     ( struct code_data *c, char *t, int cmd );
 int   comp_subr    ( struct code_data *c, char *t, int cmd );
 int   comp_addr    ( struct code_data *c, char *t, int cmd );
 int   comp_subv    ( struct code_data *c, char *t, int cmd );
@@ -313,6 +316,8 @@ int   comp_movhh   ( struct code_data *c, char *t, int cmd );
 int   comp_movrr   ( struct code_data *c, char *t, int cmd );
 int   comp_bxr     ( struct code_data *c, char *t, int cmd );
 int   comp_bxh     ( struct code_data *c, char *t, int cmd );
+int   comp_blxr    ( struct code_data *c, char *t, int cmd );
+int   comp_blxh    ( struct code_data *c, char *t, int cmd );
 
 
 int   comp_addpcr  ( struct code_data *c, char *t, int cmd );
@@ -327,9 +332,9 @@ int   comp_stmia   ( struct code_data *c, char *t, int cmd );
 int   comp_ldmia   ( struct code_data *c, char *t, int cmd );
 
 
-int   comp32_bx      ( struct code_data *c, char *t, int cmd );
-int   comp32_b      ( struct code_data *c, char *t, int cmd );
-int   comp32_bl      ( struct code_data *c, char *t, int cmd );
+int   comp32_bx       ( struct code_data *c, char *t, int cmd );
+int   comp32_b        ( struct code_data *c, char *t, int cmd );
+int   comp32_bl       ( struct code_data *c, char *t, int cmd );
 int   comp32_mov      ( struct code_data *c, char *t, int cmd );
 int   comp32_mov      ( struct code_data *c, char *t, int cmd );
 int   comp32_mvn      ( struct code_data *c, char *t, int cmd );

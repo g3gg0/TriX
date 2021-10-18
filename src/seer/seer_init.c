@@ -36,6 +36,11 @@ seer_init_trix (  )
 		"#define FLAGS_ENDIANESS_BE 0x00020000\n"\
 		"#define FLAGS_FREE_NAME    0x00040000\n"\
 		"#define FLAGS_REPLACE      0x00080000\n"\
+		"#define FLAGS_HIDE_IN_MEM  0x00100000\n"\
+		"#define FLAGS_MAP_IN_MEM   0x00200000\n"\
+		"#define FLAGS_MAP_ANY      0x00300000\n"\
+		"#define FLAGS_SPARSE       0x00400000\n"\
+		"#define FLAGS_SHADOW       0x00800000\n"\
 		"import int say(char *,...);\n"
 		"import int printf(char *,...);\n"
 		"import int sprintf(char*,char *,...);\n"
@@ -49,6 +54,7 @@ seer_init_trix (  )
 		"import int memcmp(char *,char *, int);\n"
 		"import int memcpy(char *,char *, int);\n"
 		"import int memmove(char *,char *, int);\n"
+		"import int memset(char *, int, int);\n"
 		"import int strcmp(char *,char *);\n"
 		"import int strncmp(char *,char *, int);\n"
 		"import int strtol(char *,char **,int);\n"

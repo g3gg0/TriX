@@ -9,3 +9,7 @@
 	unsigned int (*init) ( );
 	unsigned int (*run_makefile) ( const char *makefile_path);
 	unsigned int (*set) ( t_workspace * ws, unsigned int type, unsigned int offset, unsigned int dest);
+ 	unsigned int (*set_32) ( t_workspace * ws, unsigned int type, unsigned int offset, unsigned int dest, unsigned int cond_field);
+ 	unsigned int (*get_32) ( t_workspace * ws, unsigned int offset);
+ 	unsigned int (*get_32_adv) ( t_workspace * ws, unsigned int offset, unsigned int type);
+ 	unsigned int (*get_adv) ( t_workspace * ws, unsigned int offset, unsigned int type);

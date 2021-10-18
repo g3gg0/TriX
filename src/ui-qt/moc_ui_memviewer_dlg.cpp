@@ -1,7 +1,7 @@
 /****************************************************************************
 ** Meta object code from reading C++ file 'ui_memviewer_dlg.h'
 **
-** Created: Fri 7. Mar 21:45:30 2008
+** Created: Sun 3. Aug 23:18:29 2014
 **      by: The Qt Meta Object Compiler version 59 (Qt 4.3.2)
 **
 ** WARNING! All changes made in this file will be lost!

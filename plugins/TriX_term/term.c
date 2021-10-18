@@ -9,8 +9,6 @@
         term at this state only works with windows !
 */
 
-#define TRIXPLUG_MODE
-
 //#include <stdio.h>
 #ifdef WIN32
     #include <windows.h>
@@ -37,21 +35,25 @@
 TRIXPLUG_STUBS
 #include "trixplug_wrapper.h"
 
+#define TERM_TITLE      "Terminal"
+#define TERM_MAJOR      0
+#define TERM_MINOR      01
+
 PLUGIN_INFO_BEGIN
-	PLUGIN_NAME ( "term" )
+	PLUGIN_NAME ( TERM_TITLE )
+	PLUGIN_VERSION ( TERM_MAJOR, TERM_MINOR )
 	PLUGIN_INIT ( term_init )
 PLUGIN_INFO_FINISH
 
 
 
-
-
 unsigned int term_init ( )
 {
-    seer_add_header ( "trix_term", TERM_HEADERS );
+	REGISTER_HEADER ( "trix_term", TERM_HEADERS );
     TERM_SYMBOLS
 
-	printf ( "Terminal Plugin Loaded" );
+	printf ( TERM_TITLE " v%01i.%01i Plugin Loaded", TERM_MAJOR, TERM_MINOR  );
+
     return E_OK;
 }
 
@@ -60,31 +62,33 @@ unsigned int term_init ( )
 unsigned int
 term_open ( unsigned int port )
 {
-    char portstr[32];
+	char portstr[32];
 
-    if ( hCom )
-    {
-        ERR ( DEBUG_UNKNOWN, "##%s: COM port already open?\n", __FUNCTION__ );
-        return -1;
-    }
-    sprintf ( portstr, "\\\\.\\COM%d", port );
-    hCom = CreateFile ( (LPCWSTR)portstr,
-                        GENERIC_READ | GENERIC_WRITE,
-                        0,
-                        0,
-                        OPEN_EXISTING,
-                        0, //FILE_FLAG_OVERLAPPED,
-                        0 );
+	if ( hCom )
+	{
+		ERR ( DEBUG_UNKNOWN, "##%s: COM port already open?\n", __FUNCTION__ );
+		return E_FAIL;
+	}
+
+	sprintf ( portstr, "\\\\.\\COM%d", port );
+	hCom = CreateFile ( (LPCWSTR)portstr,
+	                    GENERIC_READ | GENERIC_WRITE,
+	                    0,
+	                    0,
+	                    OPEN_EXISTING,
+	                    0, //FILE_FLAG_OVERLAPPED,
+	                    0 );
 
     if ( hCom == INVALID_HANDLE_VALUE )
     {
-        ERR ( DEBUG_UNKNOWN, "##%s: could not open COM port %d\n", __FUNCTION__, port );
-        hCom = NULL;
-        return -1;
+		ERR ( DEBUG_UNKNOWN, "##%s: could not open COM port %d\n", __FUNCTION__, port );
+		hCom = NULL;
+		return E_FAIL;
     }
 
     DBG ( DEBUG_UNKNOWN, "##%s: COM port opened with success\n", __FUNCTION__ );
-    return 0;
+
+	return E_OK;
 }
 
 unsigned int
@@ -93,11 +97,15 @@ term_close ()
     if ( !hCom )
     {
         ERR ( DEBUG_UNKNOWN, "##%s: COM port was not open!\n", __FUNCTION__ );
-        return -1;
+        return E_FAIL;
     }
-    CloseHandle ( hCom );
+
+	CloseHandle ( hCom );
+	hCom = NULL;
+
     DBG ( DEBUG_UNKNOWN, "##%s: COM port closed with success\n", __FUNCTION__ );
-    return 0;
+
+	return E_OK;
 }
 
 /* device control settings */
@@ -119,7 +127,7 @@ term_set_control ( unsigned int baud, unsigned char databits, unsigned char stop
     if ( !hCom )
     {
         ERR ( DEBUG_UNKNOWN, "##%s: COM port was not open!\n", __FUNCTION__ );
-        return -1;
+        return E_FAIL;
     }
 
     GetCommState ( hCom, &lpCC.dcb );
@@ -144,26 +152,26 @@ term_set_control ( unsigned int baud, unsigned char databits, unsigned char stop
     if (!SetCommTimeouts(hCom, &timeouts))
     {
         ERR ( DEBUG_UNKNOWN, "##%s: setting timeouts didn't work!\n", __FUNCTION__ );
-        return -1;
+        return E_FAIL;
     }
 
     DBG ( DEBUG_UNKNOWN, "##%s: COM port control set\n", __FUNCTION__ );
 
-    return 0;
+    return E_OK;
 }
 
 unsigned int
 term_set_dtr ( unsigned char state )
 {
     /* todo :-) */
-    return 0;
+    return E_OK;
 }
 
 unsigned int
 term_set_rts ( unsigned char state )
 {
     /* todo :-) */
-    return 0;
+    return E_OK;
 }
 
 unsigned int
@@ -174,7 +182,7 @@ term_send ( const unsigned char *data, const unsigned int bytes )
     if ( !hCom )
     {
         ERR ( DEBUG_UNKNOWN, "##%s: COM port was not open!\n", __FUNCTION__ );
-        return -1;
+        return E_FAIL;
     }
 
     WriteFile ( hCom, data, bytes, &bytesWritten, 0 );
@@ -182,11 +190,12 @@ term_send ( const unsigned char *data, const unsigned int bytes )
     if ( bytes != bytesWritten )
     {
         ERR ( DEBUG_UNKNOWN, "##%s: only sent %d bytes of %d\n", __FUNCTION__, bytesWritten, bytes );
-        return -1;
+        return E_FAIL;
     }
 
     DBG ( DEBUG_UNKNOWN, "##%s: sent of %d bytes successfull\n", __FUNCTION__, bytes );
-    return 0;
+
+	return E_OK;
 }
 
 unsigned int
@@ -197,23 +206,24 @@ term_receive ( unsigned char *dest, const unsigned int bytes )
     if ( !hCom )
     {
         ERR ( DEBUG_UNKNOWN, "##%s: COM port was not open!\n", __FUNCTION__ );
-        return -1;
+        return E_FAIL;
     }
 
     if ( !ReadFile ( hCom, dest, bytes, &bytesRead, 0 ) )
     {
         ERR ( DEBUG_UNKNOWN, "##%s: ReadFile returned error!\n", __FUNCTION__ );
-        return -1;
+        return E_FAIL;
     }
 
     if ( bytes == bytesRead )
     {
         ERR ( DEBUG_UNKNOWN, "##%s: only received %d bytes of %d\n", __FUNCTION__, bytesRead, bytes );
-        return -1;
+        return E_FAIL;
     }
 
     DBG ( DEBUG_UNKNOWN, "##%s: receiving of %d bytes successfull\n", __FUNCTION__, bytes );
-    return 0;
+
+	return E_OK;
 }
 
 #else

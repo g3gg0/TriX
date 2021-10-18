@@ -189,9 +189,10 @@ extern "C"
 #define scDispatch_Script       ((unsigned)1<<25)
 #define scDispatch_Double       ((unsigned)1<<26)
 #define scDispatch_Member       ((unsigned)1<<27)
-    typedef void ( *scFunctionDispatcher ) ( int *result, void *function, int *params, int paramcount, /*void *_this, */ unsigned int options );
-    void scStandardDispatcher ( int *result, void *function, int *params, int paramcount, unsigned int options );
-    void scCDispatcher ( int *result, void *function, int *params, int paramcount, unsigned int options );
+
+    typedef int ( *scFunctionDispatcher ) ( int *result, void *function, int *params, int paramcount, /*void *_this, */ unsigned int options );
+    int scStandardDispatcher ( int *result, void *function, int *params, int paramcount, unsigned int options );
+    int scCDispatcher ( int *result, void *function, int *params, int paramcount, unsigned int options );
 
 /**************************Errors*****************************************/
 

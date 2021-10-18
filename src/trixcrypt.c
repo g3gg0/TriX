@@ -47,26 +47,31 @@ unsigned int trixcrypt_alloc_priv ( t_stage *stage )
 	return E_OK;
 }
 
-unsigned int trixcrypt_set_decryptkey (  t_crypt_key *key )
+unsigned int trixcrypt_copy_cryptkey ( t_crypt_key *dst, t_crypt_key *src )
 {
-	if ( !key )
+	if ( !dst || !src )
 		return E_FAIL;
 
+	CHECK_AND_FREE(dst->name);
+	CHECK_AND_FREE(dst->key);
+	CHECK_AND_FREE(dst->primefac);
 
-	memcpy ( &decrypt_key, key, sizeof ( t_crypt_key ) );
+	dst->id = src->id;
+	dst->name = strdup ( src->name );
+	dst->key = strdup ( src->key );
+	dst->primefac = strdup ( src->primefac );
 
 	return E_OK;
 }
 
+unsigned int trixcrypt_set_decryptkey (  t_crypt_key *key )
+{
+	return trixcrypt_copy_cryptkey ( &decrypt_key, key );
+}
+
 unsigned int trixcrypt_set_encryptkey ( t_crypt_key *key )
 {
-
-	if (  !key )
-		return E_FAIL;
-
-	memcpy ( &encrypt_key, key, sizeof ( t_crypt_key ) );
-
-	return E_OK;
+	return trixcrypt_copy_cryptkey ( &encrypt_key, key );
 }
 
 unsigned int trixcrypt_set_cryptkeys ( t_crypt_key *encrypt_key, t_crypt_key *decrypt_key )

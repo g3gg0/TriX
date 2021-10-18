@@ -16,6 +16,7 @@ struct fmt_funcs
 	unsigned int (*init) ( );
 	unsigned int (*register_handler) ( t_fmt_handler * handler);
 	unsigned int (*update) ( );
+	unsigned int (*unregister_handler) ( char *name);
 };
 
 /* trixplug struct initializer */
@@ -33,6 +34,7 @@ unsigned int fmt_plug_init ( ) \
 	ft->fmt->encode = fmt_encode;\
 	ft->fmt->encode_diff = fmt_encode_diff;\
 	ft->fmt->free_priv = fmt_free_priv;\
+	ft->fmt->unregister_handler = fmt_unregister_handler;\
 	ft->fmt->register_handler = fmt_register_handler;\
 	ft->fmt->add_seer_entry = fmt_add_seer_entry;\
 	ft->fmt->add_seer = fmt_add_seer;\

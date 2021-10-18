@@ -2,26 +2,26 @@
 
 void setup_hwdt_handles (u32 base, void *handle)
 {	
-	opcode_handles [base] = handle;
-	opcode_handles [base|0x20] = handle;
-	opcode_handles [base|0x80] = handle;
-	opcode_handles [base|0x80|0x20] = handle;
-	opcode_handles [base|0x100] = handle;
-	opcode_handles [base|0x100|0x20] = handle;
-	opcode_handles [base|0x100|0x80] = handle;
-	opcode_handles [base|0x100|0x80|0x20] = handle;
+	opcode_handles[base] = handle;
+	opcode_handles[base|0x20] = handle;
+	opcode_handles[base|0x80] = handle;
+	opcode_handles[base|0x80|0x20] = handle;
+	opcode_handles[base|0x100] = handle;
+	opcode_handles[base|0x100|0x20] = handle;
+	opcode_handles[base|0x100|0x80] = handle;
+	opcode_handles[base|0x100|0x80|0x20] = handle;
 }
 
 void setup_hwdt_handles2 (u32 base, void *handle, void *handle2)
 {	
-	opcode_handles [base] = handle;
-	opcode_handles [base|0x20] = handle;
-	opcode_handles [base|0x80] = handle;
-	opcode_handles [base|0x80|0x20] = handle;
-	opcode_handles [base|0x100] = handle2;
-	opcode_handles [base|0x100|0x20] = handle2;
-	opcode_handles [base|0x100|0x80] = handle2;
-	opcode_handles [base|0x100|0x80|0x20] = handle2;
+	opcode_handles[base] = handle;
+	opcode_handles[base|0x20] = handle;
+	opcode_handles[base|0x80] = handle;
+	opcode_handles[base|0x80|0x20] = handle;
+	opcode_handles[base|0x100] = handle2;
+	opcode_handles[base|0x100|0x20] = handle2;
+	opcode_handles[base|0x100|0x80] = handle2;
+	opcode_handles[base|0x100|0x80|0x20] = handle2;
 }
 
 void setup_sdt_handles2 (u32 base, void *handle, void *handle2, void *handle3, void *handle4)
@@ -100,35 +100,25 @@ void setup_handle_tables (void)
 
 	for (i=0; i<0x10; i++) 
 	{
-		opcode_handles[0x300|i] = ins_tst_imm;
-		opcode_handles[0x340|i] = ins_cmp_imm;
+		//opcode_handles[0x300|i] = ins_tst_imm;
+		//opcode_handles[0x340|i] = ins_cmp_imm;
 		opcode_handles[0x320|i] = ins_msr_cpsr_imm;
 		opcode_handles[0x360|i] = ins_msr_spsr_imm;
 
-		setup_hwdt_handles ( 0x800|i, ins_stm );
-		setup_hwdt_handles ( 0x810|i, ins_ldm );
+		/* STM(2) */
+		opcode_handles[0x840|i] = ins_stm;
+		opcode_handles[0x940|i] = ins_stm;
+		opcode_handles[0x8C0|i] = ins_stm;
+		opcode_handles[0x9C0|i] = ins_stm;
+		setup_hwdt_handles ( 0x800|i, ins_stm ); /* STM(1) */
+		setup_hwdt_handles ( 0x840|i, ins_stm ); /* STM(2) */
+		setup_hwdt_handles ( 0x810|i, ins_ldm ); /* LDM(1) */
+		setup_hwdt_handles ( 0x850|i, ins_ldm ); /* LDM(2)/LDM(3) */
 
-/*		opcode_handles[0x800|i] = ins_stm; // P=0 U=0 W=0
-		opcode_handles[0x880|i] = ins_stm; // P=0 U=1 W=0 
-		opcode_handles[0x900|i] = ins_stm; // P=1 U=0 W=0
-		opcode_handles[0x980|i] = ins_stm; // P=1 U=1 W=0
-		opcode_handles[0x820|i] = ins_stm; // P=0 U=0 W=1
-		opcode_handles[0x8A0|i] = ins_stm; // P=0 U=1 W=1 
-		opcode_handles[0x920|i] = ins_stm; // P=1 U=0 W=1
-		opcode_handles[0x9A0|i] = ins_stm; // P=1 U=1 W=1
-
-		opcode_handles[0x810|i] = ins_ldm; // P=0 U=0 W=0
-		opcode_handles[0x890|i] = ins_ldm; // P=0 U=1 W=0
-		opcode_handles[0x910|i] = ins_ldm; // P=1 U=0 W=0
-		opcode_handles[0x990|i] = ins_ldm; // P=1 U=1 W=0
-		opcode_handles[0x830|i] = ins_ldm; // P=0 U=0 W=1
-		opcode_handles[0x8B0|i] = ins_ldm; // P=0 U=1 W=1
-		opcode_handles[0x930|i] = ins_ldm; // P=1 U=0 W=1
-		opcode_handles[0x9B0|i] = ins_ldm; // P=1 U=1 W=1
-*/
-		for (n=0; n<0x8; n++) 
+		for (n=0; n<0x8; n++)
+		{
 			opcode_handles[0xE00|(i<<4)|(n<<1)] = ins_cdp;
-
+		}
 	}
 
 	setup_sdt_handles2 (0x600, ins_str_post_down, ins_str_post_up, ins_str_pre_down, ins_str_pre_up);
@@ -152,30 +142,20 @@ void setup_handle_tables (void)
 	setup_hwdt_handles ( 0x04B, ins_strh ); // imm
 	setup_hwdt_handles ( 0x00B, ins_strh ); // reg
 
-/*
-	setup_hwdt_handles  (0x05F, ins_ldrsh_imm);
-	setup_hwdt_handles  (0x05D, ins_ldrsb_imm);
-	setup_hwdt_handles  (0x01F, ins_ldrsh);
-	setup_hwdt_handles  (0x01D, ins_ldrsh);
-	setup_hwdt_handles2 (0x01B, ins_ldrh_post, ins_ldrh_pre);
-	setup_hwdt_handles2 (0x00B, ins_strh_post, ins_strh_pre);
-	setup_hwdt_handles2 (0x05B, ins_ldrh_imm_post, ins_ldrh_imm_pre);
-	setup_hwdt_handles2 (0x04B, ins_strh_imm_post, ins_strh_imm_pre);
-*/
-	
-
 	opcode_handles[0x009] = ins_mul;
 	opcode_handles[0x019] = ins_muls;
 	opcode_handles[0x029] = ins_mla;
 	opcode_handles[0x039] = ins_mlas;
-	opcode_handles[0x089] = ins_mull;
-	opcode_handles[0x099] = ins_mulls;
-	opcode_handles[0x0C9] = ins_mull_unsigned;
-	opcode_handles[0x0E9] = ins_mulls_unsigned;
-	opcode_handles[0x0A9] = ins_mlal;
-	opcode_handles[0x0B9] = ins_mlals;
-	opcode_handles[0x0E9] = ins_mlal_unsigned;
-	opcode_handles[0x0F9] = ins_mlals_unsigned;
+
+	opcode_handles[0x089] = ins_umull;
+	opcode_handles[0x099] = ins_umulls;
+	opcode_handles[0x0C9] = ins_smull;
+	opcode_handles[0x0E9] = ins_smulls;
+
+	opcode_handles[0x0A9] = ins_umlal;
+	opcode_handles[0x0B9] = ins_umlals;
+	opcode_handles[0x0E9] = ins_smlal;
+	opcode_handles[0x0F9] = ins_smlals;
 
 	opcode_handles[0x109] = ins_swp;
 	opcode_handles[0x149] = ins_swpb;
@@ -187,7 +167,9 @@ void setup_handle_tables (void)
 
 
 	for (i=0; i<0x100; i++)
+	{
 		opcode_handles[0xF00|i] = ins_swi;
+	}
 
 	for (i=0; i<0x80; i++) 
 	{
@@ -211,44 +193,11 @@ void setup_handle_tables (void)
 	}
 
 	// enhanced DSP instructions
-	// LDRD
-	opcode_handles[0x00D] = ins_ldrd; // P=0 U=0 W=0 I=0
-	opcode_handles[0x08D] = ins_ldrd; // P=0 U=1 W=0 I=0
-	opcode_handles[0x10D] = ins_ldrd; // P=1 U=0 W=0 I=0
-	opcode_handles[0x18D] = ins_ldrd; // P=1 U=1 W=0 I=0
-	opcode_handles[0x02D] = ins_ldrd; // P=0 U=0 W=1 I=0
-	opcode_handles[0x0AD] = ins_ldrd; // P=0 U=1 W=1 I=0
-	opcode_handles[0x12D] = ins_ldrd; // P=1 U=0 W=1 I=0
-	opcode_handles[0x1AD] = ins_ldrd; // P=1 U=1 W=1 I=0
-
-	opcode_handles[0x04D] = ins_ldrd; // P=0 U=0 W=0 I=1
-	opcode_handles[0x0CD] = ins_ldrd; // P=0 U=1 W=0 I=1
-	opcode_handles[0x14D] = ins_ldrd; // P=1 U=0 W=0 I=1
-	opcode_handles[0x1CD] = ins_ldrd; // P=1 U=1 W=0 I=1
-	opcode_handles[0x06D] = ins_ldrd; // P=0 U=0 W=1 I=1
-	opcode_handles[0x0ED] = ins_ldrd; // P=0 U=1 W=1 I=1
-	opcode_handles[0x16D] = ins_ldrd; // P=1 U=0 W=1 I=1
-	opcode_handles[0x1ED] = ins_ldrd; // P=1 U=1 W=1 I=1
-
-	// STRD
-	opcode_handles[0x00F] = ins_strd; // P=0 U=0 W=0 I=0
-	opcode_handles[0x08F] = ins_strd; // P=0 U=1 W=0 I=0
-	opcode_handles[0x10F] = ins_strd; // P=1 U=0 W=0 I=0
-	opcode_handles[0x18F] = ins_strd; // P=1 U=1 W=0 I=0
-	opcode_handles[0x02F] = ins_strd; // P=0 U=0 W=1 I=0
-	opcode_handles[0x0AF] = ins_strd; // P=0 U=1 W=1 I=0
-	opcode_handles[0x12F] = ins_strd; // P=1 U=0 W=1 I=0
-	opcode_handles[0x1AF] = ins_strd; // P=1 U=1 W=1 I=0
-
-	opcode_handles[0x04F] = ins_strd; // P=0 U=0 W=0 I=1
-	opcode_handles[0x0CF] = ins_strd; // P=0 U=1 W=0 I=1
-	opcode_handles[0x14F] = ins_strd; // P=1 U=0 W=0 I=1
-	opcode_handles[0x1CF] = ins_strd; // P=1 U=1 W=0 I=1
-	opcode_handles[0x06F] = ins_strd; // P=0 U=0 W=1 I=1
-	opcode_handles[0x0EF] = ins_strd; // P=0 U=1 W=1 I=1
-	opcode_handles[0x16F] = ins_strd; // P=1 U=0 W=1 I=1
-	opcode_handles[0x1EF] = ins_strd; // P=1 U=1 W=1 I=1
-
+	for (i=0; i<0x10; i++) 
+	{
+		opcode_handles[0x00D | (i<<5)] = ins_ldrd;
+		opcode_handles[0x00F | (i<<5)] = ins_strd;
+	}
 }
 
 void setup_string_tables(void)

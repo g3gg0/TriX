@@ -79,7 +79,7 @@ Thumb specific format options:
 static struct arm_opcode arm_opcodes[] =
 {
     /* ARM instructions.  */
-    {0xe1a00000, 0xffffffff, "nop    \t(mov r0,r0)"},
+    {0xe1a00000, 0xffffffff, "nop    \t@(mov r0,r0)"},
     {0x012FFF10, 0x0ffffff0, "bx%c   \t%0-3r"},
     {0x00000090, 0x0fe000f0, "mul%c%20's  \t%16-19r, %0-3r, %8-11r"},
     {0x00200090, 0x0fe000f0, "mla%c%20's  \t%16-19r, %0-3r, %8-11r, %12-15r"},
@@ -222,7 +222,7 @@ static struct arm_opcode arm_opcodes[] =
     {0x0c100000, 0x0e100000, "ldc%c%22'l  \t%8-11d, cr%12-15d, %A"},
 
     /* The rest.  */
-    {0x00000000, 0x00000000, "undefined instruction %0-31x"},
+    {0x00000000, 0x00000000, "@ undefined instruction %0-31x"},
     {0x00000000, 0x00000000, 0}
 };
 
@@ -234,7 +234,7 @@ static struct thumb_opcode thumb_opcodes[] =
   /* Thumb instructions.  */
 
   /* ARM V5 ISA extends Thumb.  */
-  {0xbe00, 0xff00, "bkpt \t%0-7x"},
+  {0xbe00, 0xff00, "bkpt \t#%0-7x"},
   {0x4780, 0xff87, "blx  \t%3-6r"},	/* note: 4 bit register number.  */
   /* Note: this is BLX(2).  BLX(1) is done in arm-dis.c/print_insn_thumb()
      as an extension of the special processing there for Thumb BL.
@@ -263,8 +263,8 @@ static struct thumb_opcode thumb_opcodes[] =
   {0x4380, 0xFFC0, "bic  \t%0-2r, %3-5r%+5"},
   {0x43C0, 0xFFC0, "mvn  \t%0-2r, %3-5r%+5"},
   /* format 13 */
-  {0xB000, 0xFF80, "add\tsp, #%0-6W"},
-  {0xB080, 0xFF80, "sub\tsp, #%0-6W"},
+  {0xB000, 0xFF80, "add  \tsp, #%0-6W"},
+  {0xB080, 0xFF80, "sub  \tsp, #%0-6W"},
   /* format 5 */	
   {0x4700, 0xFF80, "bx   \t%S%+1"},
   {0x4400, 0xFF00, "add  \t%D, %S"},
@@ -276,8 +276,8 @@ static struct thumb_opcode thumb_opcodes[] =
   /* format 2 */
   {0x1800, 0xFE00, "add  \t%0-2r, %3-5r, %6-8r%+5"},
   {0x1A00, 0xFE00, "sub  \t%0-2r, %3-5r, %6-8r%+5"},
-  {0x1C00, 0xFE00, "add  \t%0-2r, %3-5r, %6-8x%+5"},
-  {0x1E00, 0xFE00, "sub  \t%0-2r, %3-5r, %6-8x%+5"},
+  {0x1C00, 0xFE00, "add  \t%0-2r, %3-5r, #%6-8x%+5"},
+  {0x1E00, 0xFE00, "sub  \t%0-2r, %3-5r, #%6-8x%+5"},
   /* format 8 */
   {0x5200, 0xFE00, "strh \t%0-2r, [%3-5r, %6-8r]"},
   {0x5A00, 0xFE00, "ldrh \t%0-2r, [%3-5r, %6-8r]%+5"},
@@ -286,40 +286,40 @@ static struct thumb_opcode thumb_opcodes[] =
   {0x5000, 0xFA00, "str%10'b \t%0-2r, [%3-5r, %6-8r]"},
   {0x5800, 0xFA00, "ldr%10'b \t%0-2r, [%3-5r, %6-8r]%+5"},
   /* format 1 */
-  {0x0000, 0xF800, "z"}, /* Special processing for casting */
+  //{0x0000, 0xF800, "z"}, /* Special processing for casting */
   {0x0000, 0xF800, "lsl  \t%0-2r, %3-5r, #%6-10x%+4"},
   {0x0800, 0xF800, "lsr  \t%0-2r, %3-5r, #%6-10x"},
   {0x1000, 0xF800, "asr  \t%0-2r, %3-5r, #%6-10x"},
   /* format 3 */
-  {0x2000, 0xF800, "mov  \t%8-10r, %0-7x%+4"},
-  {0x2800, 0xF800, "cmp  \t%8-10r, %0-7x"},
-  {0x3000, 0xF800, "add  \t%8-10r, %0-7x%+4"},
-  {0x3800, 0xF800, "sub  \t%8-10r, %0-7x%+4"},
+  {0x2000, 0xF800, "mov  \t%8-10r, #%0-7x%+4"},
+  {0x2800, 0xF800, "cmp  \t%8-10r, #%0-7x"},
+  {0x3000, 0xF800, "add  \t%8-10r, #%0-7x%+4"},
+  {0x3800, 0xF800, "sub  \t%8-10r, #%0-7x%+4"},
   /* format 6 */
   {0x4800, 0xF800, "ldr  \t%8-10r, %0-7z%+4"},  /* ldr rX, [pc, #xx] - TODO: Disassemble PC relative "LDR rD,=<symbolic>" */
   /* format 9 */
-  {0x6000, 0xF800, "str  \t%0-2r, [%3-5r, %6-10W]"},
-  {0x6800, 0xF800, "ldr  \t%0-2r, [%3-5r, %6-10W]"},
-  {0x7000, 0xF800, "strb \t%0-2r, [%3-5r, %6-10x]"},
-  {0x7800, 0xF800, "ldrb \t%0-2r, [%3-5r, %6-10x]"},
+  {0x6000, 0xF800, "str  \t%0-2r, [%3-5r, #%6-10W]"},
+  {0x6800, 0xF800, "ldr  \t%0-2r, [%3-5r, #%6-10W]"},
+  {0x7000, 0xF800, "strb \t%0-2r, [%3-5r, #%6-10x]"},
+  {0x7800, 0xF800, "ldrb \t%0-2r, [%3-5r, #%6-10x]"},
   /* format 10 */
-  {0x8000, 0xF800, "strh \t%0-2r, [%3-5r, %6-10H]"},
-  {0x8800, 0xF800, "ldrh \t%0-2r, [%3-5r, %6-10H]"},
+  {0x8000, 0xF800, "strh \t%0-2r, [%3-5r, #%6-10H]"},
+  {0x8800, 0xF800, "ldrh \t%0-2r, [%3-5r, #%6-10H]"},
   /* format 11 */
-  {0x9000, 0xF800, "str  \t%8-10r, [sp, %0-7W]"},
-  {0x9800, 0xF800, "ldr  \t%8-10r, [sp, %0-7W]%+5"},
+  {0x9000, 0xF800, "str  \t%8-10r, [sp, #%0-7W]"},
+  {0x9800, 0xF800, "ldr  \t%8-10r, [sp, #%0-7W]%+5"},
   /* format 12 */
   {0xA000, 0xF800, "adr  \t%8-10r, %0-7A%+5"},
-  {0xA800, 0xF800, "add  \t%8-10r, sp, %0-7W%+5"},
+  {0xA800, 0xF800, "add  \t%8-10r, sp, #%0-7W%+5"},
   /* format 15 */
   {0xC000, 0xF800, "stmia\t%8-10r!,%M"},
   {0xC800, 0xF800, "ldmia\t%8-10r!,%M"},
   /* format 18 */
   {0xE000, 0xF800, "b    \t%0-10B"},
-  {0xE800, 0xF800, "undefined"},
+  {0xE800, 0xF800, "@ undefined"},
   /* format 19 */
   {0xF000, 0xF800, ""}, /* special processing required in disassembler */
-  {0xF800, 0xF800, "2nd BL (%0-15x)"},
+  {0xF800, 0xF800, "@ 2nd BL (%0-15x)"},
   /* format 16 */
   {0xD000, 0xFF00, "beq  \t%0-7B"},
   {0xD100, 0xFF00, "bne  \t%0-7B"},
@@ -339,12 +339,12 @@ static struct thumb_opcode thumb_opcodes[] =
   {0xDE00, 0xFF00, "bal  \t%0-7B"},
   {0xDF00, 0xFF00, "swi  \t%0-7d"},
   /* format 9 */
-  {0x6000, 0xF800, "str  \t%0-2r, [%3-5r, %6-10W]"},
-  {0x6800, 0xF800, "ldr  \t%0-2r, [%3-5r, %6-10W]"},
-  {0x7000, 0xF800, "strb \t%0-2r, [%3-5r, %6-10x]"},
-  {0x7800, 0xF800, "ldrb \t%0-2r, [%3-5r, %6-10x]"},
+  {0x6000, 0xF800, "str  \t%0-2r, [%3-5r, #%6-10W]"},
+  {0x6800, 0xF800, "ldr  \t%0-2r, [%3-5r, #%6-10W]"},
+  {0x7000, 0xF800, "strb \t%0-2r, [%3-5r, #%6-10x]"},
+  {0x7800, 0xF800, "ldrb \t%0-2r, [%3-5r, #%6-10x]"},
   /* the rest */
-  {0x0000, 0x0000, "undef inst %0-15x"},
+  {0x0000, 0x0000, "@ undef inst %0-15x"},
   {0x0000, 0x0000, 0}
 };
 

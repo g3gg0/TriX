@@ -3,12 +3,12 @@
 ** Include any stock Qt files here...
 **
 */
-#include <Qt/qapplication.h>
+#include <QtGui/QApplication>
 #include <QtGui/QtGui>
-#include <Qt/qdialog.h>
-#include <Qt/qtreewidget.h>
-#include <Qt/qdebug.h>
-#include <Qt/qobject.h>
+#include <QtGui/QDialog>
+#include <QtGui/QTreeWidget>
+#include <QtCore/QDebug>
+#include <QtCore/QObject>
 
 #include "ui_options.h"
 
@@ -31,6 +31,7 @@ public:
 
 private slots:
 	void sel_changed(QTreeWidgetItem *item, int col);
+	void item_dbl_clicked(QTreeWidgetItem *item, int col);
 	void value_edited ( const QString& text );
 	void test();
 	void default_option();

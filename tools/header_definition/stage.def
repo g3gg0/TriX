@@ -26,3 +26,4 @@
 	unsigned int (*set_modified) ( t_stage * s);
 	unsigned int (*set_savestage) ( t_stage * s);
 	unsigned int (*set_workspace) ( t_stage * s);
+	unsigned int (*release_info) ( t_stage_info * info);

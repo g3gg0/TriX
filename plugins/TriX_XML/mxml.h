@@ -9,7 +9,7 @@
 
    Currently, validating XML is NOT a priority.
 
-   $Id: mxml.h,v 1.6 2007/03/31 15:13:00 geggo Exp $
+   $Id: mxml.h 2497 2007-03-31 15:13:03Z geggo $
 */
 
 #ifndef MINI_XML_LIB_H

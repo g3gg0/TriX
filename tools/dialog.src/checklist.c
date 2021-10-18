@@ -1,5 +1,5 @@
 /*
- *  $Id: checklist.c,v 1.1 2006/06/28 13:53:39 geggo Exp $
+ *  $Id: checklist.c 1521 2006-06-28 13:53:39Z geggo $
  *
  *  checklist.c -- implements the checklist box
  *

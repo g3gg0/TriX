@@ -8,3 +8,4 @@
 	unsigned int (*init) ( );
 	unsigned int (*register_handler) ( t_fmt_handler * handler);
 	unsigned int (*update) ( );
+	unsigned int (*unregister_handler) ( char *name);

@@ -1,3 +1,8 @@
+#title "find key transtable"
+
+#include trix
+#include stdio
+
 int findstar ( int start )
 {
 	return QuickFindPattern ( "*", NULL, 1, start /*> 10 ? start-10 : start*/, start+5, 0 );
@@ -41,4 +46,10 @@ void k_find_key_transtable ()
 	
 	printf ( "scanned and found pattern %d times\n", count );
 	
+}
+
+int main ()
+{
+	k_find_key_transtable ();
+	return E_OK;
 }

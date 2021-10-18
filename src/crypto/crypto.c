@@ -17,6 +17,8 @@
 #include "util.h"
 #include "md5.h"
 #include "crypto.h"
+#include "crypto_aes.h"
+#include "crypto_sha1.h"
 
 #include "trixplug_funcs.h"
 #include "mem.h"
@@ -127,7 +129,7 @@ crypto_unfold ( char **in_data, int length, t_crypt_key *keys )
 	unsigned char *newbuf = NULL;
 
 	if ( !in_data || !keys || length < 1 )
-		return NULL;
+		return E_FAIL;
 
 	if ( !strncmp ( (*in_data), "/* AUTH: ", 9 ) )
 	{
@@ -333,6 +335,94 @@ crypto_generate_cert ( char *data, int length, char *signature, t_crypt_key *key
 	return tempbuf;
 }
 
+
+
+unsigned int
+crypto_init_algokey ( unsigned char *algokey_data, unsigned int algokey_length, t_crypt_key *rsa_key )
+{
+	unsigned char *rsakey_data = NULL;
+	int loops = 8192;
+	int pos = 0;
+	int rsakey_length = 0;
+	int last_bit = 0;
+	int next_last_bit = 0;
+
+
+	if ( !algokey_data ||!rsa_key )
+		return E_FAIL;
+
+	rsakey_data = (unsigned char*)util_hexunpack ( rsa_key->primefac, &rsakey_length );
+
+	if ( !rsakey_data )
+		return E_FAIL;
+
+	memset( algokey_data, 0xFF, algokey_length );
+
+	// initialize random number generator with some random data
+	srand ((unsigned int)time(NULL) ^ (unsigned int)rand() ^ (unsigned int)rsakey_data);
+
+	// fill key with random data
+	while ( pos < loops )
+	{
+		// fill key with random data, also depending on rsa key
+		algokey_data[pos%algokey_length] += rand()%0xFF;
+		algokey_data[pos%algokey_length] += rsakey_data[(pos+(rsakey_length/2))%rsakey_length];
+		algokey_data[pos%algokey_length] ^= rsakey_data[pos%rsakey_length];
+		algokey_data[pos%algokey_length] ^= rand()%0xFF;
+
+		// rotate right the whole buffer to spread  randomness
+		next_last_bit = algokey_data[pos%algokey_length] & 1;
+		algokey_data[pos%algokey_length] >>= 1;
+		algokey_data[pos%algokey_length] |= (last_bit<<7);
+		last_bit = next_last_bit;
+
+		pos++;
+	}
+
+	free ( rsakey_data );
+	return E_OK;
+}
+
+
+unsigned int
+crypto_init_algoiv ( unsigned char *algoiv_data, unsigned int algoiv_length, t_crypt_key *rsa_key )
+{
+	unsigned char *rsakey_data = NULL;
+	int loops = 8192;
+	int pos = 0;
+	int rsakey_length = 0;
+	int last_bit = 0;
+	int next_last_bit = 0;
+
+	if ( !algoiv_data ||!rsa_key )
+		return E_FAIL;
+
+	rsakey_data = (unsigned char*)util_hexunpack ( rsa_key->primefac, &rsakey_length );
+
+	if ( !rsakey_data )
+		return E_FAIL;
+
+	memset( algoiv_data, 0xFF, algoiv_length );
+
+	// fill iv with key data
+	while ( pos < loops )
+	{
+		algoiv_data[pos%algoiv_length] += rsakey_data[pos%rsakey_length];
+		algoiv_data[pos%algoiv_length] ^= rsakey_data[(pos+(rsakey_length/2))%rsakey_length];
+
+		// rotate right the whole buffer to spread randomness
+		next_last_bit = algoiv_data[pos%algoiv_length] & 1;
+		algoiv_data[pos%algoiv_length] >>= 1;
+		algoiv_data[pos%algoiv_length] |= (last_bit<<7);
+		last_bit = next_last_bit;
+
+		pos++;
+	}
+
+	free ( rsakey_data );
+	return E_OK;
+}
+
 unsigned char *
 crypto_encrypt_buffer ( unsigned char *in_buffer, int *length, t_crypt_key *key )
 {
@@ -345,8 +435,21 @@ crypto_encrypt_buffer ( unsigned char *in_buffer, int *length, t_crypt_key *key 
 	unsigned char *blockdata = NULL;
 	unsigned char *blockdata_ptr = NULL;
 	unsigned char *buffer_ptr = NULL;
+	
+	unsigned int total_size = 0;
+	unsigned int header_size = 0;
+	unsigned int payload_size = 0;
 
-	if ( !in_buffer || ! key || !length || !*length )
+	// AES stuff
+	unsigned int algo_ivlength = 16;
+	unsigned int algo_blocksize = 16;
+	unsigned int algo_keylength = 32;
+	aes_context algo_ctx;
+
+
+	t_crypt_header *header_struct = NULL;
+
+	if ( !in_buffer || !key || !length || !*length )
 		return NULL;
 
 	// get the block size for encrypt operation
@@ -356,44 +459,44 @@ crypto_encrypt_buffer ( unsigned char *in_buffer, int *length, t_crypt_key *key 
 	if ( in_blocksize == 0 || in_blocksize == E_FAIL || out_blocksize == E_FAIL )
 		return NULL;
 
-	// get block count
-	blocks = (*length + 0x10) / in_blocksize;
-
-	if ( (*length + 0x10) % in_blocksize )
+	// get block count for header
+	blocks = sizeof(t_crypt_header) / in_blocksize;
+	if ( sizeof(t_crypt_header) % in_blocksize )
 		blocks++;
 
-	// allocate the output buffer
-	blockdata = malloc ( blocks * out_blocksize );
-	memset ( blockdata, 0x00, blocks * out_blocksize  );
-
-	// replicate the input buffer with information header
+	// build header buffer
 	buffer = malloc ( blocks * in_blocksize );
 	memset ( buffer, 0x00, blocks * in_blocksize  ); // replace with random bytes to make more secure?
-	memcpy ( buffer + 0x10, in_buffer, *length );
+	header_struct = (t_crypt_header*) buffer;
+
+	// use big endian SET_WORD_RAW
+	SET_WORD_RAW(&header_struct->header, 0, TRIXCRYPT_HEADER);
+	SET_WORD_RAW(&header_struct->length, 0, *length);
+	SET_WORD_RAW(&header_struct->trailer, 0, TRIXCRYPT_TRAILER);
+
+	// initialize key and IV (IV is based on RSA key)
+	crypto_init_algoiv ( algo_ctx.iv, algo_ivlength, key );
+	crypto_init_algokey ( header_struct->keydata, algo_keylength, key );
+	aes_setkey_enc( &algo_ctx, header_struct->keydata, algo_keylength * 8 );
+
+	// calc the output buffer size for header plus data
+	header_size = blocks * out_blocksize;
+	payload_size = *length;
+
+	if ( payload_size % algo_blocksize > 0 )
+		payload_size += algo_blocksize - (payload_size % algo_blocksize);
+
+	// new length is header blocks plus payload
+	total_size = header_size + payload_size;
+	blockdata = malloc ( total_size );
+	memset ( blockdata, 0x00, total_size );
+
+	// copy the source data
+	memcpy ( blockdata + (blocks * out_blocksize), in_buffer, *length );
 
 
-	buffer[0] = 1;
-	buffer[1] = (in_blocksize & 0xFF000000)>> 24;
-	buffer[2] = (in_blocksize & 0x00FF0000)>> 16;
-	buffer[3] = (in_blocksize & 0x0000FF00)>> 8;
-	buffer[4] = (in_blocksize & 0x000000FF)>> 0;
-	buffer[5] = (out_blocksize & 0xFF000000)>> 24;
-	buffer[6] = (out_blocksize & 0x00FF0000)>> 16;
-	buffer[7] = (out_blocksize & 0x0000FF00)>> 8;
-	buffer[8] = (out_blocksize & 0x000000FF)>> 0;
-	buffer[9] = (*length & 0xFF000000)>> 24;
-	buffer[10] = (*length & 0x00FF0000)>> 16;
-	buffer[11] = (*length & 0x0000FF00)>> 8;
-	buffer[12] = (*length & 0x000000FF)>> 0;
-	buffer[13] = 0x55;
-	buffer[14] = 0xAA;
-	buffer[15] = 0x55;
-
-
-	// now update the returned length
-	*length = blocks * out_blocksize;
-
-	while ( block < blocks )
+	// encrypt header with RSA
+	while ( block < blocks && !util_script_is_aborted () )
 	{
 		blockdata_ptr = blockdata + block * out_blocksize;
 		buffer_ptr = buffer + block*in_blocksize;
@@ -419,6 +522,23 @@ crypto_encrypt_buffer ( unsigned char *in_buffer, int *length, t_crypt_key *key 
 		block++;
 	}
 
+	// start with AES encryption
+	blocks = payload_size / algo_blocksize;
+	block = 0;
+
+	// encrypt data
+	while ( block < blocks && !util_script_is_aborted () )
+	{
+		blockdata_ptr = blockdata + header_size + block * algo_blocksize;
+
+		aes_crypt_cbc( &algo_ctx, AES_ENCRYPT, algo_blocksize, blockdata_ptr, blockdata_ptr );
+//		aes256_encrypt_ecb(&aes_ctx, blockdata_ptr);
+
+		block++;
+	}
+
+	*length = total_size;
+
 	return blockdata;
 }
 
@@ -435,6 +555,15 @@ crypto_decrypt_buffer ( unsigned char *in_buffer, int *length, t_crypt_key *key 
 	unsigned char *blockdata_ptr = NULL;
 	unsigned char *buffer_ptr = NULL;
 
+	// AES stuff
+	unsigned int algo_ivlength = 16;
+	unsigned int algo_blocksize = 16;
+	unsigned int algo_keylength = 32;
+	aes_context algo_ctx;
+
+	t_crypt_header *header_struct = NULL;
+
+
 	if ( !in_buffer || !key || !length || !*length || !key->key || !key->primefac )
 		return NULL;
 
@@ -442,74 +571,144 @@ crypto_decrypt_buffer ( unsigned char *in_buffer, int *length, t_crypt_key *key 
 	in_blocksize = crypto_rsa_get_blocksize ( key, 1 );
 	out_blocksize = crypto_rsa_get_blocksize ( key, 0 );
 
+	if ( out_blocksize < 1 || in_blocksize < 1 )
+		return NULL;
+
+	// get block count for header
+	blocks = sizeof(t_crypt_header) / out_blocksize;
+	if ( sizeof(t_crypt_header) % out_blocksize )
+		blocks++;
+
 	// input size does not fit the blocksize
-	if ( *length % in_blocksize )
+	if ( *length < blocks * in_blocksize )
 		return NULL;
 
 	// get block count
-	blocks = *length / in_blocksize;
 	blockdata = malloc ( blocks * out_blocksize );
 	memset ( blockdata, 0x00, blocks * out_blocksize );
 
 	// save the buffer we now will operate on
-	buffer = malloc ( *length );
-	memcpy ( buffer, in_buffer, *length );
+	buffer = malloc ( blocks * in_blocksize );
+	memcpy ( buffer, in_buffer, blocks * in_blocksize );
 
+	// decrypt header with RSA
 	while ( block < blocks )
 	{
 		blockdata_ptr = blockdata + block*out_blocksize;
 		buffer_ptr = buffer + block*in_blocksize;
 		
 		this_blocksize = crypto_crypt ( buffer_ptr, in_blocksize, key );
-//		util_dump_bytes ( buffer_ptr, 16, this_blocksize );
 
 		// fix the "alignment" problems due to shorter values with preceeding zeroes
 		if ( out_blocksize - this_blocksize > 0)
 		{
-			memmove ( blockdata_ptr + (out_blocksize-this_blocksize), blockdata_ptr, this_blocksize );
-			memset ( blockdata_ptr, 0x00, out_blocksize-this_blocksize );
+			memmove ( buffer_ptr + (out_blocksize-this_blocksize), buffer_ptr, this_blocksize );
+			memset ( buffer_ptr, 0x00, out_blocksize-this_blocksize );
 		}
 		else if ( out_blocksize - this_blocksize < 0 )
 		{
 			// if blocksize somehow was too big, return
+			free ( blockdata );
 			free ( buffer );
 			return NULL;
-		}
-
-		if ( block == 0 )
-		{
-			// some checks to ensure it was crypted with same key
-			if ( buffer[0] != 1 || buffer[13] != 0x55 || buffer[14] != 0xAA || buffer[15] != 0x55 
-			     || out_blocksize != (buffer[1]<<24 | buffer[2]<<16 | buffer[3]<<8 | buffer[4]) 
-				 || in_blocksize != (buffer[5]<<24 | buffer[6]<<16 | buffer[7]<<8 | buffer[8]) )
-			{
-				free ( buffer );
-				return NULL;
-			}
-
-			// get the resulting length
-			*length = (buffer[9]<<24 | buffer[10]<<16 | buffer[11]<<8 | buffer[12]);
-			if ( *length < 0 )
-			{
-				free ( buffer );
-				return NULL;
-			}
 		}
 
 		memcpy ( blockdata_ptr, buffer_ptr, out_blocksize );
 		block++;
 	}
 
-	memmove ( blockdata, blockdata + 0x10, *length );
-	realloc ( blockdata, *length );
 	free ( buffer );
 
-	return blockdata;
+	header_struct = (t_crypt_header*)blockdata;
+
+	if ( GET_WORD_RAW(&header_struct->header, 0) != TRIXCRYPT_HEADER )
+	{
+		free ( blockdata );
+		return NULL;
+	}
+
+	if ( GET_WORD_RAW(&header_struct->trailer, 0) != TRIXCRYPT_TRAILER )
+	{
+		free ( blockdata );
+		return NULL;
+	}
+
+	if ( GET_WORD_RAW(&header_struct->length, 0) > (*length - (blocks * in_blocksize)) )
+	{
+		free ( blockdata );
+		return NULL;
+	}
+
+	if ( (*length - (blocks * in_blocksize)) % algo_blocksize )
+	{
+		free ( blockdata );
+		return NULL;
+	}
+
+	// new buffer 
+	buffer = malloc ( *length - (blocks * in_blocksize) );
+	memcpy ( buffer, in_buffer + (blocks * in_blocksize), *length - (blocks * in_blocksize) );
+
+	// initialize key and IV (IV is based on RSA key)
+	crypto_init_algoiv ( algo_ctx.iv, algo_ivlength, key );
+	aes_setkey_dec( &algo_ctx, header_struct->keydata, algo_keylength * 8 );
+
+	// start with AES decryption
+	blocks = (*length - (blocks * in_blocksize)) / algo_blocksize;
+	block = 0;
+
+	// decrypt data
+	while ( block < blocks && !util_script_is_aborted () )
+	{
+		buffer_ptr = buffer + block * algo_blocksize;
+
+		aes_crypt_cbc( &algo_ctx, AES_DECRYPT, algo_blocksize, buffer_ptr, buffer_ptr );
+
+		block++;
+	}
+
+	*length = GET_WORD_RAW(&header_struct->length, 0);
+	realloc ( buffer, *length );
+	free ( blockdata );
+
+	return buffer;
 }
 
 unsigned int crypto_generate_key ( int nbits, t_crypt_key *priv_key, t_crypt_key *pub_key )
 {
 	return rsa_generate_key ( nbits, priv_key, pub_key );
+}
+
+unsigned int crypto_generate_sha1 ( const unsigned char *data, unsigned int length, char *hash )
+{
+	SHA1Context sha;
+	unsigned int i;
+
+	SHA1Reset ( &sha );
+	SHA1Input ( &sha, data, length );
+
+	if ( !SHA1Result ( &sha ) || !hash )
+		return E_FAIL;
+
+	for ( i = 0; i < 5; i++ )
+	{
+		hash[ ( i << 2 ) + 0 ] = BYTEPOS ( sha.Message_Digest[i], 3);
+		hash[ ( i << 2 ) + 1 ] = BYTEPOS ( sha.Message_Digest[i], 2);
+		hash[ ( i << 2 ) + 2 ] = BYTEPOS ( sha.Message_Digest[i], 1);
+		hash[ ( i << 2 ) + 3 ] = BYTEPOS ( sha.Message_Digest[i], 0);
+	}
+
+	return E_OK;
+}
+
+unsigned int crypto_generate_md5 ( const unsigned char *data, unsigned int length, char *hash )
+{
+	if ( !data || !length || !hash )
+		return E_FAIL;
+
+	md5_digest ( data, length, hash );
+
+	return E_OK;
 }
 
 #endif

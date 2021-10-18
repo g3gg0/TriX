@@ -7,8 +7,8 @@
 	"import unsigned int __file_get_options ( );\n"\
 	"import t_fileinfo *__file_open ( char *filename);\n"\
 	"import unsigned int __file_flush_diff ( t_stage * s, t_stage * d);\n"\
-	"import unsigned int __file_flush ( t_stage * s);\n"\
-	"import unsigned int __file_sync ( t_stage * s);\n"\
+	"import unsigned int __file_flush ( t_fileinfo * fi);\n"\
+	"import unsigned int __file_sync ( t_fileinfo * fi);\n"\
 	"import unsigned int __file_format ( t_fileinfo * fi, char *format);\n"\
 	"import unsigned int __file_write ( char *filename, t_fileinfo * fi);\n"\
 	"import unsigned int __file_release ( t_fileinfo * fi);\n"\
@@ -22,8 +22,8 @@
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__file_get_options</font>&nbsp;(&nbsp;);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#000000\">t_fileinfo</font>&nbsp;*<font color=\"#000000\">__file_open</font>&nbsp;(&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">filename</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__file_flush_diff</font>&nbsp;(&nbsp;<font color=\"#000000\">t_stage</font>&nbsp;*&nbsp;<font color=\"#000000\">s</font>,&nbsp;<font color=\"#000000\">t_stage</font>&nbsp;*&nbsp;<font color=\"#000000\">d</font>);<br>"\
-	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__file_flush</font>&nbsp;(&nbsp;<font color=\"#000000\">t_stage</font>&nbsp;*&nbsp;<font color=\"#000000\">s</font>);<br>"\
-	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__file_sync</font>&nbsp;(&nbsp;<font color=\"#000000\">t_stage</font>&nbsp;*&nbsp;<font color=\"#000000\">s</font>);<br>"\
+	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__file_flush</font>&nbsp;(&nbsp;<font color=\"#000000\">t_fileinfo</font>&nbsp;*&nbsp;<font color=\"#000000\">fi</font>);<br>"\
+	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__file_sync</font>&nbsp;(&nbsp;<font color=\"#000000\">t_fileinfo</font>&nbsp;*&nbsp;<font color=\"#000000\">fi</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__file_format</font>&nbsp;(&nbsp;<font color=\"#000000\">t_fileinfo</font>&nbsp;*&nbsp;<font color=\"#000000\">fi</font>,&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">format</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__file_write</font>&nbsp;(&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">filename</font>,&nbsp;<font color=\"#000000\">t_fileinfo</font>&nbsp;*&nbsp;<font color=\"#000000\">fi</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__file_release</font>&nbsp;(&nbsp;<font color=\"#000000\">t_fileinfo</font>&nbsp;*&nbsp;<font color=\"#000000\">fi</font>);<br>"\
@@ -67,7 +67,7 @@ void file_release_all ();
 	"#define FILE_NORMAL    0x00\n"\
 	"#define FILE_DIFF      0x01\n"\
 	"#define FILE_DRYMODE   0x02\n"\
-	"\n"\
+	"#define FILE_DIRECTORY 0x04\n"\
 
 
 #define FILE_AUTO_MISC_POST \
@@ -79,7 +79,7 @@ void file_release_all ();
 	"<font color=\"#008000\">#define&nbsp;FILE_NORMAL&nbsp;&nbsp;&nbsp;&nbsp;0x00<br></font>"\
 	"<font color=\"#008000\">#define&nbsp;FILE_DIFF&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0x01<br></font>"\
 	"<font color=\"#008000\">#define&nbsp;FILE_DRYMODE&nbsp;&nbsp;&nbsp;0x02<br></font>"\
-	"<br>"\
+	"<font color=\"#008000\">#define&nbsp;FILE_DIRECTORY&nbsp;0x04<br></font>"\
 	"		</font>"\
 
 

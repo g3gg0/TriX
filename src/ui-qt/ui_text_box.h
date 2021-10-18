@@ -3,12 +3,12 @@
 ** Include any stock Qt files here...
 **
 */
-#include <Qt/qapplication.h>
+#include <QtGui/QApplication>
 #include <QtGui/QtGui>
-#include <Qt/qdialog.h>
-#include <Qt/qtreewidget.h>
-#include <Qt/qdebug.h>
-#include <Qt/qobject.h>
+#include <QtGui/QDialog>
+#include <QtGui/QTreeWidget>
+#include <QtCore/QDebug>
+#include <QtCore/QObject>
 //---------------------------------------------------------------------------
  
 /*
@@ -31,10 +31,14 @@ class TextBox : public QDialog, private Ui::dlgTextBox
 public:
 	TextBox(  );
 	unsigned int Clear ();
-	unsigned int Append ( unsigned char *msg );
+	unsigned int AppendLine ( unsigned char *msg );
+	unsigned int AppendChar ( unsigned char *msg );
 	unsigned int SetWindowName ( unsigned char *title );
 	unsigned int SetWindowSize ( unsigned int width, unsigned int height );
-
+	int LastChar;
+	int *LastCharPtr;
+	int GetLastKeypress ();
+	void SetKeypressPtr (int *ptr);
 
 private:
 

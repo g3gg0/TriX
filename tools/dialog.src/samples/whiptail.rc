@@ -1,4 +1,4 @@
-# $Id: whiptail.rc,v 1.1 2006/06/28 13:53:39 geggo Exp $
+# $Id: whiptail.rc 1521 2006-06-28 13:53:39Z geggo $
 # Run-time configuration file for dialog, matches whiptail's color scheme.
 
 # Set aspect-ration.

@@ -42,9 +42,12 @@ extern int tabs_temp;
 #endif
 
 // defines for memory access through plugins
+
+#define MODE_MASK  0xF0
 #define MODE_READ  0x10
 #define MODE_WRITE 0x20
 
+#define WIDTH_MASK 0x0F
 #define WIDTH_BYTE 0x01
 #define WIDTH_HALF 0x02
 #define WIDTH_WORD 0x04
@@ -117,7 +120,7 @@ typedef char* object;
 
 #include "trixplug_util.h"
 
-
+int util_script_is_aborted ();
 char *util_get_line ( char *text, unsigned int line );
 void util_set_debuglevel ( int lvl );
 void util_set_errorlevel ( int lvl );
@@ -147,6 +150,10 @@ unsigned int v_get_w_raw ( t_stage *s, unsigned int address );
 unsigned int v_set_b ( t_workspace *ws, unsigned int address, unsigned int value );
 unsigned int v_set_h ( t_workspace *ws, unsigned int address, unsigned int value );
 unsigned int v_set_w ( t_workspace *ws, unsigned int address, unsigned int value );
+unsigned int v_set_b_raw ( t_stage *s, unsigned int address, unsigned int value );
+unsigned int v_set_h_raw ( t_stage *s, unsigned int address, unsigned int value );
+unsigned int v_set_w_raw ( t_stage *s, unsigned int address, unsigned int value );
+
 unsigned int v_memcpy_get_raw ( t_priv *s, unsigned char *dest, unsigned int src, unsigned int length );
 unsigned int v_memcpy ( t_workspace *ws, unsigned int dest, unsigned int src, unsigned int length );
 unsigned int v_memcpy_get ( t_workspace *ws, unsigned char *dest, unsigned int src, unsigned int length );
@@ -169,6 +176,7 @@ unsigned int v_get_start ( t_workspace *ws );
 unsigned int v_get_areas ( t_workspace *ws );
 unsigned int v_cache_update ( t_workspace *ws, t_memmap *mm );
 unsigned int v_cache_flush (  );
+void *util_smalloc_init ( void *ptr, int size, char *name );
 void *util_smalloc ( int size, char *name );
 t_list *util_list_get_last ( t_list *l );
 unsigned int util_list_add (  t_list *l1,  t_list *l2  );

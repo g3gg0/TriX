@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="8,00"
+	Version="9.00"
 	Name="TriX_fmttest"
 	ProjectGUID="{1F2B1EA5-76BE-495D-818A-41EBEC36F941}"
+	RootNamespace="TriX_fmttest"
+	TargetFrameworkVersion="131072"
 	>
 	<Platforms>
 		<Platform
@@ -15,9 +17,10 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
+			OutputDirectory="$(InputDir)$(ConfigurationName)"
 			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="2"
+			CharacterSet="2"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
@@ -36,8 +39,19 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+				AdditionalOptions="/MP"
+				Optimization="0"
+				EnableIntrinsicFunctions="true"
+				FavorSizeOrSpeed="1"
+				OmitFramePointers="true"
+				EnableFiberSafeOptimizations="true"
 				AdditionalIncludeDirectories="../../../include"
-				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;TRIX_FMTTEST_EXPORTS;TRIX_PLUGIN"
+				PreprocessorDefinitions="WIN32;_WINDOWS;_CONSOLE;_USRDLL;_DEBUG;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;TRIX_PLUGIN;TRIXPLUG_MODE;TRIX_FMTTEST_EXPORTS"
+				StringPooling="true"
+				RuntimeLibrary="3"
+				BrowseInformation="1"
+				WarningLevel="1"
+				DebugInformationFormat="4"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -51,9 +65,16 @@
 			<Tool
 				Name="VCLinkerTool"
 				OutputFile="../../../plugins/$(ProjectName).txp"
-				LinkIncremental="1"
-				ModuleDefinitionFile="TriX_fmttest.def"
-				ImportLibrary="$(ProjectDir)$(TargetName).lib"
+				LinkIncremental="2"
+				GenerateManifest="false"
+				ModuleDefinitionFile="trix_plugin.def"
+				GenerateDebugInformation="true"
+            ProgramDatabaseFile="$(OutDir)/$(TargetName).pdb"
+				GenerateMapFile="true"
+            MapFileName="$(OutDir)/$(TargetName).map"
+				SubSystem="1"
+				SupportUnloadOfDelayLoadedDLL="true"
+            ImportLibrary="$(OutDir)/$(TargetName).lib"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -61,6 +82,7 @@
 			/>
 			<Tool
 				Name="VCManifestTool"
+				EmbedManifest="false"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
@@ -73,9 +95,6 @@
 			/>
 			<Tool
 				Name="VCAppVerifierTool"
-			/>
-			<Tool
-				Name="VCWebDeploymentTool"
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
@@ -83,10 +102,10 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
+			OutputDirectory="$(InputDir)$(ConfigurationName)"
 			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="2"
-			WholeProgramOptimization="1"
+			CharacterSet="2"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
@@ -105,85 +124,19 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				WholeProgramOptimization="false"
-				AdditionalIncludeDirectories="..\..\..\include"
-				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;TRIX_TERM_EXPORTS"
-				RuntimeLibrary="2"
-				WarningLevel="1"
-				Detect64BitPortabilityProblems="true"
-				DebugInformationFormat="3"
-			/>
-			<Tool
-				Name="VCManagedResourceCompilerTool"
-			/>
-			<Tool
-				Name="VCResourceCompilerTool"
-			/>
-			<Tool
-				Name="VCPreLinkEventTool"
-			/>
-			<Tool
-				Name="VCLinkerTool"
-				OutputFile="../../../plugins/$(ProjectName).txp"
-				LinkIncremental="1"
-				ModuleDefinitionFile="TriX_fmttest.def"
-				SubSystem="2"
-				OptimizeReferences="2"
-				EnableCOMDATFolding="2"
-				SupportUnloadOfDelayLoadedDLL="true"
-				ImportLibrary="$(ProjectDir)$(TargetName).lib"
-				TargetMachine="1"
-			/>
-			<Tool
-				Name="VCALinkTool"
-			/>
-			<Tool
-				Name="VCManifestTool"
-			/>
-			<Tool
-				Name="VCXDCMakeTool"
-			/>
-			<Tool
-				Name="VCBscMakeTool"
-			/>
-			<Tool
-				Name="VCFxCopTool"
-			/>
-			<Tool
-				Name="VCAppVerifierTool"
-			/>
-			<Tool
-				Name="VCWebDeploymentTool"
-			/>
-			<Tool
-				Name="VCPostBuildEventTool"
-			/>
-		</Configuration>
-		<Configuration
-			Name="Distribution|Win32"
-			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
-			IntermediateDirectory="$(ConfigurationName)"
-			ConfigurationType="2"
-			>
-			<Tool
-				Name="VCPreBuildEventTool"
-			/>
-			<Tool
-				Name="VCCustomBuildTool"
-			/>
-			<Tool
-				Name="VCXMLDataGeneratorTool"
-			/>
-			<Tool
-				Name="VCWebServiceProxyGeneratorTool"
-			/>
-			<Tool
-				Name="VCMIDLTool"
-			/>
-			<Tool
-				Name="VCCLCompilerTool"
+				AdditionalOptions="/MP"
+				Optimization="2"
+				EnableIntrinsicFunctions="true"
+				FavorSizeOrSpeed="1"
+				OmitFramePointers="true"
+				EnableFiberSafeOptimizations="true"
 				AdditionalIncludeDirectories="../../../include"
-				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;TRIX_FMTTEST_EXPORTS;TRIX_PLUGIN"
+				PreprocessorDefinitions="WIN32;_WINDOWS;_CONSOLE;_USRDLL;_NDEBUG;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;TRIX_PLUGIN;TRIXPLUG_MODE;TRIX_FMTTEST_EXPORTS"
+				StringPooling="true"
+				RuntimeLibrary="2"
+				BrowseInformation="0"
+				WarningLevel="1"
+				DebugInformationFormat="0"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -198,8 +151,13 @@
 				Name="VCLinkerTool"
 				OutputFile="../../../plugins/$(ProjectName).txp"
 				LinkIncremental="1"
-				ModuleDefinitionFile="TriX_fmttest.def"
-				ImportLibrary="$(ProjectDir)$(TargetName).lib"
+				GenerateManifest="false"
+				ModuleDefinitionFile="trix_plugin.def"
+				GenerateDebugInformation="false"
+				GenerateMapFile="false"
+				SubSystem="1"
+				SupportUnloadOfDelayLoadedDLL="true"
+            ImportLibrary="$(OutDir)/$(TargetName).lib"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -207,6 +165,7 @@
 			/>
 			<Tool
 				Name="VCManifestTool"
+				EmbedManifest="false"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
@@ -219,9 +178,6 @@
 			/>
 			<Tool
 				Name="VCAppVerifierTool"
-			/>
-			<Tool
-				Name="VCWebDeploymentTool"
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
@@ -240,10 +196,6 @@
 				RelativePath="..\..\..\plugins\TriX_fmttest\fmttest.c"
 				>
 			</File>
-			<File
-				RelativePath=".\TriX_fmttest.def"
-				>
-			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -256,6 +208,10 @@
 			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav"
 			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}"
 			>
+			<File
+				RelativePath=".\trix_plugin.def"
+				>
+			</File>
 		</Filter>
 	</Files>
 	<Globals>

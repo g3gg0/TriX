@@ -1,102 +1,914 @@
-/* AUTH: 01 A09119C5A44943A16CC4C8EC7F16BD88FD28F50E9530609E58F6E3962B04E0AB0BFA12CFFB0496925EBF4F19F2F39FF7538C92F8386A9F7E2E1B41DDB61E8D9E28DFA2A61DA3387B0C8F8586DF145B965CE8137FA1A6D0F01AD61BA40B922ECBD7419512383AAEF5414F25951FB1C49CA22F7484CBE0AEFF5E010663313633343D7074691E418EC58BCAD1942F67ACF511400F3FE544A46E07549E856231BC547FE1937F839084AB3B19D9C1FF62287FED68AC9BECDBE5C89224A1D7C2BDC94A755C1F4C4FEA7E8495C4382C9C59E5387E9932CABA7F810B2126B67FDD1A77D02FBEE2D0BCF99D0C3F2BBA832E2CF101AF70BBE20FD64DEDED72F9ACE1F58190 */
 #title "BL reference searcher"
-#author "krisha"
+#author "krisha, g3gg0"
 
 #include trix
 #include stdio
 
+unsigned int parameter_register = 0;       // use R0
+unsigned int parameter_entry_offset = 0;   // first entry is addressed with 0
+unsigned int parameter_entry_count = 34;   // number of entries
+unsigned char *parameter_prefix = "Task:"; // the text to prepend
+unsigned char *parameter_strings[] =
+{
+    "ENERGY_TASK",
+    "UI_TASK",
+    "TONE_TASK",
+    "POLYTONE_TASK",
+    "PBOOK_TASK",
+    "PMM_CLEAN_UP_TASK",
+    "DEV_IO_TASK",
+    "APDU_SERVER_TASK",
+    "SIMSON_SERVER_TASK",
+    "APPL_PROT_TASK",
+    "PH_TASK",
+    "L2_TASK",
+    "RR_TASK",
+    "RANC_TASK",
+    "MM_TASK",
+    "CC_TASK",
+    "SMS_TASK",
+    "RM_CONTROL_TASK",
+    "GSS_SERVER_TASK",
+    "CS_MAIN_TASK",
+    "FBUS_TASK",
+    "MDI_RCV_TASK",
+    "MDI_SEND_TASK",
+    "STI_RECEIVE_TASK",
+    "STI_SEND_TASK",
+    "PN_TASK",
+    "LOC_TASK",
+    "AUDIO_TASK",
+    "ACCESSORY_TASK",
+    "MTC_CTRL_TASK",
+    "MSGP_SMS_REC_TASK",
+    "MSGP_SMS_SEND_TASK",
+    "DMAN_TASK",
+    "OS_IDLE_TASK"
+};
+
+/* treat the registers R0-R7 for assert() call as: 0 - skip, 1 - integer, 2 - string, 3 - hex value */
+int assert_regmode[] = { 2, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+/* dump registers in that order */
+int assert_regs[] = { 0, 1, -1, -1, -1, -1, -1, -1 };
+
+
+unsigned int search_word ( unsigned int destination )
+{
+    unsigned int found = 0;
+    unsigned int offset = MEM_AUTO;
+    char pattern[4];
+
+    if ( GetWorkspace()->flags == FLAGS_ENDIANESS_LE )
+        destination = SW(destination);
+        
+    pattern[0] = (destination >> 24) & 0xFF;
+    pattern[1] = (destination >> 16) & 0xFF;
+    pattern[2] = (destination >> 8) & 0xFF;
+    pattern[3] = destination & 0xFF;
+    
+    
+    offset = __v_get_start ( GetWorkspace() );
+    do
+    {
+        offset = QuickFindPattern(pattern, "\xFF\xFF\xFF\xFF", 4, offset+1, MEM_AUTO, LOC_FORWARD );
+        if ( Valid ( offset ) )
+            printf ( "   [i] 0x%08X: DW 0x%08X\n", offset, GetWord ( offset ) );
+            
+        found++;
+    } while ( Valid ( offset ) );
+    
+    
+    return E_OK;
+}
+
+unsigned int
+search_code_ref ( unsigned int destination )
+{
+    unsigned int found = 0;
+    unsigned int total = 0;
+    unsigned int offset = MEM_AUTO;
+
+    while ( offset != E_FAIL )
+    {
+        offset = ARMFind (THUMB_BL, offset, MEM_AUTO, LOC_FORWARD );
+        if ( offset != E_FAIL )
+        {
+            if ( ARMGet ( offset ) == destination )
+            {
+                printf ( "   [i] 0x%08X: THUMB_BL 0x%08X\n", offset, ARMGet ( offset ) );
+                found++;
+            }
+            
+            total++;
+            offset++;
+        }
+    }
+    
+    offset = MEM_AUTO;
+    while ( offset != E_FAIL )
+    {
+        offset = ARMFind (ARM_BL, offset, MEM_AUTO, LOC_FORWARD );
+        if ( offset != E_FAIL )
+        {
+            if ( ARMGet32 ( offset ) == destination )
+            {
+                printf ( "   [i] 0x%08X: ARM_BL 0x%08X\n", offset, ARMGet32 ( offset ) );
+                found++;
+            }
+            
+            total++;
+            offset++;
+        }
+    }    
+    
+    offset = MEM_AUTO;
+    while ( offset != E_FAIL )
+    {
+        offset = ARMFind (ARM_B, offset, MEM_AUTO, LOC_FORWARD );
+        if ( offset != E_FAIL )
+        {
+            if ( ARMGet32 ( offset ) == destination )
+            {
+                printf ( "   [i] 0x%08X: ARM_B 0x%08X\n", offset, ARMGet32 ( offset ) );
+                found++;
+            }
+            
+            total++;
+            offset++;
+        }
+    }
+    
+    offset = MEM_AUTO;
+    while ( offset != E_FAIL )
+    {
+        offset = ARMFind (ARM_ADR, offset, MEM_AUTO, LOC_FORWARD );
+        if ( offset != E_FAIL )
+        {
+            if ( ARMGet32 ( offset ) == destination )
+            {
+                printf ( "   [i] 0x%08X: ARM_ADR 0x%08X\n", offset, ARMGet32 ( offset ) );
+                found++;
+            }
+            
+            total++;
+            offset++;
+        }
+    }
+    
+    offset = MEM_AUTO;
+    while ( offset != E_FAIL )
+    {
+        offset = ARMFind (ARM_LDR, offset, MEM_AUTO, LOC_FORWARD );
+        if ( offset != E_FAIL )
+        {
+            if ( ARMGet32 ( offset ) == destination )
+            {
+                printf ( "   [i] 0x%08X: ARM_LDR 0x%08X\n", offset, ARMGet32 ( offset ) );
+                found++;
+            }
+            
+            total++;
+            offset++;
+        }
+    }
+    offset = MEM_AUTO;
+    while ( offset != E_FAIL )
+    {
+        offset = ARMFind (ARM_MOV, offset, MEM_AUTO, LOC_FORWARD );
+        if ( offset != E_FAIL )
+        {
+            if ( ARMGet32 ( offset ) == destination )
+            {
+                printf ( "   [i] 0x%08X: ARM_MOV 0x%08X\n", offset, ARMGet32 ( offset ) );
+                found++;
+            }
+            
+            total++;
+            offset++;
+        }
+    }
+    
+    if ( !found )
+        printf ( "   [i] none found\n" );
+        
+    printf ( "   [i] %i references scanned\n", total );
+
+    return E_OK;
+}
+
+int change_endianess ()
+{
+    if ( trix_workspace->flags == FLAGS_ENDIANESS_LE )
+    {
+        trix_workspace->flags = FLAGS_ENDIANESS_BE;
+        printf ( "Switched to: Big Endian\n" );
+    }
+    else
+    {
+        trix_workspace->flags = FLAGS_ENDIANESS_LE;
+        printf ( "Switched to: Little Endian\n" );
+    }
+    
+    WorkspaceUpdateMemmap ( trix_workspace );
+}
+
+unsigned int
+dump_address ( unsigned int destination )
+{
+    unsigned int found = 0;
+    
+    printf ( "[x] searching for code refs\n" );
+    found += search_code_ref ( destination );
+    
+    printf ( "\n\n[x] searching for address references\n" );
+    search_word ( destination );
+    
+    printf ( "\n\n[x] searching for thumb address references\n" );
+    search_word ( destination | 1 );
+
+}
+
+int dump_memmap ( )
+{
+    t_memmap *m = trix_workspace->memmap;
+
+    while ( m )
+    {
+        printf ( "----------------------\n" );
+        printf ( "Start : 0x%08X\n", m->start );
+        printf ( "End   : 0x%08X\n", m->end );
+        printf ( "Length: 0x%08X\n", m->length );
+        m = (t_memmap*)m->next;
+    }
+}
+
+int rebase_segment ( unsigned int base )
+{
+    if((base + trix_workspace->fileinfo->stages->segments->length + 1) < base)
+    {
+        trix_workspace->fileinfo->stages->segments->length = 0xFFFFFFFE - base;
+        printf ( "    size: 0x%08X (restricted)\n", trix_workspace->fileinfo->stages->segments->length );
+    }
+    else
+    {
+        printf ( "size: 0x%08X\n", trix_workspace->fileinfo->stages->segments->length );
+    }
+    trix_workspace->fileinfo->stages->segments->start = base;
+    trix_workspace->fileinfo->stages->segments->end = base + trix_workspace->fileinfo->stages->segments->length;
+
+    WorkspaceUpdateMemmap ( trix_workspace );
+    printf ( "Rebased to 0x%08X\n", base );
+    dump_memmap ( );
+}
+
+int rebase_code ()
+{
+    char buffer[256];
+    int state = 0;
+    char *val = NULL;
+    int value = 0;
+    int err = 0;
+
+    UiDlgString ( "New base address? In hexadecimal form, please.", &val );
+    if ( !val )
+    {    
+        printf ( "Invalid address\n" );
+        return E_FAIL;
+    }
+
+    err = 0;
+    value = __util_hex_get ( val, &err );
+    if ( err )
+    {    
+        printf ( "Invalid address\n" );
+        return E_FAIL;
+    }
+    
+    rebase_segment ( value );
+}
+
+
+int dump_assert_strings ( int function, int ida_out )
+{
+    int pos[16];
+    int i = 0;
+    int scanback = 40;
+    unsigned int registers[32];
+    unsigned char reg = 0;
+    int relative = 0;
+    int offset = 0;
+    unsigned char *buffer = NULL;
+    unsigned int start_address = 0;
+    unsigned int startfinder_pos = 0;
+    //int function = 0x5E398;
+
+    unsigned char byte_1 = 0;
+    unsigned char byte_2 = 0;
+    int correction_offset = 0x00000000;
+    buffer = malloc ( 8192 );
+
+    if ( function == E_FAIL )
+    {
+        say ( "Error finding ASSERT function\n" );
+        return 0;
+    }
+    
+    if ( ida_out )
+    {
+        printf ( "\n\n" );
+        printf ( "IDA Script output:\n" );
+        printf ( "-------------------------------------\n" );
+        printf ( "#include <idc.idc>\n" );
+        printf ( "static main()\n" );
+        printf ( "{\n" );
+    }
+    
+    offset = MEM_AUTO;
+    while ( offset != E_FAIL )
+    {
+        offset = ARMFindSrcOfDest ( THUMB_BL, function, offset, MEM_AUTO, LOC_FORWARD );
+        if ( offset != E_FAIL )
+        {
+            for ( reg = 0; reg < 8; reg++ )
+            {
+                pos[reg] = 1;
+                registers[reg] = 0xFFFFFFFF;
+
+                while ( pos[reg] <= scanback && registers[reg] == 0xFFFFFFFF && assert_regmode[reg] )
+                {
+                    byte_1 = GetHalf ( offset - pos[reg]*2 ) >> 8;
+                    byte_2 = GetHalf ( offset - pos[reg]*2 ) & 0xFF;
+                    
+                    if ( byte_1 == 0xB5 )
+                    {
+                        if ( ida_out && (start_address !=  offset - pos[reg]*2) )
+                        {
+                            printf ( "    MakeFunction ( 0x%08X, BADADDR );\n", correction_offset + offset - pos[reg]*2 );
+                            start_address = offset - pos[reg]*2;
+                        }
+
+                        pos[reg] = scanback;
+                    }
+                    if ( byte_1 == (0x20|reg) )
+                        registers[reg] = byte_2;
+                        
+                    if ( byte_1 == (0x48|reg) )
+                    {
+                        relative = byte_2;
+                        registers[reg] = GetWord ( ((offset - pos[reg]*2)&0xFFFFFFFC)+4+4*relative );
+                    }
+                    
+                    if ( byte_1 == (0xA0|reg) )
+                    {
+                        relative = byte_2;
+                        registers[reg] = correction_offset + ((offset - pos[reg]*2)&0xFFFFFFFC)+4+4*relative;
+                    }
+                    pos[reg]++;
+                }
+//                printf ( "\n I  R%i = %08X  pos = %i", reg, registers[reg], pos[reg] );
+            }
+
+            for ( reg = 0; reg < 8; reg++ )
+            {
+                
+                while ( pos[reg] )
+                {
+                    byte_1 = GetHalf ( offset - pos[reg]*2 ) >> 8;
+                    byte_2 = GetHalf ( offset - pos[reg]*2 ) & 0xFF;
+                    
+                    if ( byte_1 == 0x1C && (byte_2 & 0x07) == reg )
+                    {
+                        relative = (byte_2>>3) & 0x07;
+                        if ( pos[reg] < pos[relative] )
+                            registers[reg] = registers[relative];
+                    }
+                    
+                    if ( byte_1 == (0x30|reg) )
+                        registers[reg] += byte_2;
+                        
+                    if ( byte_1 == (0x38|reg) )
+                        registers[reg] -= byte_2;
+                        
+                    pos[reg]--;
+                }
+//                printf ( "\n II R%i = %08X  pos = %i", reg, registers[reg], pos[reg] );
+            }
+
+            if ( ida_out )
+            {
+                unsigned char tmp_buf[1024];
+                int regpos = 0;
+                
+                sprintf(buffer, "");
+                
+                for ( regpos = 0; regpos < 8; regpos++ )
+                {
+                    reg = assert_regs[regpos];
+                    if(reg >= 0)
+                    {
+                        switch(assert_regmode[reg])
+                        {
+                            case 0:
+                                /* skip this register */
+                                break;
+                                
+                            case 1:
+                                sprintf ( tmp_buf, "R%i: %i - ", reg, registers[reg] );
+                                strcat ( buffer, tmp_buf );       
+                                break;
+                                
+                            case 2:
+                                printf ( "    MakeStr ( 0x%08X,  BADADDR );\n", registers[reg] );
+                                sprintf ( tmp_buf, "R%i: %s - ", reg, GetStr ( registers[reg] - correction_offset ) );
+                                strcat ( buffer, tmp_buf );                            
+                                break;
+                        }
+                    }
+                    else
+                    {
+                        regpos = 8;
+                    }
+                }
+                
+                for ( i = 0; i < strlen ( buffer ); i++ )
+                {
+                    if ( buffer[i] == '"' )
+                        buffer[i] = '\'';
+                    if ( buffer[i] == '\n' )
+                        buffer[i] = ' ';
+                    if ( buffer[i] == '\r' )
+                        buffer[i] = ' ';
+                    if ( buffer[i] < ' ' )
+                        buffer[i] = ' ';
+                }
+                printf ( "    MakeRptCmt ( 0x%08X, \"%s\" );\n",  correction_offset + offset, buffer );
+            }
+            else
+            {
+                printf ( "0x%08X: ", offset );
+                if ( registers[1] )
+                    printf ( "ASSERT ( \"%s\", ", GetStr ( registers[1] - correction_offset ));
+                else
+                    printf ( "ASSERT ( unknown, " );
+
+                if ( registers[0] )
+                    printf ( "\"%s\" );", GetStr ( registers[0] - correction_offset ));
+                else
+                    printf ( "unknown );" );
+
+                printf ( "\n" );
+            }
+            offset += 2;
+        }
+    }
+
+    offset = MEM_AUTO;
+    while ( offset != E_FAIL )
+    {
+        offset = ARMFindSrcOfDest ( ARM_BL, function, offset, MEM_AUTO, LOC_FORWARD );
+        
+        if ( offset != E_FAIL )
+        {
+            for ( reg = 0; reg < 8; reg++ )
+            {
+                pos[reg] = 1;
+                registers[reg] = 0xFFFFFFFF;
+
+                while ( pos[reg] <= scanback )
+                {
+                    unsigned int instr_addr = offset - pos[reg] * 4; 
+                    
+                    if (registers[reg] == 0xFFFFFFFF && assert_regmode[reg] )
+                    {                   
+                        unsigned int reg_rd = __arm_get_32_adv(GetWorkspace(), instr_addr, ARM_REG_RD);
+                        
+                        if(reg_rd == reg)
+                        {
+                            registers[reg] = __arm_get_32_adv(GetWorkspace(), instr_addr, ARM_DEST_VAL);
+                        }
+                    }
+                    pos[reg]++;
+                    
+                }
+            }
+            
+            if(1)
+            {
+                for ( startfinder_pos = 0; startfinder_pos <= scanback; startfinder_pos++ )
+                {
+                    unsigned int instr_addr = offset - startfinder_pos * 4;
+                    
+                    // 70 40 2D E9 STMFD   SP!, {R4-R6,LR}
+                    if ( (GetWord(instr_addr) & 0xFFFFFF00) == 0xE92D4000 )
+                    {
+                        if ( ida_out )
+                        {
+                            printf ( "    MakeFunction ( 0x%08X, BADADDR );\n", instr_addr );
+                        }
+                    }
+                }
+            }
+            else
+            {
+                if ( ida_out )
+                {
+                    printf ( "    MakeFunction ( 0x%08X, BADADDR );\n", registers[1] );
+                }
+            }
+            
+            if(0)
+            {
+                for ( reg = 0; reg < 8; reg++ )
+                {
+                    printf ( "\n II R%i = %08X  pos = %i", reg, registers[reg], pos[reg] );
+                }
+            }
+            
+            if ( ida_out )
+            {
+                unsigned char tmp_buf[1024];
+                int regpos = 0;
+                
+                sprintf(buffer, "");
+                
+                for ( regpos = 0; regpos < 8; regpos++ )
+                {
+                    reg = assert_regs[regpos];
+                    if(reg >= 0)
+                    {
+                        switch(assert_regmode[reg])
+                        {
+                            case -1:
+                            case 0:
+                                /* skip this register */
+                                break;
+                                
+                            case 1:
+                                sprintf ( tmp_buf, "R%i: %i - ", reg, registers[reg] );
+                                strcat ( buffer, tmp_buf );       
+                                break;
+                                
+                            case 2:
+                                printf ( "    MakeStr ( 0x%08X,  BADADDR );\n", registers[reg] );
+                                sprintf ( tmp_buf, "R%i: %s - ", reg, GetStr ( registers[reg] - correction_offset ) );
+                                //printf ( "    MakeName ( 0x%08X, \"cmd_%s\" );\n", registers[1], GetStr ( registers[reg] - correction_offset ) );
+                                strcat ( buffer, tmp_buf );                            
+                                break;
+                                
+                            case 3:
+                                sprintf ( tmp_buf, "R%i: 0x%04X - ", reg, registers[reg] );
+                                strcat ( buffer, tmp_buf );       
+                                break;
+                                
+                        }
+                    }
+                    else
+                    {
+                        regpos = 8;
+                    }
+                }
+
+                for ( i = 0; i < strlen ( buffer ); i++ )
+                {
+                    if ( buffer[i] == '"' )
+                        buffer[i] = '\'';
+                    if ( buffer[i] == '\n' )
+                        buffer[i] = ' ';
+                    if ( buffer[i] == '\r' )
+                        buffer[i] = ' ';
+                    if ( buffer[i] < ' ' )
+                        buffer[i] = ' ';
+                }
+                printf ( "    MakeRptCmt ( 0x%08X, \"%s\" );\n",  correction_offset + offset, buffer );
+            }
+            else
+            {
+                printf ( "0x%08X: ", offset );
+                if ( registers[1] )
+                    printf ( "ASSERT ( \"%s\", ", GetStr ( registers[1] - correction_offset ));
+                else
+                    printf ( "ASSERT ( unknown, " );
+
+                if ( registers[0] )
+                    printf ( "\"%s\" );", GetStr ( registers[0] - correction_offset ));
+                else
+                    printf ( "unknown );" );
+
+                printf ( "\n" );
+            }
+            offset += 2;
+        }
+    }
+    
+
+    if ( ida_out )
+        printf ( "}\n" );
+
+    free ( buffer );
+
+    return 0;
+
+}
+
+
+int add_parameter_reference ( int function, int ida_out )
+{
+    int pos[16];
+    int i = 0;
+    int scanback = 10;
+    unsigned int registers[32];
+    unsigned char reg = 0;
+    int relative = 0;
+    int offset = 0;
+    unsigned char *buffer = NULL;
+    unsigned int start_address = 0;
+
+    unsigned char byte_1 = 0;
+    unsigned char byte_2 = 0;
+    int correction_offset = 0x00000000;
+    buffer = malloc ( 8192 );
+    
+    if ( ida_out )
+    {
+        printf ( "\n\n" );
+        printf ( "IDA Script output:\n" );
+        printf ( "-------------------------------------\n" );
+        printf ( "#include <idc.idc>\n" );
+        printf ( "static main()\n" );
+        printf ( "{\n" );
+    }
+    
+    offset = MEM_AUTO;
+    while ( offset != E_FAIL )
+    {
+        offset = ARMFindSrcOfDest ( THUMB_BL, function, offset, MEM_AUTO, LOC_FORWARD );
+        if ( offset != E_FAIL )
+        {
+            for ( reg = 0; reg < 8; reg++ )
+            {
+                pos[reg] = 1;
+                registers[reg] = 0xFFFFFFFF;
+
+                while ( pos[reg] <= scanback && registers[reg] == 0xFFFFFFFF )
+                {
+                    byte_1 = GetHalf ( offset - pos[reg]*2 ) >> 8;
+                    byte_2 = GetHalf ( offset - pos[reg]*2 ) & 0xFF;
+                    
+                    if ( byte_1 == 0xB5 )
+                    {
+                        if ( ida_out && (start_address !=  offset - pos[reg]*2) )
+                        {
+                            printf ( "    MakeFunction ( 0x%08X, BADADDR );\n", correction_offset + offset - pos[reg]*2 );
+                            start_address = offset - pos[reg]*2;
+                        }
+
+                        pos[reg] = scanback;
+                    }
+                    if ( byte_1 == (0x20|reg) )
+                        registers[reg] = byte_2;
+                        
+                    if ( byte_1 == (0x48|reg) )
+                    {
+                        relative = byte_2;
+                        registers[reg] = GetWord ( ((offset - pos[reg]*2)&0xFFFFFFFC)+4+4*relative );
+                    }
+                    
+                    if ( byte_1 == (0xA0|reg) )
+                    {
+                        relative = byte_2;
+                        registers[reg] = correction_offset + ((offset - pos[reg]*2)&0xFFFFFFFC)+4+4*relative;
+                    }
+                    pos[reg]++;
+                }
+//                printf ( "\n I  R%i = %08X  pos = %i", reg, registers[reg], pos[reg] );
+            }
+
+            for ( reg = 0; reg < 8; reg++ )
+            {
+                
+                while ( pos[reg] )
+                {
+                    byte_1 = GetHalf ( offset - pos[reg]*2 ) >> 8;
+                    byte_2 = GetHalf ( offset - pos[reg]*2 ) & 0xFF;
+                    
+                    if ( byte_1 == 0x1C && (byte_2 & 0x07) == reg )
+                    {
+                        relative = (byte_2>>3) & 0x07;
+                        if ( pos[reg] < pos[relative] )
+                            registers[reg] = registers[relative];
+                    }
+                    
+                    if ( byte_1 == (0x30|reg) )
+                        registers[reg] += byte_2;
+                        
+                    if ( byte_1 == (0x38|reg) )
+                        registers[reg] -= byte_2;
+                        
+                    pos[reg]--;
+                }
+                //printf ( "\n II R%i = %08X  pos = %i", reg, registers[reg], pos[reg] );
+            }
+
+            if ( ida_out )
+            {
+                if ( (registers[parameter_register] - parameter_entry_offset) < parameter_entry_count )
+                    sprintf ( buffer, "%s %s", parameter_prefix, parameter_strings[registers[parameter_register] - parameter_entry_offset] );
+                else
+                    sprintf ( buffer, "%s %d", parameter_prefix, registers[parameter_register] );
+
+                for ( i = 0; i < strlen ( buffer ); i++ )
+                {
+                    if ( buffer[i] == '"' )
+                        buffer[i] = '\'';
+                    if ( buffer[i] == '\n' )
+                        buffer[i] = ' ';
+                    if ( buffer[i] == '\r' )
+                        buffer[i] = ' ';
+                    if ( buffer[i] < ' ' )
+                        buffer[i] = ' ';
+                }
+                printf ( "    MakeRptCmt ( 0x%08X, \"%s\" );\n",  correction_offset + offset, buffer );
+            }
+            else
+                printf ( "0x%08X - %s %s\n", offset, parameter_prefix, parameter_strings[registers[0] - parameter_entry_offset] );
+            
+            offset += 2;
+        }
+    }
+
+    if ( ida_out )
+        printf ( "}\n" );
+
+    free ( buffer );
+
+    return 0;
+
+}
+
+
+unsigned int dump_arm_bl ( )
+{
+    unsigned int ida_out = 1;
+    unsigned int found = 0;
+    unsigned int total = 0;
+    unsigned int offset = MEM_AUTO;
+    unsigned int destination = 0;
+
+    if ( ida_out )
+    {
+        printf ( "\n\n" );
+        printf ( "IDA Script output:\n" );
+        printf ( "-------------------------------------\n" );
+        printf ( "#include <idc.idc>\n" );
+        printf ( "static main()\n" );
+        printf ( "{\n" );
+    }
+    
+    offset = MEM_AUTO;
+    while ( offset != E_FAIL )
+    {
+        offset = ARMFind (ARM_BL, offset, MEM_AUTO, LOC_FORWARD );
+        if ( offset != E_FAIL )
+        {
+            destination = ARMGet32 ( offset );
+            if(((offset & 3) == 0) && ((GetWord(offset) & 0xF0000000) == 0xE0000000) && ((destination & 0xF0000000) == 0xF0000000) && (GetWord(destination) != 0xDEADBEEF))
+            {
+                if(ida_out)
+                {
+                    printf ( "    MakeFunction ( 0x%08X, BADADDR ); /* called by 0x%08X */\n", destination, offset );
+                }
+                else
+                {
+                    printf ( "   [i] 0x%08X: ARM_BL 0x%08X\n", offset, destination );
+                }
+                SetWord(destination, 0xDEADBEEF);
+                found++;
+            }
+            
+            total++;
+            offset++;
+        }
+    }    
+    if ( ida_out )
+    {
+        printf ( "}\n" );
+    }
+    
+    if ( !found )
+        printf ( "   [i] none found\n" );
+        
+    printf ( "   [i] %i references scanned\n", total );
+
+    return E_OK;
+}
+
+unsigned int search_stm_s ()
+{
+    unsigned int found = 0;
+    unsigned int offset = MEM_AUTO;
+    unsigned char pattern[] = { 0x00, 0x00, 0x40, 0xE8 };
+    unsigned char mask[]    = { 0x00, 0x00, 0x70, 0xFE };
+    
+
+    offset = __v_get_start ( GetWorkspace() );
+    do
+    {
+        offset = QuickFindPattern(pattern, mask, 4, offset+1, MEM_AUTO, LOC_FORWARD );
+        if ( Valid ( offset ) && ((offset & 3) == 0) )
+        {
+            printf ( "   [i] 0x%08X: DW 0x%08X\n", offset, GetWord ( offset ) );
+        }
+            
+        found++;
+    } while ( Valid ( offset ) );
+    
+    
+    return E_OK;
+}
+
 int main ()
 {
+    unsigned int destination;
+    char *csearch = NULL;
+    unsigned int err = 0;
+    
+    int repaint = 1;
+    int done = 0;
+    int command = 0;
+    char *menu[] = { "Toggle Endianess", "Rebase Segment", "Search for References", "Dump ASSERTs", "Add Parameter Refs (see source)", "Dump all ARM BLs (destructive)" };
 
-	unsigned int i;
-	unsigned int offset;
-	unsigned int search;
-	char *csearch = NULL;
-	unsigned int err = 0;
-	
-	char pattern[4];
+    if ( !GetWorkspace() || !GetWorkspace()->fileinfo )
+    {
+        UiDlgMsg ( "no file loaded", 0 );
+        return E_FAIL;
+    }
+    
+    while ( !done )
+    {
+        command = UiDlgMenu ( "Menu", menu, UI_OPT_QUIT | (repaint?0:UI_OPT_NOREPAINT) );
+        if ( command == 0 )
+            return E_OK;
+        repaint = 0;
 
-	if ( !GetWorkspace() )
-	{
-		UiDlgMsg ( "no file loaded", 0 );
-		return E_FAIL;
-	}
+        switch ( command )
+        {
+            case E_FAIL:
+                repaint = 1;
+                break;
+            case 0:
+                return E_OK;
+            case 1:
+                change_endianess ();
+                break;
+            case 2:
+                rebase_code ();
+                break;                
+            case 3:
+                UiDlgString ( "Which destination address should the branch/offset go to (hex)?", &csearch );
+                if ( !csearch )
+                    return E_FAIL;
+                    
+                destination = __util_hex_get ( csearch, &err );
+                if ( err )
+                    return E_FAIL;
+                
+                dump_address ( destination );
+                repaint = 1;
+                break;
+                
+            case 4:
+                UiDlgString ( "Whats the address of ASSERT function? (hex)?", &csearch );
+                if ( !csearch )
+                    return E_FAIL;
+                    
+                destination = __util_hex_get ( csearch, &err );
+                if ( err )
+                    return E_FAIL;
+                
+                dump_assert_strings ( destination, 1 );
+                repaint = 1;
+                break;
+                
+            case 5:
+                UiDlgString ( "Whats the address of the function? (hex)?", &csearch );
+                if ( !csearch )
+                    return E_FAIL;
+                    
+                destination = __util_hex_get ( csearch, &err );
+                if ( err )
+                    return E_FAIL;
+                
+                add_parameter_reference ( destination, 1 );
+                repaint = 1;
+                break;
+                
+            case 6:
+                dump_arm_bl ();
+                
+            default:
+                break;
+        }
+    }
 
-
-/* !!!!! iPhone !!!!! */
-	trix_workspace->fileinfo->stages->segments->start = 0x9FFFF65C;
-	trix_workspace->fileinfo->stages->segments->end = trix_workspace->fileinfo->stages->segments->start + trix_workspace->fileinfo->stages->segments->length;
-	WorkspaceUpdateMemmap ( trix_workspace );
-	trix_workspace->flags = FLAGS_ENDIANESS_LE;
-/* !!!!! iPhone !!!!! */
-
-
-	
-
-	UiDlgString ( "Which destination address should the branch/offset go to (hex)?", &csearch );
-	if ( !csearch )
-		return E_FAIL;
-		
-	search = __util_hex_get ( csearch, &err );
-	if ( err )
-		return E_FAIL;
-	
-	printf ( "searching for BL's\n" );
-	i = E_FAIL;
-	offset = MEM_AUTO;
-	while ( offset != E_FAIL )
-	{
-	        offset = ARMFind (BL, offset, MEM_AUTO, LOC_FORWARD );
-		if ( ARMGet ( offset ) == search )
-			printf ( "\n0x%08X: BL 0x%08X", offset, ARMGet ( offset ) );
-			
-	        if ( offset != E_FAIL )
-	        	offset++;
-	        i++;
-	}
-
-
-
-
-	
-	printf ( "\n\nsearching for address references\n" );
-
-	// searching offsets containing address
-	pattern[3] = search >> 24 & 0xFF;
-	pattern[2] = search >> 16 & 0xFF;
-	pattern[1] = search >> 8 & 0xFF;
-	pattern[1] = search & 0xFF;
-	
-	offset = __v_get_start ( GetWorkspace() );
-	do
-	{
-		offset = QuickFindPattern(pattern, "\xFF\xFF\xFF\xFF", 4, offset+1, MEM_AUTO, LOC_FORWARD );
-		if ( Valid ( offset ) )
-			printf ( "\n0x%08X: 0x%08X", offset, GetWord ( offset ) );
-	} while ( Valid ( offset ) );
-	
-	
-	
-	
-	
-	printf ( "\n\nsearching for thumb address references\n" );
-
-	// searching offsets containing address + 1 (thumb mode bx)
-	pattern[3] = search + 1 >> 24 & 0xFF;
-	pattern[2] = search + 1 >> 16 & 0xFF;
-	pattern[1] = search + 1 & 0xFF;
-	pattern[0] = search + 1 >> 8 & 0xFF;
-	
-	offset = __v_get_start ( GetWorkspace() );
-	do
-	{
-		offset = QuickFindPattern(pattern, "\xFF\xFF\xFF\xFF", 4, offset+1, MEM_AUTO, LOC_FORWARD );
-		if ( Valid ( offset ) )
-			printf ( "\n0x%08X: 0x%08X", offset, GetWord ( offset ) );
-	} while ( Valid ( offset ) );
-		
-	printf ( "\ntotally checked %d BL's\n\n", i );
-	
-	return 0;
-	
+    return E_OK;
 }

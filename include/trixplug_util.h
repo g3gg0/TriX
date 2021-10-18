@@ -13,9 +13,6 @@ struct util_funcs
 	char *(*hexpack) ( unsigned char *data, int bytes);
 	char *(*hexunpack) ( char *data, int *length);
 	char *(*split) ( char *string, unsigned char seperator, int which);
-	int (*debug_msg) ( int level, char *str, ...);
-	int (*error_msg) ( int level, char *str, ...);
-	int (*printf_) ( char *str, ...);
 	t_list *(*list_add_new) ( t_list * l1, int size, char *name);
 	t_list *(*list_get_last) ( t_list * l);
 	t_segment *(*v_get_segment) ( t_workspace * ws, unsigned int address);
@@ -76,6 +73,11 @@ struct util_funcs
 	void (*set_debuglevel) ( int lvl);
 	void (*set_errorlevel) ( int lvl);
 	void *(*smalloc) ( int size, char *name);
+	int (*script_is_aborted) ( );
+ 	unsigned int (*v_set_b_raw) ( t_stage * s, unsigned int address, unsigned int value);
+ 	unsigned int (*v_set_h_raw) ( t_stage * s, unsigned int address, unsigned int value);
+ 	unsigned int (*v_set_w_raw) ( t_stage * s, unsigned int address, unsigned int value);
+ 	void *(*smalloc_init) ( void *ptr, int size, char *name);
 };
 
 /* trixplug struct initializer */
@@ -91,7 +93,9 @@ unsigned int util_plug_init ( ) \
 	ft->util->init = util_init;\
 	ft->util->set_debuglevel = util_set_debuglevel;\
 	ft->util->set_errorlevel = util_set_errorlevel;\
+	ft->util->script_is_aborted = util_script_is_aborted;\
 	ft->util->get_line = util_get_line;\
+	ft->util->smalloc_init = util_smalloc_init;\
 	ft->util->smalloc = util_smalloc;\
 	ft->util->dump_bytes = util_dump_bytes;\
 	ft->util->v_cache_update = v_cache_update;\
@@ -104,6 +108,9 @@ unsigned int util_plug_init ( ) \
 	ft->util->v_set_b = v_set_b;\
 	ft->util->v_set_h = v_set_h;\
 	ft->util->v_set_w = v_set_w;\
+	ft->util->v_set_b_raw = v_set_b_raw;\
+	ft->util->v_set_h_raw = v_set_h_raw;\
+	ft->util->v_set_w_raw = v_set_w_raw;\
 	ft->util->v_get_b = v_get_b;\
 	ft->util->v_get_h = v_get_h;\
 	ft->util->v_get_w = v_get_w;\
@@ -132,9 +139,6 @@ unsigned int util_plug_init ( ) \
 	ft->util->hex_get_buffer = util_hex_get_buffer;\
 	ft->util->hexunpack = util_hexunpack;\
 	ft->util->hexpack = util_hexpack;\
-	ft->util->debug_msg = util_debug_msg;\
-	ft->util->error_msg = util_error_msg;\
-	ft->util->printf_ = util_printf_;\
 	ft->util->list_get_last = util_list_get_last;\
 	ft->util->list_add = util_list_add;\
 	ft->util->list_add_new = util_list_add_new;\

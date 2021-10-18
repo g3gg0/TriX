@@ -1,5 +1,5 @@
 #! /bin/sh
-# $Id: checklist9,v 1.1 2006/06/28 13:53:39 geggo Exp $
+# $Id: checklist9 1521 2006-06-28 13:53:39Z geggo $
 # "checklist8" using --file
 : ${DIALOG=dialog}
 

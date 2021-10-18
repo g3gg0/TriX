@@ -11,7 +11,7 @@
 ************************************************************************/
 
 #ifndef __inline__
-#ifdef WIN32 && defined _MSC_VER
+#if defined(WIN32) && defined (_MSC_VER)
 #define __inline__      __inline
 #else
 #define __inline__      inline

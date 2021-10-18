@@ -50,7 +50,7 @@ unsigned int bitstream_current_bit = 0;
 
 int bitstream_init ( const unsigned char *data, unsigned int length )
 {
-	if ( !data && !length )
+	if ( !data || !length )
 		return E_FAIL;
 
 	if ( bitstream_data )
@@ -131,7 +131,6 @@ int e32image_deflate_readcode ( const int *tree, unsigned char *err )
 {
 	int pos = 0;
 	int code = 0;
-	//unsigned char err = 0;
 
 	while ( (code = tree[2*pos + bitstream_get_bit ( err )]) > 0 )
 	{
@@ -146,12 +145,11 @@ int e32image_deflate_readcode ( const int *tree, unsigned char *err )
 	return -code;
 }
 
-unsigned char *e32image_deflate_readtree ( unsigned char *xlat, int length )
+unsigned char *e32image_deflate_readtree ( unsigned char *xlat, int length, int *dec_size )
 {
 	int count = 0;
 	unsigned char code = 0;
 	unsigned char last = 0;
-	unsigned char tmp;
 	unsigned char *buf = NULL;
 
 	unsigned char err = 0;
@@ -176,25 +174,62 @@ unsigned char *e32image_deflate_readtree ( unsigned char *xlat, int length )
 			return NULL;
 		}
 
-		if ( code > 1 )
+		if ( code < 2 )			
 		{
-			for ( ; count > 0; count-- )
-				buf[pos++] = last;
-			code -= 2;
-			tmp = xlat[code];
+			count = count * 2 + code + 1;
+		}
+		else
+		{
+			while (count > 0)
+			{
+				if(pos < length)
+				{
+					buf[pos] = last;
+				}
+				else
+				{
+					ERR(0, "e32image_deflate_readtree: decompressed beyond end?!");
+				}
+				pos++;
+				count--;
+			}
+
+			code--;
+			xlat[0] = last;
+			last = xlat[code];
+
 			if ( code > 0 )
 			{
 				memmove ( xlat+1, xlat, code );
-				//printf ( "e32image_deflate_readtree: Array.Copy\n" );
 			}
-			xlat[0] = last;
-			last = tmp;
-			buf[pos++] = last;
+
+			if(pos < length)
+			{
+				buf[pos] = last;
+			}
+			else
+			{
+				ERR(0, "e32image_deflate_readtree: decompressed beyond end?!");
+			}
+			pos++;
 		}
-		else
-			count = count * 2 + code + 1;
 	}
 
+	while (count > 0)
+	{
+		if(pos < length)
+		{
+			buf[pos] = last;
+		}
+		else
+		{
+			ERR(0, "e32image_deflate_readtree: decompressed beyond end?!");
+		}
+		pos++;
+		count--;
+	}
+
+	*dec_size = pos;
 	return buf;
 }
 
@@ -206,7 +241,7 @@ int e32image_deflate_build_decompress_tree ( unsigned char *lengths, unsigned in
 	int maxlength = 0;
 	int valcount = 0;
 	int valsum = 0;
-	int testval = 1 << MAX_FIXED_LENGTH;
+	int testval = (1 << MAX_FIXED_LENGTH);
 	int i;
 
 	int value = 0;
@@ -223,13 +258,23 @@ int e32image_deflate_build_decompress_tree ( unsigned char *lengths, unsigned in
 		return E_FAIL;
 
 	// get max and min lengths
-	for ( i = 0; i < lenghts_length; i++ )
+	for ( i = (lenghts_length - 1); i >= 0; i-- )
 	{
-		if ( lengths[i] )
+		unsigned char len = lengths[i];
+
+		if ( len )
 		{
+			unsigned int c = 1 << (MAX_FIXED_LENGTH - len);
+
+			if(len > MAX_FIXED_LENGTH || c > testval)
+			{
+				return E_FAIL;
+			}
+
 			valcount++;
-			valsum += lengths[i];
-			testval -= 1 << MAX_FIXED_LENGTH - lengths[i];
+			valsum += len;
+			testval -= c;
+
 			if ( lengths[i] > maxlength )
 				maxlength = lengths[i];
 			if ( lengths[i] < minlength )
@@ -237,6 +282,7 @@ int e32image_deflate_build_decompress_tree ( unsigned char *lengths, unsigned in
 		}
 	}
 	
+	//mem_check_all();
 
 	if ( testval || maxlength > MAX_FIXED_LENGTH )
 		return E_FAIL;
@@ -255,13 +301,17 @@ int e32image_deflate_build_decompress_tree ( unsigned char *lengths, unsigned in
 				current = 0;
 				for ( len = lengths[pos] - 1; len >= 0; len-- )
 				{
-					bit = value >> len & 1;
+					bit = (value >> len) & 1;
 					if ( !len )
+					{
 						(*tree)[current*2+bit] = -pos;
+					}
 					else
 					{
 						if ( (*tree)[current*2+bit] == 0 )
+						{
 							(*tree)[current*2+bit] = next++ - current;
+						}
 						current += (*tree)[current*2+bit];
 					}
 				}
@@ -269,6 +319,8 @@ int e32image_deflate_build_decompress_tree ( unsigned char *lengths, unsigned in
 			}
 		}
 	}
+
+	//mem_check_all();
 
 	tmp = valcount;
 	for ( i = 0; i < (tmp-1)*2; i++ )
@@ -293,23 +345,21 @@ int *distancetree;
 int e32image_deflate_init ( unsigned char *data )
 {
 	int i;
+	int dec_size = 0;
 	unsigned char *tmp;
 	
-	xlat[0] = 0;
-
 	for ( i = 0; i < MAX_FIXED_LENGTH; i++ )
-		xlat[i] = i + 1;
-
+		xlat[i] = i;
 	
 
 	// read lengths table/tree
-	if ( !(tmp = e32image_deflate_readtree ( xlat, LITERALS_COUNT )) )
+	if ( !(tmp = e32image_deflate_readtree ( xlat, LITERALS_COUNT, &dec_size )) )
 		return E_FAIL;
 	if ( e32image_deflate_build_decompress_tree ( tmp, LITERALS_COUNT, &literaltree ) != E_OK )
 		return E_FAIL;
 	free ( tmp );
 
-	if ( !(tmp = e32image_deflate_readtree ( xlat, DISTANCES_COUNT ) ) )
+	if ( !(tmp = e32image_deflate_readtree ( xlat, DISTANCES_COUNT, &dec_size ) ) )
 		return E_FAIL;
 	if ( e32image_deflate_build_decompress_tree ( tmp, DISTANCES_COUNT, &distancetree ) != E_OK )
 		return E_FAIL;
@@ -321,8 +371,13 @@ int e32image_deflate_init ( unsigned char *data )
 /* free both trees */
 void e32image_deflate_free ( )
 {
-	free ( literaltree );
-	free ( distancetree );
+	if(literaltree)
+		free ( literaltree );
+	if(distancetree)
+		free ( distancetree );
+
+	literaltree = NULL;
+	distancetree = NULL;
 }
 
 
@@ -335,7 +390,10 @@ int e32image_deflate_extendedcode ( unsigned int code, unsigned char *err )
 	{
 		bits = (unsigned char)((code >> 2) - 1);
 		code -= bits << 2;
-		ret = code << bits | bitstream_get_bits ( bits, err );
+
+		ret = code << bits;
+		ret |= bitstream_get_bits ( bits, err );
+
 		if ( *err )
 		{
 			printf ( "e32image_deflate_extendedcode: error getting bits\n" );
@@ -348,14 +406,16 @@ int e32image_deflate_extendedcode ( unsigned int code, unsigned char *err )
 
 unsigned int e32image_deflate_decode (unsigned char **buffer, unsigned int total_size, unsigned char *data )
 {
-	unsigned int code;
+	int code;
 	int pos = 0;
 	int distance;
 	int length;
 
 	unsigned char err = 0;
 
-	unsigned char *buf = (unsigned char*)malloc ( bitstream_available_bits() );
+	/* HACK: allocate more. i have no idea how to determine the real length. else some files cause errors. */
+	unsigned int avail = bitstream_available_bits();
+	unsigned char *buf = (unsigned char*)malloc ( 10 * avail );
 	*buffer = buf;
 
 	//total_size = bitstream_available_bits() / 8;
@@ -369,13 +429,28 @@ unsigned int e32image_deflate_decode (unsigned char **buffer, unsigned int total
 			*buffer = NULL;
 			return E_FAIL;
 		}
+
 		if ( code == END_OF_STREAM )
 			break;
+
 		if ( code < 0x100 )
-			buf[pos++] = (unsigned char)(code & 0xFF);
+		{
+			if(pos < avail)
+			{
+				buf[pos] = (unsigned char)(code & 0xFF);
+			}
+			else
+			{
+				/* accessing beyond end */
+				ERR(1,"e32image_deflate_decode: tried to write beyond buffer length");
+			}
+			pos++;
+		}
 		else
 		{
-			length = e32image_deflate_extendedcode ( code - 0x100, &err ) + 3;
+			code -= 0x100;
+
+			length = e32image_deflate_extendedcode ( code, &err ) + 3;
 			if ( err )
 			{
 				free ( buf );
@@ -400,7 +475,27 @@ unsigned int e32image_deflate_decode (unsigned char **buffer, unsigned int total
 			}
 
 			while ( length-- > 0 )
-				buf[pos] = buf[pos++ - distance];
+			{
+				if(pos < avail)
+				{
+					if(pos - distance > 0)
+					{
+						buf[pos] = buf[pos - distance];
+					}
+					else
+					{
+						/* wow ok thats evil :) */
+						buf[pos] = 0xEE;
+						ERR(1,"e32image_deflate_decode: tried to read in front of buffer");
+					}
+				}
+				else
+				{
+					/* accessing beyond end */
+					ERR(1,"e32image_deflate_decode: tried to write beyond buffer length");
+				}
+				pos++;
+			}
 		}
 	}
 

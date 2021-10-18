@@ -1,5 +1,5 @@
 /*
- *  $Id: inputbox.c,v 1.1 2006/06/28 13:53:39 geggo Exp $
+ *  $Id: inputbox.c 1521 2006-06-28 13:53:39Z geggo $
  *
  *  inputbox.c -- implements the input box
  *

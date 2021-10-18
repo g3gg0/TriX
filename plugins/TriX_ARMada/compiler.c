@@ -8,6 +8,21 @@
 
 char path[512];
 
+unsigned char* string_uppercase ( unsigned char *string )
+{
+	unsigned char *ret = string;
+
+    while ( *string )
+    {
+		if ( *string >= 'a' && *string <= 'z' )
+			*string -= 0x20;
+		string++;
+    }
+
+	return ret;
+}
+
+
 int set_path ( char* p )
 {
 	return (strcpy ( path, p )?1:0);
@@ -294,7 +309,7 @@ int _httoi( char *value, int *ret )
   if ( !value )
 	  return -1;
 
-  mstr = strupr(strdup(value));
+  mstr = string_uppercase(strdup(value));
   s = mstr;
 
   *ret = 0;
@@ -427,6 +442,10 @@ unsigned int pt32 ( char *p )
 	if ( !p )
 		return PARM_UNK;
 
+	if ( !strcmp ( p, "PC" ) )
+		return PARM_REG32;
+	if ( !strcmp ( p, "LR" ) )
+		return PARM_REG32;
 	if ( !strcmp ( p, "CPSR" ) )
 		return PARM_REG_CPSR;
 	if ( !strcmp ( p, "CPSR_FLG" ) )
@@ -1025,7 +1044,8 @@ int comp_type5 ( struct code_data *c, char *t, unsigned short type )
 	r1  = reg ( p1 );
 	r2  = reg ( p2 );
 
-	if ( type == TYPE5_BXR || type == TYPE5_BXH )
+	if ( type == TYPE5_BXR || type == TYPE5_BXH ||
+        type == TYPE5_BLXR || type == TYPE5_BLXH )
 	{
 		//  target address is in Rs
 		r2 = r1;
@@ -1089,13 +1109,13 @@ int comp_type6 ( struct code_data *c, char *t, unsigned short type )
 	else
 		free ( p2 );
 
-	if ( pos & 3 )
+	if ( (c->start + pos) & 3 )
 		return -E_WRONG_DALIGN;
 
 	if ( c->bytes & 1 )
 		pos--;
 
-	v = (unsigned int)( pos / 4 ) - ( c->bytes / 4 ) - 1;
+	v = (unsigned int)( (c->start + pos ) / 4 ) - ( ( c->start + c->bytes ) / 4 ) - 1;
 
     if ( (v & 0xFF) != v )
 		return -E_INV_VAL;
@@ -1243,7 +1263,7 @@ int comp_type9 ( struct code_data *c, char *t, unsigned short type )
 
 	if ( type == TYPE9_STR || type == TYPE9_LDR )
 	{
-		if ( o & 3 )
+		if ( (c->start + o) & 3 )
 			return -E_INV_VAL_ALIGN;
 
 		o = o>>2;
@@ -1298,7 +1318,7 @@ int comp_type10 ( struct code_data *c, char *t, unsigned short type )
 	free ( p2 );
 	free ( p3 );
 
-	if ( o & 1 )
+	if ( (c->start + o) & 1 )
 		return -E_INV_VAL_ALIGN;
 
 	o = o>>1;
@@ -1355,7 +1375,7 @@ int comp_type11 ( struct code_data *c, char *t, unsigned short type )
 	if ( rb != REG_R13 )
 		return -E_INV_REG;
 
-	if ( o & 3 )
+	if ( (c->start + o) & 3 )
 		return -E_INV_VAL_ALIGN;
 
 	o = o>>2;
@@ -1379,6 +1399,7 @@ int comp_type12 ( struct code_data *c, char *t, unsigned short type )
 {
 	char *p1 = NULL;
 	char *p2 = NULL;
+	char *p3 = NULL;
 	unsigned long  v   = 0;
 	unsigned int   r   = 0;
 	unsigned short word = 0;
@@ -1387,23 +1408,26 @@ int comp_type12 ( struct code_data *c, char *t, unsigned short type )
 
 	p1 = strdup(getparm ( t, 1 ));
 	p2 = strdup(getparm ( t, 2 ));
+	p3 = strdup(getparm ( t, 3 ));
 
-	if ( pt ( p1 ) != PARM_REG || pt ( p2 ) != PARM_VAL )
+	if ( pt ( p1 ) != PARM_REG || pt ( p2 ) != PARM_REG_HI || pt ( p3 ) != PARM_VAL )
     {
 	    free ( p1 );
 	    free ( p2 );
+	    free ( p3 );
         return -E_WRONG_PARM;
     }
 
 	r   = reg ( p1 );
-	v   = val ( p2 );
+	v   = val ( p3 );
 
 	free ( p1 );
-	free ( p2 );
+    free ( p2 );
+	free ( p3 );
 
 	c->data = realloc ( c->data, c->bytes + 200 );
 
-	if ( v & 3 )
+	if ( (c->start + v) & 3 )
 		return -E_INV_VAL_ALIGN;
 
 	v = v >> 2;
@@ -1461,7 +1485,7 @@ int comp_type12_mark ( struct code_data *c, char *t, unsigned short type )
 
 
 	// dword (32 bit) alignment of the target data
-	if ( pos & 3 )
+	if ( (c->start + pos) & 3 )
 		return -E_INV_VAL_ALIGN;
 
 	// PC is always up to 4 bytes ahead the current opcode (prefetch) 
@@ -1470,11 +1494,11 @@ int comp_type12_mark ( struct code_data *c, char *t, unsigned short type )
 		return -E_SHORT_DISTANCE;
 
 	// distance is maximal 0x0100 dwords (be aware of the already advanced PC)
-	if ( (pos >> 2) - (c->bytes >> 2) > 0x0100 )
+	if ( ((c->start + pos) >> 2) - ((c->start + c->bytes) >> 2) > 0x0100 )
 		return -E_LONG_DISTANCE;
 
 	// minus 1 because of the advanced PC
-	rel = ((int)(pos >> 2) - (int)(c->bytes >> 2)) - 1;
+	rel = ((int)((c->start + pos) >> 2) - (int)((c->start + c->bytes) >> 2)) - 1;
 	v = (unsigned int)rel;
 
 	c->data = realloc ( c->data, c->bytes + 200 );
@@ -1511,7 +1535,7 @@ int comp_type13 ( struct code_data *c, char *t, unsigned short type )
 
 	v   = val ( p1 );
 
-	if ( v & 3 )
+	if ( (c->start + v) & 3 )
 		return -E_INV_VAL_ALIGN;
 
 	v = v >> 2;
@@ -1520,7 +1544,7 @@ int comp_type13 ( struct code_data *c, char *t, unsigned short type )
 
 	c->data = realloc ( c->data, c->bytes + 200 );
 
-    if ( (v & 0x3F) != v )
+    if ( (v & 0x7F) != v )
 		return -E_INV_VAL;
 
 	word = TYPE13 | type | (unsigned short) v;
@@ -1900,19 +1924,26 @@ int   comp_uni     ( struct code_data *c, char *t, int cmd )
 
 	for ( i=0; i<strlen ( getparm ( t, 1 )); i++ )
 	{
-		uni[2*i]   = '\000';
-		uni[2*i+1] = text[i];
+      if ( c->endianess ) // LE
+      {
+		   uni[2*i]   = text[i];
+		   uni[2*i+1] = '\000';
+      }
+      else
+      {
+		   uni[2*i]   = '\000';
+		   uni[2*i+1] = text[i];
+      }
 	}
 
 	c->data = realloc ( c->data, c->bytes + len + 200 );
 	
-	for ( i=0; i<strlen ( getparm ( t, 1 )); i++ )
+	for ( i=0; i<2*strlen ( getparm ( t, 1 )); i++ )
 	{
 		c->data[c->bytes] = uni[i];
 		c->bytes++;
 	}
 	pos = 2;
-	i *= 2;
 	while ( i++ < len )
 	{
 		if ( pt ( getparm ( t, pos ) ) != PARM_VAL )
@@ -1998,11 +2029,15 @@ int   comp_ens     ( struct code_data *c, char *t, int cmd )
 {
 	char *text = strdup ( t );
 
-	strupr ( text );
+	string_uppercase ( text );
 	c->endianess = -1;
 	if ( !strcmp ( text, "BIG_ENDIAN" ) )
 		c->endianess = ENDIAN_BE;
 	if ( !strcmp ( text, "LITTLE_ENDIAN" ) )
+		c->endianess = ENDIAN_LE;
+	if ( !strcmp ( text, "BE" ) )
+		c->endianess = ENDIAN_BE;
+	if ( !strcmp ( text, "LE" ) )
 		c->endianess = ENDIAN_LE;
 	free ( text );
 
@@ -2127,7 +2162,7 @@ int   comp_align     ( struct code_data *c, char *t, int cmd )
 
 
 	// get the length
-	len = val - (c->bytepos & (val-1));
+	len = val - ((c->start + c->bytepos ) & (val-1));
 
 	if ( val == len )
 		len = 0;
@@ -2174,7 +2209,7 @@ int   comp_org     ( struct code_data *c, char *t, int cmd )
 
 	add_import_global ( c->name, c->start );
 
-	if ( val & 0x03 )
+	if ( val & 0x03 && cmd == CMD_PRECOMPILE  )
 		add_warning ( c, "\r\n      IMPORTANT: \r\n      You are trying to place data at a NON-ALIGNED position.\r\n      This causes unpredictable behaviour when using ADR and LDR opcodes.\r\n      Please use DWORD (32-bit) aligned addresses!!\r\n      (if you're just patching some bytes, it should work okay)", c->current_line );
 
 	return 0;
@@ -2189,6 +2224,12 @@ int   comp_hex     ( struct code_data *c, char *t, int cmd )
 int   comp_trix     ( struct code_data *c, char *t, int cmd )
 {
 	c->mode = MODE_TRIX;
+	return 0;
+}
+
+int   comp_nrx     ( struct code_data *c, char *t, int cmd )
+{
+	c->mode = MODE_NRX;
 	return 0;
 }
 
@@ -2385,8 +2426,16 @@ int   comp_b       ( struct code_data *c, char *t, int cmd )
 
 	return ret;
 }
-
+int   comp_blx     ( struct code_data *c, char *t, int cmd )
+{
+	return comp_bl_blx (c, t, cmd, TYPE19_BLX);
+}
 int   comp_bl      ( struct code_data *c, char *t, int cmd )
+{
+	return comp_bl_blx (c, t, cmd, TYPE19_BL);
+}
+
+int   comp_bl_blx  ( struct code_data *c, char *t, int cmd, int type )
 {
 	unsigned long src = 0;
 	unsigned long dst = 0;
@@ -2394,7 +2443,8 @@ int   comp_bl      ( struct code_data *c, char *t, int cmd )
 	char *addr = NULL;
 	int val = 0;
 	char *tmp = NULL;
-	int ok = 0;
+	int ret_code = 0;
+	int resolved = 0;
 
 	c->data = realloc ( c->data, c->bytes + 200 + 200 );
 	addr = getparm ( t, 1 );
@@ -2403,35 +2453,32 @@ int   comp_bl      ( struct code_data *c, char *t, int cmd )
 	{
 		dst = get_label ( c, addr );
 		if ( dst != C_ERR )
-			asm_inject_bl(c->data, (void*)c->bytes, (void*)c->bytes, (void*)dst);  
+		{
+			asm_inject_bl(c, c->bytes, dst, type);  
+		}
 		else
 		{
 			dst = get_import ( c, addr + 1 );
 			if ( dst != C_ERR )  // if not found, use import name which is absolute
 			{
 				src = c->bytes + c->start;
-				asm_inject_bl(c->data, (void*)c->bytes, (void*)src, (void*)dst);  
+				ret_code = asm_inject_bl(c, src, dst, type);  
 			}
 			else // not found, add to BL list
 			{
 				add_func ( c, addr, c->bytes );
-				word = TYPE19 | TYPE19_HI;
-				c->data[c->bytes] = (word & 0xFF00) >> 8;
-				c->data[c->bytes+1] = (word & 0x00FF);
-				word = TYPE19 | TYPE19_LO;
-				c->data[c->bytes+2] = (word & 0xFF00) >> 8;
-				c->data[c->bytes+3] = (word & 0x00FF);
+				ret_code = asm_inject_bl(c, src, src + 4, type);  
 			}
 		}
-		ok = 1;
+		resolved = 1;
 	}
 	else if ( addr[0] == '$' )    // direct address jump
 	{
 		src = c->bytes + c->start;
 		_httoi ( addr + 1, &val );
 		dst = val;
-		asm_inject_bl(c->data, (void*)c->bytes, (void*)src, (void*)dst);  
-		ok = 1;
+		ret_code = asm_inject_bl(c, src, dst, type);  
+		resolved = 1;
 	}
 	else if ( addr[0] == '_' )    // just use import name which is absolute
 	{
@@ -2439,12 +2486,12 @@ int   comp_bl      ( struct code_data *c, char *t, int cmd )
 		dst = get_import ( c, addr + 1 );
 		if ( dst != C_ERR )
 		{
-			asm_inject_bl(c->data, (void*)c->bytes, (void*)src, (void*)dst);  
-			ok = 1;
+			ret_code = asm_inject_bl(c, src, dst, type); 
+			resolved = 1;
 		}
 	}
 
-	if ( !ok )
+	if ( !resolved )
 	{
 		tmp = malloc ( strlen ( addr ) + 200 );
 		sprintf ( tmp, "The symbol '%s' could not be resolved\r\n", addr );
@@ -2453,65 +2500,39 @@ int   comp_bl      ( struct code_data *c, char *t, int cmd )
 		return -E_WRONG_PARM;
 	}
 	
-	set_endianess ( c, 2 );
-	c->bytes += 2;
-	set_endianess ( c, 2 );
-	c->bytes += 2;
 
-	return 4;
+	return ret_code;
 }
 
-int asm_inject_bl ( void * base, void *offset, void *src, void * jmp_addr )
+int asm_inject_bl ( struct code_data *c, unsigned int src, unsigned int jmp_addr, int type )
 {
-    unsigned int bytes = ((int)jmp_addr - (int)src) & 0x7fffff;
-    unsigned char * cur = (unsigned char *)((unsigned int) base + (unsigned int) offset);
-    char byte = 0;
+	int delta = (int)jmp_addr - (int)(src + 4);
+	unsigned int word = 0;
 
+	if(delta > 0x400000 || delta < -0x400000)
+	{
+		add_error ( c, "BL destination is out of range (ARM THUMB BL does not allow more than 0x400000 byte range)", c->current_line );
+		return -E_WRONG_PARM;
+	}
+	
+	word = (type | TYPE19_HI);
+	word |= (delta >> 12) & 0x7FF;
 
-    bytes -= 4;
+	c->data[c->bytes] = (word & 0xFF00) >> 8;
+	c->data[c->bytes+1] = (word & 0x00FF);
 
-	byte = (char) (((TYPE19 | TYPE19_HI) >> 8 ) & 0xFF);
-	while ( bytes >= 0x100000 )
-	{
-	    byte = byte + 0x1;
-	    bytes -= 0x100000;
-	}
-	cur[0] = byte;
-	byte = 0;
-	while ( bytes >= 0x10000 )
-	{
-	    byte = byte + 0x10;
-	    bytes -= 0x10000;
-	}
-	while ( bytes >= 0x1000 )
-	{
-	    byte = byte + 0x1;
-	    bytes -= 0x1000;
-	}
-	cur[1] = byte;
-	byte = (char) (((TYPE19 | TYPE19_LO) >> 8 ) & 0xFF);;
-	while ( bytes >= 0x200 )
-	{
-	    byte = byte + 0x1;
-	    bytes -= 0x200;
-	}
-	cur[2] = byte;
-	byte = 0;
-	while ( bytes >= 0x20 )
-	{
-	    byte = byte + 0x10;
-	    bytes -= 0x20;
-	}
-	while ( bytes >= 0x2 )
-	{
-	    byte = byte + 0x1;
-	    bytes -= 2;
-	}
-	cur[3] = byte;
+	set_endianess ( c, 2 );
+	c->bytes += 2;
+		
+	word = (type | TYPE19_LO);
+	word |= (delta >> 1) & 0x7FF;
 
-    return 1;
+	c->data[c->bytes] = (word & 0xFF00) >> 8;
+	c->data[c->bytes+1] = (word & 0x00FF);
+
+	set_endianess ( c, 2 );
+	c->bytes += 2;
 }
-
 
 int   comp_subr     ( struct code_data *c, char *t, int cmd )
 {
@@ -3139,7 +3160,22 @@ int   comp_bxh    ( struct code_data *c, char *t, int cmd )
 
 	return ret;
 }
+int   comp_blxr   ( struct code_data *c, char *t, int cmd )
+{
+	int ret = 0;
 
+	ret = comp_type5 ( c, t, TYPE5_BLXR );
+
+	return ret;
+}
+int   comp_blxh   ( struct code_data *c, char *t, int cmd )
+{
+	int ret = 0;
+
+	ret = comp_type5 ( c, t, TYPE5_BLXH );
+
+	return ret;
+}
 
 
 int   comp_ldrsp    ( struct code_data *c, char *t, int cmd )
@@ -4041,6 +4077,9 @@ int get_ldr_str_address ( unsigned char *string, unsigned int *flags, unsigned i
 	rn = reg32 ( rn_str );
 	free ( rn_str );
 
+	if ( rn == REG32_UNK )
+		return -E_WRONG_PARM;
+
 	// skip spaces
 	while ( string[pos] == ' ' )
 		pos++;
@@ -4057,7 +4096,11 @@ int get_ldr_str_address ( unsigned char *string, unsigned int *flags, unsigned i
 
 		// [Rn]
 		if ( string[pos] == '\000' )
-			return 0;
+		{
+			(*flags) |= 0x18; // to have same behaviour as if there were a [Rn,#0]
+			(*offset) = 0;
+			return rn;
+		}
 	}
 	else
 		pre_indexed = 1;
@@ -4196,16 +4239,20 @@ int   comp32_ldr_str      ( struct code_data *c, char *t, int cmd, int load )
 {
 	unsigned char *parm = NULL;
 	unsigned char *offset_string = NULL;
-	unsigned int   rd  = 0;
-	unsigned int   rn  = 0;
-	unsigned int   rm  = 0;
-	unsigned int dword = TYPE32_LDR_STR | COND(c);
-	unsigned int flags = 0;
+	unsigned int   rd   = 0;
+	unsigned int   rn   = 0;
+	unsigned int   rm   = 0;
+	unsigned int   pos  = 0;
+	unsigned int dword  = TYPE32_LDR_STR | COND(c);
+	unsigned int flags  = 0;
 	unsigned int offset = 0;
 	int ret = 0;
 
 
 	ALIGN_4;
+
+	if ( cmd == CMD_PRECOMPILE )
+		return 4;
 
 	parm = strdup(getparm ( t, 1 ));
 	if ( pt32 ( parm ) != PARM_REG32 )
@@ -4220,7 +4267,47 @@ int   comp32_ldr_str      ( struct code_data *c, char *t, int cmd, int load )
 	free ( parm );
 
 	ret = get_ldr_str_address ( offset_string, &flags, &offset );
+
+	if ( ret < 0 )
+	{
+		unsigned char *label = offset_string;
+		int relative = 0;
+
+		while ( (*label) != '\000' && (*label) == ' ' )
+			label++;
+
+		pos = get_label ( c, label );
+
+		if ( pos == C_ERR )
+		{
+			pos = get_import ( c, label + 1 );
+			if ( pos == C_ERR )
+			{
+				free ( offset_string );
+				return -E_WRONG_PARM;
+			}
+			pos -= c->start;
+		}
+
+		relative = pos - c->bytes;
+		relative -= 8;
+
+		if ( relative > 0 )
+		{
+			flags |= 0x18;
+			offset = relative;
+		}
+		else
+		{
+			flags |= 0x10;
+			offset = -relative;
+		}
+
+		ret = REG32_R15;
+	}
+
 	free ( offset_string );
+
 
 	if ( ret < 0 )
 		return ret;
@@ -4285,6 +4372,7 @@ int get_ldrh_strh_address ( unsigned char *string, unsigned int *flags, unsigned
 
 	while ( *string == ' ' )
 		string++;
+
 	if ( *string != '[' )
 		return -E_WRONG_PARM;
 
@@ -4298,6 +4386,9 @@ int get_ldrh_strh_address ( unsigned char *string, unsigned int *flags, unsigned
 	rn_str[pos] = '\000';
 	rn = reg32 ( rn_str );
 	free ( rn_str );
+
+	if ( rn == REG32_UNK )
+		return -E_WRONG_PARM;
 
 	// skip spaces
 	while ( string[pos] == ' ' )
@@ -4316,8 +4407,8 @@ int get_ldrh_strh_address ( unsigned char *string, unsigned int *flags, unsigned
 		// [Rn]
 		if ( string[pos] == '\000' )
 		{
-			// immediate offset
-			(*flags) |= 0x04;
+			(*flags) |= 0x18; // to have same behaviour as if there were a [Rn,#0]
+			(*offset) = 0;
 			return rn;
 		}
 	}
@@ -4450,6 +4541,7 @@ int   comp32_ldrh_strh      ( struct code_data *c, char *t, int cmd, int load )
 	unsigned int   rd  = 0;
 	unsigned int   rn  = 0;
 	unsigned int   rm  = 0;
+	unsigned int  pos  = 0;
 	unsigned int dword = TYPE32_LDRH_STRH | COND(c);
 	unsigned int flags = 0;
 	unsigned int offset = 0;
@@ -4457,6 +4549,9 @@ int   comp32_ldrh_strh      ( struct code_data *c, char *t, int cmd, int load )
 
 
 	ALIGN_4;
+
+	if ( cmd == CMD_PRECOMPILE )
+		return 4;
 
 	parm = strdup(getparm ( t, 1 ));
 	if ( pt32 ( parm ) != PARM_REG32 )
@@ -4471,6 +4566,45 @@ int   comp32_ldrh_strh      ( struct code_data *c, char *t, int cmd, int load )
 	free ( parm );
 
 	ret = get_ldrh_strh_address ( offset_string, &flags, &offset );
+
+	if ( ret < 0 )
+	{
+		unsigned char *label = offset_string;
+		int relative = 0;
+
+		while ( (*label) != '\000' && (*label) == ' ' )
+			label++;
+
+		pos = get_label ( c, label );
+
+		if ( pos == C_ERR )
+		{
+			pos = get_import ( c, label + 1 );
+			if ( pos == C_ERR )
+			{
+				free ( offset_string );
+				return -E_WRONG_PARM;
+			}
+			pos -= c->start;
+		}
+
+		relative = pos - c->bytes;
+		relative -= 8;
+
+		if ( relative > 0 )
+		{
+			flags |= 0x18;
+			offset = relative;
+		}
+		else
+		{
+			flags |= 0x10;
+			offset = -relative;
+		}
+
+		ret = REG32_R15;
+	}
+
 	free ( offset_string );
 
 	if ( ret < 0 )

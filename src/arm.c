@@ -106,8 +106,8 @@ unsigned int arm_set_32 ( t_workspace *ws, unsigned int type, unsigned int offse
 
     switch ( type )
     {
-
         case ARM_BLX:
+        case ARM_BLX1:
 			cond_field = 0x0F;
 			// fall-through
 
@@ -137,13 +137,15 @@ unsigned int arm_set_32 ( t_workspace *ws, unsigned int type, unsigned int offse
 					value |= (1 << 24);
 			}
 			else
+			{
 				value |= (link_bit << 24);
+			}
 
 			v_set_w ( ws, offset, value );
 
             return E_OK;
 	
-		case BL:
+		case THUMB_BL:
 			distance = dest - (offset+4);
             if ( ABS(distance) > 4194304 )
             {
@@ -160,7 +162,7 @@ unsigned int arm_set_32 ( t_workspace *ws, unsigned int type, unsigned int offse
 
             return E_OK;
 
-        case BLX:
+        case THUMB_BLX:
 			distance = dest - (offset+4);
             if ( ABS(distance) > 4194304 )
             {
@@ -177,7 +179,7 @@ unsigned int arm_set_32 ( t_workspace *ws, unsigned int type, unsigned int offse
 
             return E_OK;
 
-        case LDR:
+        case THUMB_LDR:
             if ( dest < offset || dest - offset > 1024 )
             {
                 DBG ( DEBUG_ARM, "## %s: dest to far away\n", __FUNCTION__ );
@@ -189,7 +191,7 @@ unsigned int arm_set_32 ( t_workspace *ws, unsigned int type, unsigned int offse
 
             return E_OK;
 
-        case ADR:
+        case THUMB_ADR:
             if ( dest - offset > 1024 || dest - offset < 0 )
             {
                 DBG ( DEBUG_ARM, "## %s: dest to far away\n", __FUNCTION__ );
@@ -201,7 +203,7 @@ unsigned int arm_set_32 ( t_workspace *ws, unsigned int type, unsigned int offse
 
             return E_OK;
 
-        case B:
+        case THUMB_B:
             if ( ABS(dest-offset) > 2048 )
             {
                 DBG ( DEBUG_ARM, "## %s: dest to far away\n", __FUNCTION__ );
@@ -214,33 +216,33 @@ unsigned int arm_set_32 ( t_workspace *ws, unsigned int type, unsigned int offse
 
             return E_OK;
 
-        case BLE:
+        case THUMB_BLE:
             condition++;
-        case BGT:
+        case THUMB_BGT:
             condition++;
-        case BLT:
+        case THUMB_BLT:
             condition++;
-        case BGE:
+        case THUMB_BGE:
             condition++;
-        case BLS:
+        case THUMB_BLS:
             condition++;
-        case BHI:
+        case THUMB_BHI:
             condition++;
-        case BVC:
+        case THUMB_BVC:
             condition++;
-        case BVS:
+        case THUMB_BVS:
             condition++;
-        case BPL:
+        case THUMB_BPL:
             condition++;
-        case BMI:
+        case THUMB_BMI:
             condition++;
-        case BCC:
+        case THUMB_BCC:
             condition++;
-        case BCS:
+        case THUMB_BCS:
             condition++;
-        case BNE:
+        case THUMB_BNE:
             condition++;
-        case BEQ:
+        case THUMB_BEQ:
 			distance = dest - (offset+4);
             if ( ABS(distance) > 256 )
             {
@@ -320,6 +322,137 @@ unsigned int arm_get_bl ( t_workspace *ws, unsigned int offset )
 }
 
 //get destination of b, bl, ldr, ...
+unsigned int arm_get_32 ( t_workspace *ws, unsigned int offset )
+{
+	return arm_get_32_adv(ws, offset, ARM_DEST_VAL);
+}
+
+unsigned int arm_get_32_adv ( t_workspace *ws, unsigned int offset, unsigned int type )
+{
+    unsigned int data = 0x00;
+
+    if ( !ws || !v_valid_inline ( ws, offset) || !v_valid_inline ( ws, offset+1) || !v_valid_inline ( ws, offset+2) || !v_valid_inline ( ws, offset+3) )
+        return E_FAIL;
+
+	data = v_get_w ( ws, offset );
+
+	/* B/BL */
+	if((data & 0x0E000000) == 0x0A000000)
+	{
+		unsigned int PC = offset + 8;
+		unsigned int offset_24 = 0;
+		offset_24 = data & 0x00FFFFFF;
+		PC = PC + 4 * arm_convert_to_int(offset_24,24);
+
+		return PC;
+	}
+
+	/* MOV w/ imm */
+	if((data & 0x0FE00000) == 0x03A00000)
+	{
+		unsigned int reg = (data >> 12) & 0x0F;
+		unsigned int op = data & 0xFFF;
+		unsigned int val = 0;
+
+		unsigned int ror = op >> 8;
+		val = op & 0xFF;
+
+		while(ror)
+		{
+			val = (val >> 2) | ((val & 3) << 30);
+			ror--;
+		}
+
+		if(type == ARM_REG_RD)
+		{
+			return reg;
+		}
+		return val;
+	}
+
+	/* ADD Rx, PC, val  = ADR R2, <symbol> */
+	if((data & 0x0FFF0000) == 0x028F0000)
+	{
+		unsigned int PC = offset + 8;
+		unsigned int reg = (data >> 12) & 0x0F;
+		unsigned int op = data & 0xFFF;
+		unsigned int val = 0;
+
+		unsigned int ror = op >> 8;
+		val = op & 0xFF;
+		while(ror)
+		{
+			val = (val >> 2) | ((val & 3) << 30);
+			ror--;
+		}
+
+		if(type == ARM_REG_RD)
+		{
+			return reg;
+		}
+		return PC + val;
+	}
+
+	/* LDR Rd, [PC, val]   LDR Rd, =(value)   (immediate offset/index) */
+	if((data & 0x0E1F0000) == 0x041F0000)
+	{
+		unsigned int PC = offset + 8;
+		unsigned int reg = (data >> 12) & 0x0F;
+		unsigned int offset = data & 0xFFF;
+		unsigned int add = (data >> 23) & 1;
+		unsigned int width = (data >> 22) & 1;
+		int val = 0;
+
+		if(type == ARM_REG_RD)
+		{
+			return reg;
+		}
+
+		if(add)
+		{
+			val = offset;
+		}
+		else
+		{
+			val = -offset;
+		}
+
+		if(width)
+		{
+			return v_get_b ( ws, PC + val );
+		}
+		else
+		{
+			return v_get_w ( ws, PC + val );
+		}
+	}
+
+	/* SUB Rx, PC, val  = ADR R2, <symbol> */
+	if((data & 0x0FFF0000) == 0x024F0000)
+	{
+		unsigned int PC = offset + 8;
+		unsigned int reg = (data >> 12) & 0x0F;
+		unsigned int op = data & 0xFFF;
+		unsigned int val = 0;
+
+		unsigned int ror = op >> 8;
+		val = op & 0xFF;
+		while(ror)
+		{			
+			val = (val >> 2) | ((val & 3) << 30);
+			ror--;
+		}
+
+		if(type == ARM_REG_RD)
+		{
+			return reg;
+		}
+		return PC - val;
+	}
+	return E_FAIL;
+}
+
+//get destination of b, bl, ldr, ...
 unsigned int arm_get ( t_workspace *ws, unsigned int offset )
 {
     unsigned char byte_1 = 0x00;
@@ -350,108 +483,138 @@ unsigned int arm_get ( t_workspace *ws, unsigned int offset )
             return arm_get_bl  ( ws, offset );
         case 0x48:  //LDR
         case 0xA0:  //ADR
-            return offset +( byte_2<<2) + 2; //can only be positive!
+            return ( ( offset + 4 ) & ~3 ) + ( byte_2 << 2 ); //can only be positive!
         default:
             return E_FAIL;
     }
 
+	return E_FAIL;
+}
+
+//get destination of b, bl, ldr, ...
+unsigned int arm_get_adv ( t_workspace *ws, unsigned int offset, unsigned int type )
+{
+	switch(type)
+	{
+		case THUMB_OPCODE:
+			return arm_get(ws, offset);
+		case ARM_OPCODE:
+			return arm_get_32(ws, offset);
+	}
+
+	return E_FAIL;
 }
 
 //find next b, bl, ldr opcode
 unsigned int arm_find ( t_workspace *ws, unsigned int type, unsigned int start, unsigned int end, unsigned int direction )
 {
     t_locator loc;
-    //int found_ofs;
+    int subs = 0;
+	int pos = 0;
 
-	// big endian
-	t_locator arm_loc_bl_be =
+	// big endian templates
+	t_locator arm_loc_b =
     {
-        "arm: BL search (BE)",
+        "arm: ARM_B search (BE)",
+        "\xEA\x00\x00\x00",
+        "\x0F\x00\x00\x00",
+        4
+    };
+	t_locator arm_loc_bl =
+    {
+        "arm: ARM_BL search (BE)",
+        "\xEB\x00\x00\x00",
+        "\x0F\x00\x00\x00",
+        4
+    };
+	t_locator arm_loc_blx1 =
+    {
+        "arm: ARM_BLX1 search (BE)",
+        "\xFA\x00\x00\x00",
+        "\x0E\x00\x00\x00",
+        4
+    };
+	t_locator arm_loc_blx2 =
+    {
+        "arm: ARM_BLX2 search (BE)",
+        "\xE1\x20\x00\x00",
+        "\x0F\xF0\x00\x00",
+        4
+    };
+	t_locator arm_loc_adr =
+    {
+        "arm: ARM_ADR search (BE)",
+        "\x02\x0F\x00\x00",
+        "\x0F\x3F\x00\x00",
+        4
+    };
+	t_locator arm_loc_ldr =
+    {
+        "arm: ARM_LDR search (BE)",
+        "\x04\x1F\x00\x00",
+        "\x0E\x1F\x00\x00",
+        4
+    };
+	t_locator arm_loc_mov =
+    {
+        "arm: ARM_MOV search (BE)",
+        "\x03\xA0\x00\x00",
+        "\x0F\xE0\x00\x00",
+        4
+    };
+
+
+	t_locator thumb_loc_bl =
+    {
+        "arm: THUMB_BL search (BE)",
         "\xF0\x00\xF8\x00",
         "\xF8\x00\xF8\x00",
         4
     };
-	t_locator arm_loc_blx_be =
+	t_locator thumb_loc_blx =
     {
-        "arm: BLX search (BE)",
+        "arm: THUMB_BLX search (BE)",
         "\xF0\x00\xE8\x00",
         "\xF8\x00\xF8\x00",
         4
     };
-	t_locator arm_loc_b_be =
+	t_locator thumb_loc_b =
     {
-        "arm: B search (BE)",
+        "arm: THUMB_B search (BE)",
         "\xE0\x00",
         "\xF8\x00",
         2
     };
-    t_locator arm_loc_bcond_be =
+    t_locator thumb_loc_bcond =
     {
-        "arm: B<cond>search (BE)",
+        "arm: THUMB_B<cond>search (BE)",
         "\xFF\xFF",
         "\xFF\x00",
         2
     };
-    t_locator arm_loc_ldr_be =
+    t_locator thumb_loc_ldr =
     {
-        "arm: LDR search (BE)",
+        "arm: THUMB_LDR search (BE)",
         "\x48\x00",
         "\xF8\x00",
         2
     };
-    t_locator arm_loc_adr_be =
+    t_locator thumb_loc_adr =
     {
-        "arm: ADR search (BE)",
+        "arm: THUMB_ADR search (BE)",
         "\xA0\x00",
         "\xF8\x00",
         2
     };
-
-	// little endian
-    t_locator arm_loc_bl_le =
-    {
-        "arm: BL search (LE)",
-        "\x00\xF0\x00\xF8",
-        "\x00\xF8\x00\xF8",
-        4
-    };
-    t_locator arm_loc_blx_le =
-    {
-        "arm: BLX search (LE)",
-        "\x00\xF0\x00\xE8",
-        "\x00\xF8\x00\xF8",
-        4
-    };
-	t_locator arm_loc_b_le =
-    {
-        "arm: B search (LE)",
-        "\x00\xE0",
-        "\x00\xF8",
-        2
-    };
-    t_locator arm_loc_bcond_le =
-    {
-        "arm: B<cond>search (LE)",
-        "\xFF\xFF",
-        "\x00\xFF",
-        2
-    };
-    t_locator arm_loc_ldr_le =
-    {
-        "arm: LDR search (LE)",
-        "\x00\x48",
-        "\x00\xF8",
-        2
-    };
-    t_locator arm_loc_adr_le =
-    {
-        "arm: ADR search (LE)",
-        "\x00\xA0",
-        "\x00\xF8",
-        2
-    };
     unsigned char b_cond_search[3];
     unsigned char condition = 0;
+	unsigned char *loc_tempbuffer = NULL;
+
+	/* defaulting to THUMB for backward compatibility */
+	if((type & ARM_THUMB_MASK) == 0)
+	{
+		type |= THUMB_OPCODE;
+	}
 
     //DBG ( DEBUG_ARM, "## %s() called\n", __FUNCTION__ );
     if ( !ws )
@@ -460,114 +623,125 @@ unsigned int arm_find ( t_workspace *ws, unsigned int type, unsigned int start, 
         return E_FAIL;
     }
 
+	switch ( type )
+	{
+		case ARM_B:
+			loc = arm_loc_b;
+			break;
+		case ARM_BL:
+			loc = arm_loc_bl;
+			break;
+		case ARM_BLX:
+		case ARM_BLX1:
+			loc = arm_loc_blx1;
+			break;
+		case ARM_BLX2:
+			loc = arm_loc_blx2;
+			break;
+		case ARM_ADR:
+			loc = arm_loc_adr;
+			break;
+		case ARM_LDR:
+			loc = arm_loc_ldr;
+			break;
+		case ARM_MOV:
+			loc = arm_loc_mov;
+			break;
+
+		case THUMB_BL:
+			loc = thumb_loc_bl;
+			break;
+		case THUMB_BLX:
+			loc = thumb_loc_blx;
+			break;
+		case THUMB_B: //11100xxx...
+			loc = thumb_loc_b;
+			break;
+		case THUMB_LDR:
+			loc = thumb_loc_ldr;
+			break;
+		case THUMB_ADR:
+			loc = thumb_loc_adr;
+			break;
+		case THUMB_BLE:
+			condition++;
+		case THUMB_BGT:
+			condition++;
+		case THUMB_BLT:
+			condition++;
+		case THUMB_BGE:
+			condition++;
+		case THUMB_BLS:
+			condition++;
+		case THUMB_BHI:
+			condition++;
+		case THUMB_BVC:
+			condition++;
+		case THUMB_BVS:
+			condition++;
+		case THUMB_BPL:
+			condition++;
+		case THUMB_BMI:
+			condition++;
+		case THUMB_BCC:
+			condition++;
+		case THUMB_BCS:
+			condition++;
+		case THUMB_BNE:
+			condition++;
+		case THUMB_BEQ:
+			b_cond_search[0] = b_cond_search[2] = 0x00;
+			b_cond_search[1] = 0xD0 | condition;
+			loc = thumb_loc_bcond;
+			loc.pattern = b_cond_search;
+			break;
+		default:
+			return E_FAIL;
+	}
+
+	/* build a temporary buffer for mask and pattern for patching endianess */
+	loc_tempbuffer = malloc(2 * loc.length);
+	memcpy(loc_tempbuffer, loc.pattern, loc.length);
+	memcpy(loc_tempbuffer + loc.length, loc.mask, loc.length);
+	loc.pattern = loc_tempbuffer;
+	loc.mask = loc_tempbuffer + loc.length;
+		
+	/* swap halfs/words */
 	if ( ws->flags & FLAGS_ENDIANESS_LE )
 	{
-		switch ( type )
+		switch(type & ARM_THUMB_MASK)
 		{
-			case BL:
-				loc = arm_loc_bl_le;
+			case THUMB_OPCODE:
+				if(loc.length % 2)
+				{
+					DBG ( DEBUG_ARM, "## %s: invalid pattern length\n", __FUNCTION__ );
+					return E_FAIL;
+				}
+				for(pos = 0; pos < loc.length; pos += 2)
+				{
+					unsigned short *ptr;
+					ptr = &loc.pattern[pos];
+					*ptr = util_swap_half(*ptr);
+					ptr = &loc.mask[pos];
+					*ptr = util_swap_half(*ptr);
+				}
 				break;
-			case BLX:
-				loc = arm_loc_blx_le;
+
+			case ARM_OPCODE:
+				if(loc.length % 4)
+				{
+					DBG ( DEBUG_ARM, "## %s: invalid pattern length\n", __FUNCTION__ );
+					return E_FAIL;
+				}
+				for(pos = 0; pos < loc.length; pos += 4)
+				{
+					unsigned int *ptr;
+					ptr = &loc.pattern[pos];
+					*ptr = util_swap_word(*ptr);
+					ptr = &loc.mask[pos];
+					*ptr = util_swap_word(*ptr);
+				}
 				break;
-			case B: //11100xxx...
-				loc = arm_loc_b_le;
-				break;
-			case LDR:
-				loc = arm_loc_ldr_le;
-				break;
-			case ADR:
-				loc = arm_loc_adr_le;
-				break;
-			case BLE:
-				condition++;
-			case BGT:
-				condition++;
-			case BLT:
-				condition++;
-			case BGE:
-				condition++;
-			case BLS:
-				condition++;
-			case BHI:
-				condition++;
-			case BVC:
-				condition++;
-			case BVS:
-				condition++;
-			case BPL:
-				condition++;
-			case BMI:
-				condition++;
-			case BCC:
-				condition++;
-			case BCS:
-				condition++;
-			case BNE:
-				condition++;
-			case BEQ:
-				b_cond_search[0] = b_cond_search[2] = 0x00;
-				b_cond_search[1] = 0xD0 | condition;
-				loc = arm_loc_bcond_le;
-				loc.pattern = b_cond_search;
-				break;
-			default:
-				return E_FAIL;
-		}
-	}
-	else
-	{
-		switch ( type )
-		{
-			case BL:
-				loc = arm_loc_bl_be;
-				break;
-			case BLX:
-				loc = arm_loc_blx_be;
-				break;
-			case B: //11100xxx...
-				loc = arm_loc_b_be;
-				break;
-			case LDR:
-				loc = arm_loc_ldr_be;
-				break;
-			case ADR:
-				loc = arm_loc_adr_be;
-				break;
-			case BLE:
-				condition++;
-			case BGT:
-				condition++;
-			case BLT:
-				condition++;
-			case BGE:
-				condition++;
-			case BLS:
-				condition++;
-			case BHI:
-				condition++;
-			case BVC:
-				condition++;
-			case BVS:
-				condition++;
-			case BPL:
-				condition++;
-			case BMI:
-				condition++;
-			case BCC:
-				condition++;
-			case BCS:
-				condition++;
-			case BNE:
-				condition++;
-			case BEQ:
-				b_cond_search[0] = 0xD0 | condition;
-				b_cond_search[1] = b_cond_search[2] = 0x00;
-				loc = arm_loc_bcond_be;
-				loc.pattern = b_cond_search;
-				break;
-			default:
-				return E_FAIL;
 		}
 	}
 
@@ -595,13 +769,21 @@ and V set or N clear and V clear
 1101 BLE label BLE label
 */
     start--;
+    
+    if ( direction & LOC_BACKWARD )
+       subs = -1;
+    else
+       subs = 1;
 
     do
     {
-        start = util_find_pattern ( ws, &loc, start+1, end, direction );
+        start = util_find_pattern ( ws, &loc, start + subs, end, direction );
         /*if ( start % 2 )
             printf ( "not modulo 2" );*/
     } while ( start != E_FAIL && start % 2 );
+
+
+	free(loc_tempbuffer);
 
     return start;
 }
@@ -646,6 +828,7 @@ unsigned int arm_get_freespace ( t_workspace *ws, unsigned int size, unsigned in
 unsigned int arm_find_src_of_dest ( t_workspace *ws, int type, unsigned int dest, unsigned int start, unsigned int end, unsigned int direction )
 {
     unsigned int loc = 0;
+    int subs = 0;
     unsigned int DBG_count = 0;
 	char pattern[4];
 
@@ -674,9 +857,16 @@ unsigned int arm_find_src_of_dest ( t_workspace *ws, int type, unsigned int dest
 		return util_quick_find_pattern ( ws, pattern, NULL, 4, start, end, 0 );
 	}
 	start--;
+
+    if ( direction & LOC_BACKWARD )
+       subs = -1;
+    else
+       subs = 1;
+
     do
     {
-		loc = arm_get ( ws, start = arm_find( ws, type, start+1, end, direction ) );
+		start = arm_find( ws, type, start + subs, end, direction );
+		loc = arm_get_adv ( ws, start, type & ARM_THUMB_MASK );
         DBG_count++;
     } while ( v_valid ( ws, start ) && loc != E_FAIL && loc != dest && ( start < end || end == MEM_AUTO ) );
 

@@ -1,5 +1,5 @@
 /*
- *  $Id: formbox.c,v 1.1 2006/06/28 13:53:39 geggo Exp $
+ *  $Id: formbox.c 1521 2006-06-28 13:53:39Z geggo $
  *
  *  formbox.c -- implements the form (i.e, some pairs label/editbox)
  *

@@ -1,5 +1,5 @@
 /*
- *  $Id: msgbox.c,v 1.1 2006/06/28 13:53:39 geggo Exp $
+ *  $Id: msgbox.c 1521 2006-06-28 13:53:39Z geggo $
  *
  *  msgbox.c -- implements the message box and info box
  *

@@ -42,30 +42,35 @@ char *options_read_settings_real ( unsigned int all )
 	{
 		if ( !table->is_default || all )
 		{
-			ret = realloc ( ret, strlen ( ret ) + strlen ( table->name ) + 64 );
-			strcat ( ret, table->name );
-			strcat ( ret, " = " );
-			if ( table->type == OPT_STR )
+			if (!(table->type & OPT_IS_CB ))
 			{
-				if ( !(*((char**)table->target)) )
-					strcat ( ret, "" );
+				ret = realloc ( ret, strlen ( ret ) + strlen ( table->name ) + 64 );
+				strcat ( ret, table->name );
+				strcat ( ret, " = " );
+				if ( table->type == OPT_STR )
+				{
+					if ( !(*((char**)table->target)) )
+					{
+						strcat ( ret, "" );
+					}
+					else
+					{
+						ret = realloc ( ret, strlen ( ret ) + strlen ( *((char**)table->target) ) + 10 );
+						strcat ( ret, *((char**)table->target) );
+					}
+				}
+				else if ( table->type == OPT_HEX )
+				{
+					sprintf ( buf, "0x%08X", *((int*)table->target) );
+					strcat ( ret, buf );
+				}
 				else
 				{
-					ret = realloc ( ret, strlen ( ret ) + strlen ( *((char**)table->target) ) + 10 );
-					strcat ( ret, *((char**)table->target) );
+					sprintf ( buf, "%i", *((int*)table->target) );
+					strcat ( ret, buf );
 				}
+				strcat ( ret, "\n" );
 			}
-			else if ( table->type == OPT_HEX )
-			{
-				sprintf ( buf, "0x%08X", *((int*)table->target) );
-				strcat ( ret, buf );
-			}
-			else
-			{
-				sprintf ( buf, "%i", *((int*)table->target) );
-				strcat ( ret, buf );
-			}
-			strcat ( ret, "\n" );
 		}
 		LIST_NEXT(table);
 	}
@@ -132,10 +137,14 @@ unsigned int options_default_all ()
 				*((char**)table->target) = table->default_string;
 			}
 			else
+			{
 				*((char**)table->target) = NULL;
+			}
 		}
-		else
+		else if (!(table->type & OPT_IS_CB))
+		{
 			*((int*)table->target) = table->default_value;
+		}
 
 		table->is_default = 1;
 
@@ -185,8 +194,10 @@ unsigned int options_set_default ( char *option )
 				else
 					*((char**)table->target) = NULL;
 			}
-			else
+			else if (!(table->type & OPT_IS_CB))
+			{
 				*((int*)table->target) = table->default_value;
+			}
 
 			table->is_default = 1;
 		}
@@ -328,12 +339,20 @@ char *options_get_string ( char *option )
 
 	while ( table )
 	{
-		if ( !strcmp ( table->name, option ) && table->type == OPT_STR )
+		if ( !strcmp ( table->name, option ))
 		{
-			if ( *((char**)table->target) )
-				return *((char**)table->target);
-			else
-				return "";
+			if(table->type == OPT_STRCB)
+			{
+				char *(*opt_cb) (unsigned int write, unsigned int value) = table->target;
+				return opt_cb(0, 0);
+			}
+			else if(table->type == OPT_STR)
+			{
+				if ( *((char**)table->target) )
+					return *((char**)table->target);
+				else
+					return "";
+			}
 		}
 
 		LIST_NEXT(table);
@@ -341,6 +360,7 @@ char *options_get_string ( char *option )
 
 	return NULL;
 }
+
 
 /*!
  * returns the value of the given option in case of a int/bool
@@ -356,9 +376,21 @@ unsigned int options_get_int ( char *option )
 
 	while ( table )
 	{
-		if ( !strcmp ( table->name, option ) && (table->type == OPT_BOOL || table->type == OPT_INT || table->type == OPT_HEX) )
-			return *((unsigned int**)table->target);
-
+		if ( !strcmp ( table->name, option ))
+		{
+			if ( ((table->type & OPT_TYPE) == OPT_BOOL || (table->type & OPT_TYPE) == OPT_INT || (table->type & OPT_TYPE) == OPT_HEX) )
+			{
+				if(table->type & OPT_IS_CB)
+				{
+					unsigned int (*opt_cb) (unsigned int write, unsigned int value) = table->target;
+					return opt_cb(0, 0);
+				}
+				else
+				{
+					return *((unsigned int*)table->target);
+				}
+			}
+		}
 		LIST_NEXT(table);
 	}
 
@@ -390,18 +422,28 @@ unsigned int options_set_int ( char *option, unsigned int value )
 
 	while ( table )
 	{
-		if ( !strcmp ( table->name, option ) && (table->type == OPT_BOOL || table->type == OPT_INT || table->type == OPT_HEX) )
+		if ( !strcmp ( table->name, option ))
 		{
-			*((int*)table->target) = value;
-			if ( value != table->default_value )
-				table->is_default = 0;
-			else
-				table->is_default = 1;
+			if ( ((table->type & OPT_TYPE) == OPT_BOOL || (table->type & OPT_TYPE) == OPT_INT || (table->type & OPT_TYPE) == OPT_HEX) )
+			{
+				if(table->type & OPT_IS_CB)
+				{
+					unsigned int (*opt_cb) (unsigned int write, unsigned int value) = table->target;
+					return opt_cb(1, value);
+				}
+				else
+				{
+					*((int*)table->target) = value;
+					if ( value != table->default_value )
+						table->is_default = 0;
+					else
+						table->is_default = 1;
 
-			options_notify ();
-			return E_OK;
+					options_notify ();
+					return E_OK;
+				}
+			}
 		}
-
 		LIST_NEXT(table);
 	}
 
@@ -423,26 +465,37 @@ unsigned int options_set_string ( char *option, char *value )
 
 	while ( table )
 	{
-		if ( !strcmp ( table->name, option ) && table->type == OPT_STR )
+		if ( !strcmp ( table->name, option ))
 		{
-			// if value is not default
-			if (   (!table->default_string && strlen ( value ) > 0 ) 
-				|| ( table->default_string && strcmp ( value, table->default_string )) )
+			if ( (table->type & OPT_TYPE) == OPT_STR )
 			{
-				if ( *((char**)table->target) && !table->is_default )
-					free ( *((char**)table->target) );
-				*((char**)table->target) = strdup ( value );
-				table->is_default = 0;
+				if(table->type & OPT_IS_CB)
+				{
+					unsigned int (*opt_cb) (unsigned int write, char *value) = table->target;
+					return opt_cb(1, value);
+				}
+				else
+				{
+					// if value is not default
+					if (   (!table->default_string && strlen ( value ) > 0 ) 
+						|| ( table->default_string && strcmp ( value, table->default_string )) )
+					{
+						if ( *((char**)table->target) && !table->is_default )
+							free ( *((char**)table->target) );
+						*((char**)table->target) = strdup ( value );
+						table->is_default = 0;
+					}
+					else
+					{
+						if ( *((char**)table->target) && !table->is_default )
+							free ( *((char**)table->target) );
+						*((char**)table->target) = table->default_string;
+						table->is_default = 1;
+					}
+					options_notify ();
+					return E_OK;
+				}
 			}
-			else
-			{
-				if ( *((char**)table->target) && !table->is_default )
-					free ( *((char**)table->target) );
-				*((char**)table->target) = table->default_string;
-				table->is_default = 1;
-			}
-			options_notify ();
-			return E_OK;
 		}
 
 		LIST_NEXT(table);
@@ -477,7 +530,7 @@ unsigned int options_get_type ( char *option )
 	while ( table )
 	{
 		if ( !strcmp ( table->name, option ) )
-			return table->type;
+			return table->type & OPT_TYPE;
 
 		LIST_NEXT(table);
 	}
@@ -548,8 +601,10 @@ unsigned int options_delete_option ( char *optionname )
 					CHECK_AND_FREE ( *((char**)opt->target) );
 				*((char**)opt->target) = opt->default_string;
 			}
-			else
+			else if(!(opt->type & OPT_IS_CB))
+			{
 				*((int*)opt->target) = opt->default_value;
+			}
 
 			free ( opt );
 			options_notify ();
@@ -653,7 +708,7 @@ options_import_script_options ( char *script, t_options *opt )
 
 
 /*!
- * add the options provided by the script
+ * delete the options provided by the script
  * \param scriptname
  * \param pointer to options struct
  * \return E_OK or E_FAIL
@@ -703,7 +758,7 @@ options_delete_script_options ( char *script, t_options *opt )
  * \return E_OK or E_FAIL
  */
 unsigned int
-options_add_sysvar ( int type, char *sysvar, char *description, unsigned int defaultval )
+options_add_sysvar ( int type, char *sysvar, char *description, void *defaultval )
 {
 	int pos = 0;
 	char *optionname = NULL;
@@ -739,13 +794,11 @@ options_add_sysvar ( int type, char *sysvar, char *description, unsigned int def
 			break;
 	}
 
-
 	if ( options_add_option ( type, optionname, description, target ) != E_OK )
 	{
 		free ( target );
 		return E_FAIL;
 	}
-
 
 	return E_OK;
 }
@@ -791,7 +844,7 @@ options_import_plugin_options ( char *plugin, t_options *opt )
 
 
 /*!
- * add the options provided by the plugin
+ * delete the options provided by the plugin
  * \param pluginname
  * \param pointer to options struct
  * \return E_OK or E_FAIL

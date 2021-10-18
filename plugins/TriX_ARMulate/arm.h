@@ -1,9 +1,6 @@
 #ifndef __ARM_H__
 #define __ARM_H__
 
-typedef unsigned char  byte;
-typedef unsigned short hword;
-typedef unsigned long  word;
 
 typedef unsigned char  u8;
 typedef unsigned short u16;
@@ -12,6 +9,8 @@ typedef unsigned long  u32;
 typedef signed char  s8;
 typedef signed short s16;
 typedef signed long  s32;
+
+
 
 typedef struct tARM7TDMI {
 	u32 gp_reg_USER[16];
@@ -27,22 +26,10 @@ typedef struct tARM7TDMI {
 	u32 op;
 	u16 op_t;
 	u32 spsr[0x20];
-//	u32 state;
 
-	u32 z_flag;
-	u32 n_flag;
-	u32 c_flag;
-	u32 v_flag;
-
+    void *memint;
 	unsigned char pc_changed;
 } ARM7TDMI;
-
-
-typedef struct {
-	ARM7TDMI *arm;
-	void *pDoc;
-	void *memint;
-} t_emustate;
 
 #define USER_MODE		0x10
 #define FIQ_MODE		0x11
@@ -65,9 +52,14 @@ typedef struct {
 #define V_BIT		0x10000000
 #define T_BIT		0x00000020
 
-#define ZFLAG		arm->z_flag
-#define NFLAG		arm->n_flag
-#define CFLAG		arm->c_flag
-#define VFLAG		arm->v_flag
+#define ZFLAG		((arm->cpsr & Z_BIT)?1:0)
+#define NFLAG		((arm->cpsr & N_BIT)?1:0)
+#define CFLAG		((arm->cpsr & C_BIT)?1:0)
+#define VFLAG		((arm->cpsr & V_BIT)?1:0)
+
+#define ZFLAG_SET(v) (arm->cpsr = (arm->cpsr & ~Z_BIT) | ((v)?Z_BIT:0))
+#define NFLAG_SET(v) (arm->cpsr = (arm->cpsr & ~N_BIT) | ((v)?N_BIT:0))
+#define CFLAG_SET(v) (arm->cpsr = (arm->cpsr & ~C_BIT) | ((v)?C_BIT:0))
+#define VFLAG_SET(v) (arm->cpsr = (arm->cpsr & ~V_BIT) | ((v)?V_BIT:0))
 
 #endif

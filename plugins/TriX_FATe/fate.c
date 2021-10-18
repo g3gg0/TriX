@@ -12,7 +12,6 @@
 #include "workspace.h"
 #include "util.h"
 #include "options.h"
-
 #include "mem.h"
 
 #include "treenode.h"
@@ -28,12 +27,15 @@
 TRIXPLUG_STUBS
 #include "trixplug_wrapper.h"
 
-int sectorsize = 512;
+//int sectorsize = 512;
 t_workspace *workspace = NULL;
+unsigned int force_fat16 = 1;
+unsigned int fate_silent = 0;
 
 
 OPT_BEGIN
-//	OPTION( OPT_STR,  "String Test Variable", "teststring", &teststring )
+   OPTION( OPT_BOOL, "Force FAT16", "force_fat16", &force_fat16 )
+   OPTION( OPT_BOOL, "Silent", "fate_silent", &fate_silent )
 OPT_FINISH
 
 PLUGIN_INFO_BEGIN
@@ -44,53 +46,23 @@ PLUGIN_INFO_FINISH
 
 
 
-
-unsigned char ataReadSectors(	t_fat_info *info, unsigned char Drive,
-								unsigned long lba,//sector number
-                            	unsigned char *Buffer,
-                            	unsigned long *SectorInCache //actual sector
-                            )
-{
-	if ( !info )
-		return 0;
-
-	v_memcpy_get ( info->ws, Buffer, lba * sectorsize, sectorsize );
-	return 0;
-}
-
-unsigned char ataWriteSectors(	t_fat_info *info, unsigned char Drive,
-								unsigned long lba,
-                            	unsigned char *Buffer)
-{
-	if ( !info )
-		return 0;
-
-	v_memcpy_put ( info->ws, lba * sectorsize, Buffer, sectorsize );
-	return 0;
-}
-
-unsigned long ataGetSizeInSectors(t_fat_info *info )
-{
-	if ( !info )
-		return 0;
-
-	return v_get_size ( info->ws ) / sectorsize;
-}
-
 // Parameters: start cluster
 // Returns: none
 //
 // Description: Print the directory started in cluster
 //*****************************************************************************
-void dir_serial( t_fat_info *info, unsigned long cluster)
+
+unsigned int fate_dir ( t_fat_info *info )
 {
-	unsigned long offset=0;
+	unsigned long cluster = info->currentDirCluster;
+	unsigned long offset = 0;
 	struct direntry *de = 0;	// avoid compiler warning by initializing
 	struct direntry lfn_de;
 	int index, aux;
 	//unsigned char day, month, year, hour, minutes, seconds;
 	//unsigned int time, date;
 
+	lfn_de.deLFNstate = 0;
 	lfn_de.deLFNstate = 0;
 
 	printf ( "Directory of: %s\r\n", fatGetVolLabel(info));
@@ -101,15 +73,14 @@ void dir_serial( t_fat_info *info, unsigned long cluster)
 		if (de == NULL)
 		{	
 			printf ( "\r\n" );
-			return;
+			return E_FAIL;
 		}
 		for (index=0; index<FAT_DIRENTRIES_PER_SECTOR; index++)
 		{
-
 			if (*de->deName == SLOT_EMPTY)
 			{	
 				printf ( "\r\n" );
-				return;
+				return E_OK;
 			}
 
 			fatProcessLFN ( &lfn_de, de );
@@ -152,7 +123,79 @@ void dir_serial( t_fat_info *info, unsigned long cluster)
 			de++;
 		}	// end of sector
 	}	// end of cluster
+
+	return E_OK;
 }
+
+void fate_free_name( unsigned char *name )
+{
+	free ( name );
+}
+
+// Parameters: info, file number
+// Returns: filename
+//
+// Description: return the name of a file or dir identified by its index. 
+//              caller must free that allocated string by calling fate_free_name
+//*****************************************************************************
+unsigned char *fate_get_name( t_fat_info *info, unsigned char type, unsigned int entry_index )
+{
+	unsigned long cluster = info->currentDirCluster;
+	unsigned long offset = 0;
+	struct direntry *de = 0;	// avoid compiler warning by initializing
+	struct direntry lfn_de;
+	int index, aux;
+
+	int file_entry = 0;
+	int dir_entry = 0;
+	int found = 0;
+
+	lfn_de.deLFNstate = 0;
+
+	for (offset=0; ; offset++)
+	{
+		de = (struct direntry *) fatDir(info, cluster, offset);
+		if (de == NULL)
+			return NULL;
+
+		for (index=0; index<FAT_DIRENTRIES_PER_SECTOR; index++)
+		{
+
+			if (*de->deName == SLOT_EMPTY)
+				return NULL;
+
+			fatProcessLFN ( &lfn_de, de );
+
+			if((*de->deName != SLOT_DELETED) && (de->deAttributes != ATTR_LONG_FILENAME))
+			{
+				if ( de->deAttributes & ATTR_DIRECTORY )
+				{
+					if ( type == TYPE_DIR && dir_entry == entry_index )
+						found = 1;
+					dir_entry++;
+				}
+				else
+				{
+					if ( type == TYPE_FILE && file_entry == entry_index )
+						found = 1;
+					file_entry++;
+				}
+
+				if ( found )
+				{
+					HEAP_CHECK;
+					if ( de->deLFNValid )
+						return strdup(de->deLFNName);
+					else
+						return strdup(de->deNameExt);
+				}
+				lfn_de.deLFNstate = 0;
+			}
+			de++;
+		}	// end of sector
+	}	// end of cluster
+}
+
 
 
 //*****************************************************************************
@@ -166,22 +209,28 @@ void print_hd_info ( t_fat_info *info )
 {
 	switch (info->prPartType)
 	{
-		case PART_TYPE_DOSFAT16: 	printf("Found: DOSFAT 16\r\n"); break;
-		case PART_TYPE_FAT16:		printf("Found: FAT16\r\n"); 	 break;
-		case PART_TYPE_FAT16LBA:	printf("Found: FAT16 LBA\r\n"); break;
-		case PART_TYPE_FAT32LBA:	printf("Found: FAT32 LBA\r\n"); break;
-		case PART_TYPE_FAT32:		printf("Found: FAT32\r\n");  	 break;
-		default:					printf("Found: No Partition!\r\n"); break;
+		case PART_TYPE_FAT12:		printf("Found             : FAT12\r\n"); 	 break;
+		case PART_TYPE_DOSFAT16: 	printf("Found             : DOS-FAT16\r\n"); break;
+		case PART_TYPE_FAT16:		printf("Found             : FAT16\r\n"); 	 break;
+		case PART_TYPE_FAT16LBA:	printf("Found             : FAT16 LBA\r\n"); break;
+		case PART_TYPE_FAT32LBA:	printf("Found             : FAT32 LBA\r\n"); break;
+		case PART_TYPE_FAT32:		printf("Found             : FAT32\r\n");  	 break;
+		default:					printf("Found             : No Partition!\r\n"); return; 
 	}
-	printf("Cluster Size     : %d\r\n", fatClusterSize(info));
-	printf("First sector     : %ld\r\n", 0);
-	printf("Size in Sectors  : %ld\r\n", ataGetSizeInSectors(info));
-	printf("sectors/cluster  : %u\r\n", fatGetSecPerClust(info));
-	printf("First Fat1 Sector: %ld\r\n", fatGetFirstFATSector(info));
-	printf("First Fat2 Sector: %ld\r\n", fatGetFirstFAT2Sector(info));
-	printf("First Data Sect  : %ld\r\n", fatGetFirstDataSector(info));
-	printf("Number of Clust  : %ld\r\n", fatGetNumClusters(info));
-	printf("Number of Sects  : %ld\r\n", ataGetSizeInSectors(info));
+	printf("Label             : %s\r\n", fatGetVolLabel(info));
+	printf("\r\n");
+	printf("First sector      : %ld\r\n", 0);
+	printf("First FAT1 Sector : %ld\r\n", fatGetFirstFATSector(info));
+	printf("First FAT2 Sector : %ld\r\n", fatGetFirstFAT2Sector(info));
+	printf("First Data Sect   : %ld\r\n", fatGetFirstDataSector(info));
+	printf("\r\n");
+	printf("Sectors/Cluster   : %u\r\n", fatGetSecPerClust(info));
+	printf("Cluster Size      : %u\r\n", fatClusterSize(info));
+	printf("Sector Size       : %u\r\n", fatSectorSize(info));
+	printf("Number of Clusters: %u\r\n", fatGetNumClusters(info));
+	printf("\r\n");
+	printf("Total Size        : %ld\r\n", fatGetNumClusters(info) * fatGetSecPerClust(info) * fatSectorSize(info));
+	printf("Image Size        : %ld\r\n", v_get_size ( info->ws ));
 }
 
 
@@ -196,9 +245,16 @@ unsigned int fate_init ( )
     return E_OK;
 }
 
-t_fat_info *fate_open ( t_workspace *ws, unsigned char fat_type )
+t_fat_info *fate_open ( t_workspace *ws, unsigned int start_address )
 {
-	return fatInit ( ws, fat_type );
+	t_fat_info *info = NULL;
+
+	info = fatInit ( ws, start_address );
+
+	if ( info != NULL && !fate_silent )
+		print_hd_info ( info );
+
+	return info;
 }
 
 TFILE *fate_fcreate ( t_fat_info *info, unsigned char *name )
@@ -215,7 +271,6 @@ unsigned int fate_unlink ( t_fat_info *info, unsigned char *name )
 {
 	return fatRemove ( info, name );
 }
-
 
 unsigned int fate_feof ( TFILE *file )
 {
@@ -262,7 +317,7 @@ unsigned int fate_fread ( unsigned char * ptr, unsigned int size, unsigned int c
 	// get current position
 	current = fatFtell ( fp );
 	if ( current < 0 )
-		PLUGIN_ERROR ( "strange position?!\n", 0 );
+		PLUGIN_ERROR ( "Could not get position in file. Maybe the FAT is corrupt.\n", 0 );
 
 	// go to the end
 	fatFseek ( fp, 0, SEEK_END );
@@ -270,7 +325,7 @@ unsigned int fate_fread ( unsigned char * ptr, unsigned int size, unsigned int c
 	if ( fatFtell ( fp ) < 0 )
 	{
 		fatFseek ( fp, current, SEEK_SET );
-		PLUGIN_ERROR ( "strange end position?!\n", 0 );
+		PLUGIN_ERROR ( "Could not get file end position. Maybe the FAT is corrupt.\n", 0 );
 	}
 
 	// and calc the number of bytes we have
@@ -279,7 +334,7 @@ unsigned int fate_fread ( unsigned char * ptr, unsigned int size, unsigned int c
 	if ( length < 0 )
 	{
 		fatFseek ( fp, current, SEEK_SET );
-		PLUGIN_ERROR ( "position beyond end?!\n", 0 );
+		PLUGIN_ERROR ( "Could not get file end position. Maybe the FAT is corrupt.\n", 0 );
 	}
 
 	// then back to the current pos
@@ -314,132 +369,6 @@ unsigned int fate_fwrite ( unsigned char * ptr, unsigned int size, unsigned int 
 
 	return count;
 }
-
-unsigned int fate_test ( t_workspace *ws )
-{
-	TFILE *farq;
-	t_fat_info *info;
-	char path[12];
-
-	workspace = ws;
-	
-	info = fatInit ( ws, PART_TYPE_FAT16LBA );
-	
-	print_hd_info ( info );
-	//***********************************************
-	// fatDir usage example
-	printf("\r\nC:\\>dir *.*\r\n");
-	dir_serial(info, fatGetFirstDirCluster(info));
-	//***********************************************
-/*
-	//***********************************************
-	// fatMkdir usage example
-	strcpy(path, "dir1");
-	printf("\r\nC:\\>mkdir %s\r\n", path);
-	if (fatMkdir(path))
-		printf("\r\nDirectory %s created!\r\n", path);
-	else
-		printf("\r\nDirectory %s not created!\r\n", path);
-	printf("\r\nC:\\>dir *.*\r\n");
-	dir_serial(fatGetCurDirCluster());
-	//***********************************************
-*/
-	strcpy(path, "");
-
-
-	//***********************************************
-	// fatFcreate usage example
-	printf ("\r\nC:\\%s>make readme.txt\r\n", path);
-	if (fatFcreate(info, "readme.txt"))
-	{
-		printf ("\r\nFile readme.txt created suscefuly\r\n");
-		printf ("\r\nC:\\%s>dir *.*\r\n", path);
-		dir_serial(info, fatGetCurDirCluster(info ));
-	}
-	else
-		printf("\r\nError creating readme.txt\r\n");
-	//***********************************************
-
-
-
-	//***********************************************
-	// fatFopen usage example
-	// fatFputc usage example
-	// fatFgetc usage example
-	// fatFflush usage example
-	// fatFseek usage example
-	// fatFclose usage example
-	printf ("\r\nC:\\%s>open readme.txt\r\n", path);
-	if (farq= fatFopen(info, "readme.txt"))
-	{
-		printf("\r\nfile %s, opened to write\r\n", path);
-		printf ("\r\nC:\\%s>put \"Testing 123\" in  readme.txt\r\n", path);
-
-		fatFputc(farq, 'T');
-		fatFputc(farq, 'e');
-		fatFputc( farq, 's');
-		fatFputc( farq, 't');
-		fatFputc( farq, 'i');
-		fatFputc( farq, 'n');
-		fatFputc( farq, 'g');
-		fatFputc( farq, ' ');
-		fatFputc( farq, '1');
-		fatFputc( farq, '2');
-		fatFputc( farq, '3');
-
-		printf ("\r\nWriting file...\r\n");
-		fatFflush( farq);
-		fatFseek( farq, 0, SEEK_SET);
-
-		printf ("\r\nReading file...\r\n");
-		while(!fatFeof( farq))
-			printf("%c", fatFgetc( farq));
-
-		printf ("\r\nClosing file...\r\n");
-		fatFclose( farq);
-		printf ("\r\nFile readme.txt closed.\r\n");
-	}
-	else
-		printf("\r\nError opening readme.txt\r\n");
-	//***********************************************
-
-
-	printf ( "READ TEST\r\n" );
-	printf ( "READ TEST\r\n" );
-	printf ( "READ TEST\r\n" );
-
-	//***********************************************
-	// fatFopen usage example
-	// fatFputc usage example
-	// fatFgetc usage example
-	// fatFflush usage example
-	// fatFseek usage example
-	// fatFclose usage example
-	printf ("\r\nC:\\%s>open readme.txt\r\n", path);
-	if (farq= fatFopen(info, "readme.txt"))
-	{
-		printf ("\r\nReading file...\r\n");
-		while(!fatFeof( farq))
-			printf("%c", fatFgetc( farq));
-
-		printf ("\r\nClosing file...\r\n");
-		fatFclose( farq);
-		printf ("\r\nFile readme.txt closed.\r\n");
-	}
-	else
-		printf("\r\nError opening readme.txt\r\n");
-	//***********************************************
-
-	return E_OK;
-}
-
-
-unsigned int fate_dir ( t_fat_info *info )
-{
-	dir_serial(info, info->currentDirCluster /*fatGetFirstDirCluster(info)*/);
-	return E_OK;
-}
-
 
 
 #endif

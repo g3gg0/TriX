@@ -3,6 +3,8 @@
 /* seer headers for project.c */
 
 #define PROJECT_AUTO_IMPORTS \
+	"import unsigned int __project_free ( t_project * p);\n"\
+	"import t_project *__project_create ( );\n"\
 	"import unsigned int __project_init ( );\n"\
 	"import unsigned int __project_add_file ( t_project * p, char *file);\n"\
 	"import t_project_files *__project_get_file ( t_project * p, unsigned int pos);\n"\
@@ -14,6 +16,8 @@
 
 #define PROJECT_AUTO_IMPORTS_HTML \
 	"		<font face=\"Monospace\">"\
+	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__project_free</font>&nbsp;(&nbsp;<font color=\"#000000\">t_project</font>&nbsp;*&nbsp;<font color=\"#000000\">p</font>);<br>"\
+	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#000000\">t_project</font>&nbsp;*<font color=\"#000000\">__project_create</font>&nbsp;(&nbsp;);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__project_init</font>&nbsp;(&nbsp;);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__project_add_file</font>&nbsp;(&nbsp;<font color=\"#000000\">t_project</font>&nbsp;*&nbsp;<font color=\"#000000\">p</font>,&nbsp;<font color=\"#800000\">char</font>&nbsp;*<font color=\"#000000\">file</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#000000\">t_project_files</font>&nbsp;*<font color=\"#000000\">__project_get_file</font>&nbsp;(&nbsp;<font color=\"#000000\">t_project</font>&nbsp;*&nbsp;<font color=\"#000000\">p</font>,&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">pos</font>);<br>"\
@@ -26,6 +30,8 @@
 /* seer function registration for project.c */
 
 #define PROJECT_AUTO_REGISTER \
+	scAddExtSymInt ( project_free );\
+	scAddExtSymInt ( project_create );\
 	scAddExtSymInt ( project_init );\
 	scAddExtSymInt ( project_add_file );\
 	scAddExtSymInt ( project_get_file );\
@@ -36,6 +42,8 @@
 
 /* seer function declaration for project.c */
 #ifndef HEADER_SKIP_DECLARATION
+void project_free ();
+void project_create ();
 void project_init ();
 void project_add_file ();
 void project_get_file ();

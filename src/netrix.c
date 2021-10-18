@@ -24,6 +24,8 @@
 
 NETRIX_PLUG_INIT;
 
+
+
 unsigned int
 netrix_check ( char *url )
 {
@@ -90,22 +92,25 @@ netrix_execute ( char *url )
 	unsigned int length = 0;
 	unsigned int ret = E_OK;
 
-
-	printf ( "\n[NeTriX] Retrieving '%s'...", url );
+	DBG ( DEBUG_NETRIX, "\n[NeTriX] Retrieving '%s'...", url  );
+//	printf ( "\n[NeTriX] Retrieving '%s'...", url );
 
 	if ( http_parse_url ( url, &path ) != E_OK )
 	{
-		printf  ( "   [FAILED]\n" );
+		DBG ( DEBUG_NETRIX, "   [FAILED]\n"  );
+//		printf  ( "   [FAILED]\n" );
 		return E_FAIL;
 	}
 
 	if ( http_get ( path, &data, &length, NULL ) != E_OK )
 	{
-		printf  ( "   [FAILED]\n" );
+		DBG ( DEBUG_NETRIX, "   [FAILED]\n"  );
+//		printf  ( "   [FAILED]\n" );
 		return E_FAIL;
 	}
 
-	printf  ( "   [OK]\n" );
+	DBG ( DEBUG_NETRIX, "   [OK]\n"  );
+//	printf  ( "   [OK]\n" );
 
 	ret = seer_run ( data );
 	free ( data );
@@ -123,16 +128,19 @@ netrix_get ( char *url )
 	unsigned int length = 0;
 	unsigned int ret = E_OK;
 
-	printf ( "\n[NeTriX] Retrieving '%s'...", url );
+	DBG ( DEBUG_NETRIX, "\n[NeTriX] Retrieving '%s'...", url  );
+//	printf ( "\n[NeTriX] Retrieving '%s'...", url );
 
 	if (   ( http_parse_url ( url, &path ) != E_OK ) 
 		|| ( http_get ( path, &data, &length, NULL ) != E_OK ) )
 	{
-		printf  ( "   [FAILED]\n" );
+		DBG ( DEBUG_NETRIX, "   [FAILED]\n"  );
+//		printf  ( "   [FAILED]\n" );
 		return NULL;
 	}
 
-	printf  ( "   [OK]\n" );
+	DBG ( DEBUG_NETRIX, "   [OK]\n"  );
+//	printf  ( "   [OK]\n" );
 
 	return data;
 }

@@ -5,21 +5,25 @@
 
    Author: Giancarlo Niccolai <gian@niccolai.ws>
 
-   $Id: mxml_file.c,v 1.7 2008-03-06 21:41:48 geggo Exp $
+   $Id: mxml_file.c 3483 2009-04-01 12:53:42Z geggo $
 */
 
 #include <stdio.h>
 
 #include "defines.h"
+#include "seer.h"
 #include "segment.h"
 #include "stage.h"
-#include "symbols.h"
-
 #include "file_io.h"
 #include "file.h"
-#include "fmt.h"
 #include "workspace.h"
 #include "util.h"
+#include "options.h"
+#include "mem.h"
+#include "treenode.h"
+#include "trixplug.h"
+extern struct trix_functions *ft;
+#include "trixplug_wrapper.h"
 
 #include "mxml.h"
 #include "mxml_file.h"

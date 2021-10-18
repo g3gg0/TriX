@@ -3,6 +3,9 @@
 #plugin trix_fate
 #include trix_fate
 
+#plugin trix_fmtCNT
+//#include trix_fmtcnt
+
 int list_files ( t_fat_info *info )
 {
 	__fate_dir ( info );
@@ -61,7 +64,11 @@ int file_load ( t_fat_info *info, char *filename_1, char *filename_2 )
 		return E_FAIL;
 	}
 
-	__fate_fclose ( file );
+	if ( !__fate_fclose ( file ) )
+	{
+		printf ("FAT fclose error\n" );
+		return E_FAIL;
+	}
 	__workspace_release ( ws );
 	free ( buffer );
 
@@ -124,110 +131,200 @@ int file_save ( t_fat_info *info, char *filename_1, char *filename_2 )
 	return E_OK;
 }
 
+
+int dump_files ( t_fat_info *info, unsigned char *dest_dir )
+{
+	int index = 0;
+	char *file_name = NULL;
+	char *new_dest_name = NULL;
+	
+	do
+	{
+		file_name = __fate_get_name ( info, TYPE_FILE, index++ );
+		if ( file_name )
+		{
+			new_dest_name = malloc ( strlen ( dest_dir ) + strlen ( file_name ) + 2 );
+			sprintf ( new_dest_name, "%s/%s", dest_dir, file_name );
+			
+			printf ( "FILE: <%s> -> <%s>\n", file_name, new_dest_name );
+			file_save ( info, file_name, new_dest_name );
+			
+			free ( new_dest_name );
+		}
+	} while ( file_name != NULL );
+
+}
+
+int dump_all ( t_fat_info *info, unsigned char *dest_dir )
+{
+	int index = 0;
+	char *dir_name = NULL;
+	char *new_dest_dir = NULL;
+
+	dump_files ( info, dest_dir );
+	do
+	{
+		dir_name = __fate_get_name ( info, TYPE_DIR, index++ );
+		if ( dir_name )
+		{
+			if ( strcmp ( dir_name, ".          " ) && strcmp ( dir_name, "..         " ) )
+			{
+				printf ( "DIR: <%s>\n", dir_name );
+				new_dest_dir = malloc ( strlen ( dest_dir ) + strlen ( dir_name ) + 2 );
+				sprintf ( new_dest_dir, "%s/%s", dest_dir, dir_name );
+				
+				__file_io_create_directory ( new_dest_dir );
+				
+				file_cd ( info, dir_name );
+				dump_all ( info, new_dest_dir );
+				free ( new_dest_dir );
+				file_cd ( info, ".." );
+			}
+		}
+	} while ( dir_name != NULL );
+}
+
 int main ( )
 {
 	char *filename_1 = NULL;
 	char *filename_2 = NULL;
 	int command = 0;
-	char *menu[] = { "List Files", "Change dir", "Get File", "Put File", "Delete File", "Rename File" };
+	char *menu[] = { "List Files", "Change dir", "Get File", "Put File", "Delete File", "Rename File", "Dump all files" };
 	t_fat_info *info = NULL;
-
+	unsigned int fat_start_address = 0;
+	
+	fat_start_address = __v_get_start ( GetWorkspace() );
+	
+	//printf ( "start address: 0x%08X\n", fat_start_address );
 
 	GetWorkspace ()->flags = FLAGS_ENDIANESS_LE;
-	info = __fate_open ( GetWorkspace (), PART_TYPE_FAT16 );
+	info = __fate_open ( GetWorkspace (), fat_start_address );
 	if ( !info )
 	{
-		printf ( "No FAT image\n" );
-		return E_FAIL;
+		printf ( "No FAT image found, reparsing.. (thats normal if this script was started the first time)\n" );
+		
+		/* 
+		WorkspaceUpdateMemmap (also __v_cache_flush() but thats called by WorkspaceUpdateMemmap) 
+		is mandatory here! else we end up with invalid cache pointers 
+		*/
+		__file_sync ( GetWorkspace()->fileinfo );
+		WorkspaceUpdateMemmap ( GetWorkspace() );
+		
+		fat_start_address = __v_get_start ( GetWorkspace() );
+		info = __fate_open ( GetWorkspace (), fat_start_address );
+		if ( !info )
+		{
+			printf ( "\n" );
+			printf ( "Still no FAT image found, make sure its at the beginning of the opened file\n" );
+			printf ( "Alternatively set variable 'fat_start_address' in the main() routine to\n" );
+			printf ( "start address of the FAT image\n" );
+			return E_FAIL;
+		}
 	}
 
 
 	while ( 1 )
 	{
-	command = UiDlgMenu ( "FATe Test", menu, UI_OPT_QUIT );
-	switch ( command )
-	{
-		case E_FAIL:
-			break;
-		case 0:
-			return E_OK;
-			break;
-		case 1:
-			list_files ( info );
-			break;
-		case 2:
-			UiDlgString ( "Enter directory name", &filename_1 );
-			if ( filename_1 == NULL )
-			{
-				say ( "error getting directory name\n" );
-				return -1;
-			}
-			printf ( "CD %s\n", filename_1 );
-			file_cd ( info, filename_1 );
-			break;
-		case 3:
-			UiDlgString ( "Enter FAT16 filename", &filename_1 );
-			if ( filename_1 == NULL )
-			{
-				say ( "error getting filename\n" );
-				return -1;
-			}
-			UiDlgString ( "Enter target filename", &filename_2 );
-			if ( filename_2 == NULL )
-			{
-				say ( "error getting filename\n" );
-				return -1;
-			}
-			printf ( "Dumping...\n" );
-			file_save ( info, filename_1, filename_2 );
-			break;
+		command = UiDlgMenu ( "FATe Shell", menu, UI_OPT_QUIT );
+		switch ( command )
+		{
+			case E_FAIL:
+				break;
+			case 0:
+				return E_OK;
+				break;
+			case 1:
+				list_files ( info );
+				break;
+			case 2:
+				UiDlgString ( "Enter directory name", &filename_1 );
+				if ( filename_1 == NULL )
+				{
+					say ( "error getting directory name\n" );
+					return -1;
+				}
+				printf ( "CD %s\n", filename_1 );
+				file_cd ( info, filename_1 );
+				printf ( "...done\n" );
+				break;
 
-		case 4:
-			UiDlgString ( "Enter local filename", &filename_1 );
-			if ( filename_1 == NULL )
-			{
-				say ( "error getting filename\n" );
-				return -1;
-			}
-			UiDlgString ( "Enter FAT16 filename", &filename_2 );
-			if ( filename_2 == NULL )
-			{
-				say ( "error getting filename\n" );
-				return -1;
-			}
-			printf ( "Importing...\n" );
-			file_load ( info, filename_1, filename_2 );
-			break;
+			case 3:
+				UiDlgString ( "Enter FAT16 filename", &filename_1 );
+				if ( filename_1 == NULL )
+				{
+					say ( "error getting filename\n" );
+					return -1;
+				}
+				UiDlgString ( "Enter target filename", &filename_2 );
+				if ( filename_2 == NULL )
+				{
+					say ( "error getting filename\n" );
+					return -1;
+				}
+				printf ( "Dumping...\n" );
+				file_save ( info, filename_1, filename_2 );
+				printf ( "...done\n" );
+				break;
+
+			case 4:
+				UiDlgString ( "Enter local filename", &filename_1 );
+				if ( filename_1 == NULL )
+				{
+					say ( "error getting filename\n" );
+					return -1;
+				}
+				UiDlgString ( "Enter FAT16 filename", &filename_2 );
+				if ( filename_2 == NULL )
+				{
+					say ( "error getting filename\n" );
+					return -1;
+				}
+				printf ( "Importing...\n" );
+				file_load ( info, filename_1, filename_2 );
+				printf ( "...done\n" );
+				break;
 
 
-		case 5:
-			UiDlgString ( "Enter FAT16 filename", &filename_1 );
-			if ( filename_1 == NULL )
-			{
-				say ( "error getting filename\n" );
-				return -1;
-			}
-			printf ( "Deleting...\n" );
-			file_delete ( info, filename_1 );
-			break;
-			
-		case 6:
-			UiDlgString ( "Enter current filename", &filename_1 );
-			if ( filename_1 == NULL )
-			{
-				say ( "error getting filename\n" );
-				return -1;
-			}
-			UiDlgString ( "Enter new filename", &filename_2 );
-			if ( filename_2 == NULL )
-			{
-				say ( "error getting filename\n" );
-				return -1;
-			}
-			printf ( "rename %s %s\n", filename_1, filename_2 );
-			file_rename ( info, filename_1, filename_2 );
-			break;
-	}
+			case 5:
+				UiDlgString ( "Enter FAT16 filename", &filename_1 );
+				if ( filename_1 == NULL )
+				{
+					say ( "error getting filename\n" );
+					return -1;
+				}
+				printf ( "Deleting...\n" );
+				file_delete ( info, filename_1 );
+				printf ( "...done\n" );
+				break;
+				
+			case 6:
+				UiDlgString ( "Enter current filename", &filename_1 );
+				if ( filename_1 == NULL )
+				{
+					say ( "error getting filename\n" );
+					return -1;
+				}
+				UiDlgString ( "Enter new filename", &filename_2 );
+				if ( filename_2 == NULL )
+				{
+					say ( "error getting filename\n" );
+					return -1;
+				}
+				printf ( "rename %s %s\n", filename_1, filename_2 );
+				file_rename ( info, filename_1, filename_2 );
+				printf ( "...done\n" );
+				break;
+				
+			case 7:
+				UiDlgString ( "Enter destination directory", &filename_1 );
+				if ( filename_1 == NULL )
+				{
+					say ( "error getting directory\n" );
+					return -1;
+				}
+				dump_all(info, filename_1);
+				break;
+		}
 	}
 
 	return E_OK;

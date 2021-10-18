@@ -5,8 +5,12 @@
 #define ARM_AUTO_IMPORTS \
 	"import unsigned int __arm_init ( );\n"\
 	"import unsigned int __arm_set ( t_workspace * ws, unsigned int type, unsigned int offset, unsigned int dest);\n"\
+	"import unsigned int __arm_set_32 ( t_workspace * ws, unsigned int type, unsigned int offset, unsigned int dest, unsigned int cond_field);\n"\
 	"import unsigned int __arm_get_bl ( t_workspace * ws, unsigned int offset);\n"\
 	"import unsigned int __arm_get ( t_workspace * ws, unsigned int offset);\n"\
+	"import unsigned int __arm_get_32 ( t_workspace *ws, unsigned int offset );\n"\
+	"import unsigned int __arm_get_32_adv ( t_workspace *ws, unsigned int offset, unsigned int type );\n"\
+	"import unsigned int __arm_get_adv ( t_workspace *ws, unsigned int offset, unsigned int type );\n"\
 	"import unsigned int __arm_find ( t_workspace * ws, unsigned int type, unsigned int start, unsigned int end, unsigned int direction);\n"\
 	"import unsigned int __arm_get_freespace ( t_workspace * ws, unsigned int size, unsigned int offset);\n"\
 	"import unsigned int __arm_find_src_of_dest ( t_workspace * ws, int type, unsigned int dest, unsigned int start, unsigned int end, unsigned int direction);\n"\
@@ -21,6 +25,7 @@
 	"		<font face=\"Monospace\">"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__arm_init</font>&nbsp;(&nbsp;);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__arm_set</font>&nbsp;(&nbsp;<font color=\"#000000\">t_workspace</font>&nbsp;*&nbsp;<font color=\"#000000\">ws</font>,&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">type</font>,&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">offset</font>,&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">dest</font>);<br>"\
+	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__arm_set_32</font>&nbsp;(&nbsp;<font color=\"#000000\">t_workspace</font>&nbsp;*&nbsp;<font color=\"#000000\">ws</font>,&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">type</font>,&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">offset</font>,&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">dest</font>,&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">cond_field</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__arm_get_bl</font>&nbsp;(&nbsp;<font color=\"#000000\">t_workspace</font>&nbsp;*&nbsp;<font color=\"#000000\">ws</font>,&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">offset</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__arm_get</font>&nbsp;(&nbsp;<font color=\"#000000\">t_workspace</font>&nbsp;*&nbsp;<font color=\"#000000\">ws</font>,&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">offset</font>);<br>"\
 	"<font color=\"#000080\"><b>import</b></font>&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">__arm_find</font>&nbsp;(&nbsp;<font color=\"#000000\">t_workspace</font>&nbsp;*&nbsp;<font color=\"#000000\">ws</font>,&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">type</font>,&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">start</font>,&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">end</font>,&nbsp;<font color=\"#800000\">unsigned</font>&nbsp;<font color=\"#800000\">int</font>&nbsp;<font color=\"#000000\">direction</font>);<br>"\
@@ -38,8 +43,12 @@
 #define ARM_AUTO_REGISTER \
 	scAddExtSymInt ( arm_init );\
 	scAddExtSymInt ( arm_set );\
+	scAddExtSymInt ( arm_set_32 );\
 	scAddExtSymInt ( arm_get_bl );\
 	scAddExtSymInt ( arm_get );\
+	scAddExtSymInt ( arm_get_32 );\
+	scAddExtSymInt ( arm_get_32_adv );\
+	scAddExtSymInt ( arm_get_adv );\
 	scAddExtSymInt ( arm_find );\
 	scAddExtSymInt ( arm_get_freespace );\
 	scAddExtSymInt ( arm_find_src_of_dest );\
@@ -53,8 +62,12 @@
 #ifndef HEADER_SKIP_DECLARATION
 void arm_init ();
 void arm_set ();
+void arm_set_32 ();
 void arm_get_bl ();
 void arm_get ();
+void arm_get_32 ();
+void arm_get_32_adv ();
+void arm_get_adv ();
 void arm_find ();
 void arm_get_freespace ();
 void arm_find_src_of_dest ();
@@ -74,10 +87,50 @@ void arm_create_object ();
 
 #define ARM_AUTO_MISC_POST \
 	"\n"\
-	"unsigned int ARMFind ( unsigned int type, int start, int end, unsigned int direction ) { return __arm_find( GetWorkspace(), type, start, end, direction ); }\n"\
-	"unsigned int ARMGet ( unsigned int x ) { return __arm_get ( GetWorkspace(), x ); }\n"\
-	"unsigned int ARMSet(unsigned int x, int y, int z) { return __arm_set(GetWorkspace(),x,y,z); }\n"\
+	"unsigned int ARMFind  ( unsigned int type, int start, int end, unsigned int direction ) { return __arm_find( GetWorkspace(), type, start, end, direction ); }\n"\
+	"unsigned int ARMGet   ( unsigned int x ) { return __arm_get ( GetWorkspace(), x ); }\n"\
+	"unsigned int ARMSet   ( unsigned int x, int y, int z) { return __arm_set(GetWorkspace(),x,y,z); }\n"\
+	"unsigned int ARMGet32 ( unsigned int x ) { return __arm_get_32 ( GetWorkspace(), x ); }\n"\
+	"unsigned int ARMSet32 ( unsigned int x, int y, int z, int cond) { return __arm_set_32(GetWorkspace(),x,y,z,cond); }\n"\
 	"unsigned int ARMFindSrcOfDest(int a, int b, int c, int d, unsigned int e) { __arm_find_src_of_dest(GetWorkspace(),a,b,c,d,e); }\n"\
+	"\n"\
+    "#define ARM_DEST_VAL  0x8000                       \n"\
+    "#define ARM_REG_RD    0x4000                       \n"\
+	"\n"\
+    "#define THUMB_OPCODE  0x1000                       \n"\
+    "#define ARM_OPCODE    0x2000                       \n"\
+    "#define ARM_THUMB_MASK (THUMB_OPCODE | ARM_OPCODE) \n"\
+    "                                                   \n"\
+    "// THUMB opcodes                                   \n"\
+    "#define THUMB_BL  (THUMB_OPCODE | 0)               \n"\
+    "#define THUMB_B   (THUMB_OPCODE | 1)               \n"\
+    "#define THUMB_BEQ (THUMB_OPCODE | 2)               \n"\
+    "#define THUMB_BNE (THUMB_OPCODE | 3)               \n"\
+    "#define THUMB_BCS (THUMB_OPCODE | 4)               \n"\
+    "#define THUMB_BCC (THUMB_OPCODE | 5)               \n"\
+    "#define THUMB_BMI (THUMB_OPCODE | 6)               \n"\
+    "#define THUMB_BPL (THUMB_OPCODE | 7)               \n"\
+    "#define THUMB_BVS (THUMB_OPCODE | 8)               \n"\
+    "#define THUMB_BVC (THUMB_OPCODE | 9)               \n"\
+    "#define THUMB_BHI (THUMB_OPCODE | 10)              \n"\
+    "#define THUMB_BLS (THUMB_OPCODE | 11)              \n"\
+    "#define THUMB_BGE (THUMB_OPCODE | 12)              \n"\
+    "#define THUMB_BLT (THUMB_OPCODE | 13)              \n"\
+    "#define THUMB_BGT (THUMB_OPCODE | 14)              \n"\
+    "#define THUMB_BLE (THUMB_OPCODE | 15)              \n"\
+    "#define THUMB_LDR (THUMB_OPCODE | 16)              \n"\
+    "#define THUMB_ADR (THUMB_OPCODE | 17)              \n"\
+    "#define THUMB_BLX (THUMB_OPCODE | 18)              \n"\
+    "                                                   \n"\
+    "// ARM opcodes                                     \n"\
+    "#define ARM_B    (ARM_OPCODE | 19)                 \n"\
+    "#define ARM_BL   (ARM_OPCODE | 20)                 \n"\
+    "#define ARM_BLX  (ARM_OPCODE | 21)                 \n"\
+    "#define ARM_BLX1 (ARM_OPCODE | 22)                 \n"\
+    "#define ARM_BLX2 (ARM_OPCODE | 23)                 \n"\
+    "#define ARM_LDR  (ARM_OPCODE | 24)                 \n"\
+    "#define ARM_ADR  (ARM_OPCODE | 25)                 \n"\
+    "#define ARM_MOV  (ARM_OPCODE | 26)                 \n"\
 	"\n"\
 	"#define BL  0\n"\
 	"#define B   1\n"\
