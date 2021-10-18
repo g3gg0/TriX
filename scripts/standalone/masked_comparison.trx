@@ -1,0 +1,211 @@
+
+#include trix
+
+
+void own_memset ( unsigned char *buffer, unsigned int val, unsigned int length )
+{
+	int pos = 0;
+
+	while ( pos < length )
+	{
+		buffer[pos] = val;
+		pos++;
+	}
+}
+
+int create_update_mask ()
+{
+	unsigned int alignment = 2;
+	unsigned int pos = 0;
+	unsigned int length = 0;
+	
+	char *in_file_1 = NULL;
+	char *in_file_2 = NULL;
+	char *in_mask = NULL;
+	
+	unsigned char *buffer = NULL;		
+	
+	t_workspace *ws_file_1 = NULL;
+	t_workspace *ws_file_2 = NULL;
+	t_workspace *ws_mask = NULL;
+	
+	unsigned int aligned_address = 0;
+	unsigned int byte_pos = 0;
+	
+	
+	
+	UiDlgLoadFile ( &in_file_1, "Please select input file 1", "*.*" );	
+	if ( !in_file_1 )
+		return E_OK;
+		
+	UiDlgLoadFile ( &in_file_2, "Please select input file 2", "*.*" );
+	if ( !in_file_2 )
+		return E_OK;
+		
+	ws_file_1 = WorkspaceStartup ( in_file_1 );
+	if(!ws_file_1)
+		return E_OK;
+	
+	ws_file_2 = WorkspaceStartup ( in_file_2 );
+	if(!ws_file_2)
+		return E_OK;
+		
+	trix_workspace = ws_file_1;
+	SetWorkStage(0, 0);
+	trix_workspace = ws_file_2;
+	SetWorkStage(0, 0);
+	
+	if(__v_get_size(ws_file_1) != __v_get_size(ws_file_2))
+	{
+		printf ( " [E] File sizes differ\r\n" );
+		return E_OK;
+	}
+	
+	length = __v_get_size(ws_file_1);
+
+	UiDlgLoadFile ( &in_mask, "Please select source mask. Cancel if you dont have one.", "*.msk" );
+
+	if(in_mask)
+	{
+		ws_mask = WorkspaceStartup ( in_mask );
+		if(!ws_mask)
+			return E_OK;
+		trix_workspace = ws_mask;
+		SetWorkStage(0, 0);
+		
+		if(length != __v_get_size(ws_mask))
+		{
+			printf ( " [E] Mask sizes differs from file sizes\r\n" );
+			return E_OK;
+		}				
+	}
+	else
+	{
+		buffer = malloc (length);		
+		if(!buffer)
+		{
+			printf ( " [E] malloc error\r\n" );
+			return E_OK;
+		}
+		
+		own_memset ( buffer, 0xFF, length );		
+		ws_mask = WorkspaceCreateFileFromBuffer(buffer, length);
+	}
+
+	for(pos = 0; pos < length; pos++)
+	{
+		if ( __v_get_b(ws_file_1,pos) != __v_get_b(ws_file_2,pos) )
+		{
+			aligned_address = pos & (~(alignment-1));
+			
+			for(byte_pos = 0; byte_pos < alignment; byte_pos++)
+			{
+				__v_set_b(ws_mask,aligned_address+byte_pos,0x00);
+			}
+		}
+	}
+
+	if(!in_mask)
+	{
+		UiDlgSaveFile ( &in_mask, "Save mask", "*.msk" );
+		if(!in_mask)
+			return E_OK;
+	}
+	
+	__file_write ( in_mask, ws_mask->fileinfo);
+	
+	return E_OK;
+}
+
+int apply_mask ()
+{
+	unsigned int pos = 0;
+	unsigned int length = 0;
+	
+	char *in_file = NULL;
+	char *in_mask = NULL;
+	
+	unsigned char *buffer = NULL;		
+	
+	t_workspace *ws_file = NULL;
+	t_workspace *ws_mask = NULL;
+	
+	unsigned int aligned_address = 0;
+	unsigned int byte_pos = 0;
+	
+	
+	UiDlgLoadFile ( &in_file, "Please select file to mask", "*.*" );	
+	if ( !in_file )
+		return E_OK;
+		
+	ws_file = WorkspaceStartup ( in_file );
+	if(!ws_file)
+		return E_OK;
+		
+	trix_workspace = ws_file;
+	SetWorkStage(0, 0);
+	
+	length = __v_get_size(ws_file);
+
+	UiDlgLoadFile ( &in_mask, "Please select source mask.", "*.msk" );
+	if ( !in_mask )
+		return E_OK;
+		
+	ws_mask = WorkspaceStartup ( in_mask );
+	if(!ws_mask)
+		return E_OK;
+
+	trix_workspace = ws_mask;
+	SetWorkStage(0, 0);
+	
+	if(length != __v_get_size(ws_mask))
+	{
+		printf ( " [E] Mask sizes differs from file size\r\n" );
+		return E_OK;
+	}	
+	
+	for(pos = 0; pos < length; pos++)
+	{
+		__v_set_b ( ws_file, pos, __v_get_b(ws_file,pos) & __v_get_b(ws_mask, pos) );
+	}
+
+	UiDlgSaveFile ( &in_file, "Save masked file", "*.mskd" );
+	if(!in_file)
+		return E_OK;
+	
+	__file_write ( in_file, ws_file->fileinfo);
+	
+	return E_OK;
+}
+
+int main ()
+{
+	int repaint = 1;
+	int done = 0;
+	int command = 0;
+	char *menu[] = { "Create or update mask", "Apply mask" };
+
+	while ( !done )
+	{
+		command = UiDlgMenu ( "masked comparison", menu, UI_OPT_QUIT | (repaint?0:UI_OPT_NOREPAINT) );
+		if ( command == 0 )
+			return E_OK;
+		repaint = 0;
+
+		switch ( command )
+		{
+			case E_FAIL:
+				repaint = 1;
+				break;
+			case 0:
+				return E_OK;
+				break;
+			case 1:
+				create_update_mask ();
+				break;
+			case 2:
+				apply_mask ();
+				break;
+		}
+	}
+}

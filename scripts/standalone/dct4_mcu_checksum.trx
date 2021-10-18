@@ -1,0 +1,47 @@
+#title "mcu checksum calc"
+#author "krisha"
+
+#include trix
+
+int main ()
+{
+	unsigned int checksum_phn, i;
+	unsigned int start, end, chksum = 0;
+	
+	checksum_phn = GetHalf ( 0x1000026 );
+	end = GetWord ( 0x10000FC );
+	start = 0x1000100;
+	
+	say ( "this patch was created by krisha. If you find it usefull\n");
+	say ( "or use it in commercial environment, consider to donate\n" );
+	say ( "a small amount to paypal account krisha@chrisi.de\n" );
+	say ( "donating is a way to say thank you, and this thank you\n" );
+	say ( "is given also on a really small amount. Transfer an amount\n" );
+	say ( "that you think that's fair and put a smile on my face :-)\n\n" );
+	
+	printf ( "original checksum: 0x%04X\n", checksum_phn );
+	printf ( "range start: 0x%08X\n", start );
+	printf ( "range end: 0x%08X\n", end );
+	
+	for ( i = start; i < end; i +=2 )
+		chksum += GetHalf ( i );
+		
+	chksum &= 0xFFFF;
+	printf ( "calced checksum: 0x%04X\n", chksum );
+	
+	if ( chksum != checksum_phn )
+	{
+		say ( "updating checksum\n" );
+		SetHalf ( 0x1000026, chksum );
+	}
+	else
+		say ("no need to update checksum\n" );
+	
+	
+	say ("done!\n");
+	
+
+
+	return E_OK;
+	
+}

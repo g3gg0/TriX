@@ -1,0 +1,87 @@
+// load plugin
+#plugin trix_fmtbabe
+
+// include headers
+#include trix
+#include stdio
+#include trix_fmtbabe
+#include "scripts/SE/se_babe_defs.trx"
+
+/*
+.trix
+.ens LE
+.org 0x10000C00
+
+.sub vkp_loader
+
+push lr
+
+mov r2, 0xDB
+lsl r2, r2, 1
+ldr r1, @attr
+adr   r0, @fn
+ldr r4, @fs_fopen
+blx r4
+
+ldr r1, @ptr
+mov r2, 4
+ldr r4, @fs_fread
+blx r4
+
+ldr r0, @sys_init
+blx r0
+
+pop pc
+
+.align 4
+
+@ptr:
+DD 120A4733
+
+@sys_init:
+DD 0x10000098
+
+@fs_fopen:
+DD 0x28B2F8C1
+
+@fs_fread:
+DD 0x28B30091
+
+@attr:
+DD 0x40001
+
+@fn:
+.asc   "/sys/gdfs-app0.ps" 00
+*/
+
+func vkp_loader[] =
+{
+    "name", "vkp_loader", "",
+    ".text", "\x00\xB5\xDB\x22\x52\x00\x09\x49\x09\xA0\x06\x4C\xA0\x47\x03\x49\x04\x22\x05\x4C\xA0\x47\x02\x48\x80\x47\x00\xBD\x33\x47\x0A\x12\x98\x00\x00\x10\xC1\xF8\xB2\x28\x91\x00\xB3\x28\x01\x00\x04\x00\x2F\x73\x79\x73\x2F\x67\x64\x66\x73\x2D\x61\x70\x70\x30\x2E\x70\x73\x00", "66",
+    NULL
+};
+
+int main ()
+{
+   unsigned int rc = 0;
+   unsigned int hook = 0;
+   unsigned int sys_init = 0;
+   unsigned int vkp_loader_pos = 0x10000C00;
+
+   BABE_INIT // init babe workspace
+
+   rc = SimpleFindPattern ( "\x00\xf0\x21\xe1\x18\xd0\x9f\xe5\x01\x00\x8f\xe2\x10\xff\x2f\xe1", NULL, 16, LOC_UNIQUE );
+   fail ( rc, "RESET vector handler not found!" );
+
+   hook = ARMFind ( THUMB_BL, rc, MEM_AUTO, LOC_FORWARD);
+   sys_init = ARMGet ( rc ) + 4;
+
+   rc =
+
+   // hook our code
+   //MemCpy ( 0x10000100, 10000110, 8 );
+   NokiaCreateFunc ( vkp_loader, vkp_loader_pos );
+   ARMSet ( THUMB_BL, hook, vkp_loader_pos );
+
+	return E_OK;
+}

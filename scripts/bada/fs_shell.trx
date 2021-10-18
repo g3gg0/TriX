@@ -1,0 +1,442 @@
+// load plugin
+#plugin trix_fmtbada
+
+// include headers
+#include trix
+#include trix_fmtbada
+#include "scripts/bada/bada_defs.trx"
+
+char *basedir;
+unsigned int rc;
+
+
+unsigned short char16[1024];
+unsigned short *char_2_ucs2 ( char *name )
+{
+	unsigned int i = 0;
+
+	memset ( (char *)char16, 0, 2048 );
+
+	while ( name[i] && i < 1024 )
+	{
+		char16[i] = name[i];
+		i++;
+	}
+
+	char16[i] = 0;
+
+	return char16;
+}
+
+char char8[1024];
+char *ucs2_2_char ( unsigned int pos )
+{
+	unsigned int i = 0;
+
+	while ( GetHalf ( pos + 2 * i ) && i < 1024 )
+	{
+		char8[i] = GetHalf ( pos + 2 * i );
+		i++;
+	}
+
+	char8[i] = 0;
+
+	return char8;
+}
+
+
+unsigned int load_files ( t_segment *ts, char *dir )
+{
+	char path[1024];
+	t_fileinfo *file_infos = NULL;
+	t_fileinfo *file;
+	unsigned int pos = 0, entries = 0;
+	unsigned int length = 0;
+
+
+	sprintf ( (char*)path, "%s/%s/*.*", basedir, dir );
+	file_infos = __file_io_open_directory ( (char*)path, &entries );
+
+	while ( pos < entries )
+	{
+		sprintf ( (char*)path, "%s/%s", dir, file_infos[pos].filename );
+
+		if ( strcmp ( path, "/Debug/pfsdummy" ) )
+		{
+			printf ( "%s\n", path );
+
+			if ( !( file_infos[pos].options & FILE_DIRECTORY ) ) // file
+			{
+				file = __file_io_open ( basedir, path );
+
+				if ( file )
+					length = file->stages->segments->length;
+				else
+					length = 0;
+			}
+			else
+				length = 0;
+
+			if ( ts->length < ts->end + length + 0x100000 )
+			{
+				ts->length = ts->length + length + 0x100000;
+				ts->data = realloc ( ts->data, ts->length );
+				memset ( ts->data + ts->end, 0, ts->length - ts->end );
+			}
+
+			__v_set_w_raw ( ts, ts->end, 0x3A424344 ); // DCB:
+			memcpy ( (char *)( ts->data + ts->end + 0x10 ), (unsigned char *)char_2_ucs2 ( path ), 2 * strlen ( path ) );
+
+			// recurence
+			if ( file_infos[pos].options & FILE_DIRECTORY )
+			{
+				ts->end += 0x810;
+				load_files ( ts, path );
+			}
+			else
+			{
+				__v_set_w_raw ( ts, ts->end + 4, 1 );
+				__v_set_w_raw ( ts, ts->end + 8, length );
+				__v_set_w_raw ( ts, ts->end + 12, ALIGN16 ( length ) - length );
+
+				memcpy ( (char *)( ts->data + ts->end + 0x810 ), file->stages->segments->data, length );
+				memset ( (char *)( ts->data + ts->end + 0x810 + length ), 0xFF, ALIGN16 ( length ) - length );
+
+				ts->end += 0x810 + ALIGN16 ( length );
+
+				__file_io_release_all ( file );
+			}
+		}
+
+		free ( file_infos[pos].filename );
+		pos++;
+	}
+
+	return E_OK;
+}
+
+unsigned int load_fs ( t_segment *s, char *dir )
+{
+	t_segment *ts = __segment_create ( );
+	unsigned int pos, len, padding, datalen, count;
+
+
+	say ( "reading...\n" );
+
+	basedir = dir;
+
+	ts->flags = ts->flags & ~FLAGS_ENDIANESS;
+	ts->flags = ts->flags | FLAGS_ENDIANESS_LE;
+	ts->length = 0x8000000; // 128 MB
+	ts->data = calloc ( ts->length, sizeof ( char ) );
+
+	memcpy ( ts->data, s->data, 0x60 );
+	ts->end = 0x60;
+
+	fail ( load_files ( ts, "" ), "File error!");
+
+	ts->length = ts->end + 0x810;
+	ts->data = realloc ( ts->data, ts->length );
+	memset ( ts->data + ts->end, 0, ts->length - ts->end );
+
+	//add dummy file
+	__v_set_w_raw ( ts, ts->end, 0x3A424344 ); // DCB:
+	__v_set_w_raw ( ts, ts->end + 4, 1 );
+	memcpy ( (char *)( ts->data + ts->end + 0x10 ), (unsigned char *)char_2_ucs2 ( "/Debug/pfsdummy" ), 30 ) );
+	ts->end += 0x810;
+
+	ts->length = ( ts->length + 0x3FFF ) & ~0x3FFF; // align to 16KB
+	padding = ts->length - ts->end;
+	ts->data = realloc ( ts->data, ts->length );
+	memset ( ts->data + ts->end, 0, padding );
+
+	free ( s->data );
+	s->data = ts->data;
+	s->length = ts->length;
+	s->end = s->start + s->length;
+
+	ts->data = NULL;
+	__segment_release ( ts );
+	__workspace_update_memmap ( trix_workspace );
+
+	// scan whole image and collect some info
+	pos = s->start + 0x60;
+	datalen = 0;
+	count = 0;
+	while ( GetWord ( pos ) == 0x3A424344 ) // DCB:
+	{
+		len   = GetWord ( pos + 8 );
+		datalen += len;
+		pos += 0x810 + ALIGN16 ( len );
+		count++;
+	}
+
+	SetWord ( s->start + 0x20, datalen );
+	SetWord ( s->start + 0x24, padding );
+	SetWord ( s->start + 0x28, s->length );
+	SetWord ( s->start + 0x2C, count );
+
+	if ( !GetWord ( s->start + 0x38 ) )
+		SetWord ( s->start + 0x30, datalen );
+
+	say ( "...done!\n" );
+
+	return E_FAIL;
+}
+
+unsigned int dump_file ( t_segment *s, unsigned int pos, char *name )
+{
+	t_workspace *ws;
+	char *buffer;
+	unsigned int len = 0;
+
+
+	if ( GetWord ( pos ) != 0x3A424344 ) // DCB:
+		fail ( E_FAIL, "File error ( MAGIC )!\n" );
+
+	if ( GetWord ( pos + 4) == 0 )
+		fail ( E_FAIL, "File error ( DIRECTORY )!\n" );
+
+	len = GetWord ( pos + 8 );
+
+	buffer = malloc ( len );
+	ws = WorkspaceCreateFileFromBuffer ( buffer, len );
+	__v_memcpy_put ( ws, __v_get_start ( ws ), s->data + ( pos + 0x810 - s->start ), len );
+	__file_write ( name, ws->fileinfo );
+	__workspace_release ( ws );
+
+	return E_OK;
+}
+
+unsigned int dump_fs ( t_segment *s, unsigned char *dir )
+{
+	char path[2048];
+	char *name;
+	unsigned int len = 0;
+	unsigned int type;
+	unsigned int pos = s->start + 0x60;
+
+	__file_io_create_directory ( dir );
+
+	while ( GetWord ( pos ) == 0x3A424344 ) // DCB:
+	{
+		type  = GetWord ( pos + 4 );
+		len   = GetWord ( pos + 8 );
+		name = ucs2_2_char ( pos + 16 );
+
+		sprintf ( path, "%s/%s", dir, name );
+
+		if ( type == 0 ) // create directory
+			__file_io_create_directory ( path );
+		else
+			dump_file ( s, pos, path );
+
+		printf ( "%s\n", name );
+
+		pos += 0x810 + ALIGN16 ( len );
+	}
+
+	return E_OK;
+}
+
+unsigned int list_files ( t_segment *s )
+{
+	char *name;
+	unsigned int len = 0;
+	unsigned int type;
+	unsigned int flags;
+	unsigned int pos = s->start + 0x60;
+
+	printf ( "Type  Size      Name\n" );
+
+	while ( GetWord ( pos ) == 0x3A424344 ) // DCB:
+	{
+		type  = GetWord ( pos + 4 );
+		len   = GetWord ( pos + 8 );
+		name = ucs2_2_char ( pos + 16 );
+
+		if ( type == 0 )
+			printf ( "DIR             %s\n", name );
+		else
+			printf ( "FILE  %8s  %s\n", PrintBytes ( len ), name );
+
+		pos += 0x810 + ALIGN16 ( len );
+	}
+
+	return E_OK;
+}
+
+unsigned int dump_fat ( t_segment *s, unsigned char *path )
+{
+	t_workspace *ws;
+	char *buffer;
+	unsigned int length;
+
+	say ( "exporting...\n" );
+	length = s->length;
+	buffer = malloc ( length );
+	ws = WorkspaceCreateFileFromBuffer ( buffer, length );
+	__v_memcpy_put ( ws, __v_get_start ( ws ), s->data, length );
+	__file_write ( path, ws->fileinfo );
+	__workspace_release ( ws );
+	say ( "...done\n" );
+
+	return E_OK;
+}
+
+unsigned int load_fat ( t_segment *s, unsigned char *path )
+{
+	t_workspace *ws;
+	unsigned int length;
+
+
+	say ( "importing...\n" );
+	ws = __workspace_startup ( path );
+
+	if ( !ws || __v_get_size ( ws ) == E_FAIL )
+		fail ( E_FAIL, "error reading file!\n" );
+
+	length = __v_get_size ( ws );
+	s->length = length;
+	s->data = realloc ( s->data, length );
+	s->end = s->start + length;
+	__v_memcpy_get ( ws, s->data, __v_get_start ( ws ), length );
+	say ( "...done\n" );
+
+	return E_OK;
+}
+
+t_segment *find_fs ( )
+{
+	t_segment *s = trix_workspace->memmap->stage->segments;
+	unsigned int pos;
+
+	while ( s )
+	{
+		pos = s->start;
+
+		if ( GetWord ( pos + 0x60 ) == 0x3A424344 ) // found
+			return s;
+
+		if ( GetHalf ( pos + 0x1FE ) == 0xAA55 ) // fat image
+			return s;
+
+		s = s->next;
+	}
+
+	return NULL;
+}
+
+int main ( )
+{
+	char *menu[] = { "List Files", "Dump files", "Upload files" };
+	char *menu_fat[] = { "Export FAT image...", "Import FAT image..." };
+	t_segment *s;
+	char *directory = NULL;
+	char *filename = NULL;
+	int command = 0;
+	unsigned int pos;
+	unsigned int fatsize = 0;
+
+
+	BADA_INIT // init bada workspace
+
+	s = find_fs ( );
+	if ( !s )
+	{
+		say ( "No FS image found!\n" );
+		return E_FAIL;
+	}
+
+	pos = s->start;
+
+	if ( GetWord ( pos + 0x60 ) == 0x3A424344 )
+	{
+		printf ( "FS Image: %13s\n", ucs2_2_char ( pos ) );
+		printf ( "Files:         %8d\n", GetWord ( pos + 0x2C ) );
+		printf ( "Total size:    %8s\n", PrintBytes ( GetWord ( pos + 0x20 ) ) );
+		printf ( "Size in image: %8s\n\n", PrintBytes ( GetWord ( pos + 0x28 ) ) );
+
+		while ( 1 )
+		{
+			command = UiDlgMenu ( "File System Shell 1.00", menu, UI_OPT_QUIT );
+
+			switch ( command )
+			{
+				case E_FAIL:
+					break;
+
+				case 0:
+					return E_OK;
+					break;
+
+				case 1:
+					list_files ( s );
+					break;
+
+				case 2:
+				{
+					UiDlgString ( "Enter destination directory", &directory );
+					if ( strlen ( directory ) == 0 )
+						fail ( E_FAIL, "error getting filename\n" );
+
+					dump_fs ( s, directory );
+				}
+				break;
+
+				case 3:
+				{
+					UiDlgString ( "Enter input directory", &directory );
+					if ( strlen ( directory ) == 0 )
+						fail ( E_FAIL, "error getting filename\n" );
+
+					load_fs ( s, directory );
+				}
+				break;
+
+			}
+		}
+	}
+	else
+	{
+		fatsize = GetHalf ( pos + 0x13 ) * 512;
+		if ( !fatsize )
+			fatsize = GetWord ( pos + 0x20 ) * 512;
+
+		printf ( "FAT image found: %s\n", PrintBytes ( fatsize ) );
+
+		while ( 1 )
+		{
+			command = UiDlgMenu ( "FATe dumper", menu_fat, UI_OPT_QUIT );
+			switch ( command )
+			{
+				case E_FAIL:
+					break;
+
+				case 0:
+					return E_OK;
+					break;
+
+				case 1:
+					UiDlgString ( "Enter filename", &filename );
+					//UiDlgSaveFile ( &filename, str("Export FAT image..."), str("FAT image (*.ima)") );
+					if ( strlen ( filename ) == 0 )
+						fail ( E_FAIL, "error getting filename\n" );
+
+					dump_fat ( s, filename );
+					break;
+
+				case 2:
+					UiDlgString ( "Enter filename", &filename );
+					//UiDlgLoadFile ( &filename, str("Import FAT image..."), str("FAT image (*.ima)") );
+		   			if ( strlen ( filename ) == 0 )
+						fail ( E_FAIL, "error getting filename\n" );
+
+					load_fat ( s, filename );
+					break;
+			}
+		}
+	}
+
+	return E_OK;
+}

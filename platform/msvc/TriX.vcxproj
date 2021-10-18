@@ -1,0 +1,1396 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="PPModd Debug|Win32">
+      <Configuration>PPModd Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="PPModd Embedded Debug|Win32">
+      <Configuration>PPModd Embedded Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="PPModd Embedded|Win32">
+      <Configuration>PPModd Embedded</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="PPModd|Win32">
+      <Configuration>PPModd</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="QT Debug|Win32">
+      <Configuration>QT Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="QT Release|Win32">
+      <Configuration>QT Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{64887AA2-DBCE-435B-907E-9301B8E28637}</ProjectGuid>
+    <RootNamespace>TriX</RootNamespace>
+    <Keyword>Win32Proj</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v120</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v120</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v120</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v120</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v120</PlatformToolset>
+    <UseOfMfc>false</UseOfMfc>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v120</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v120</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v120</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+    <Import Project="QT_UI.props" />
+    <Import Project="QT_QRC.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>12.0.30501.0</_ProjectFileVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>$(Configuration)\</OutDir>
+    <IntDir>$(Configuration)\</IntDir>
+    <LinkIncremental>true</LinkIncremental>
+    <GenerateManifest>false</GenerateManifest>
+    <EmbedManifest>true</EmbedManifest>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>$(Configuration)\</OutDir>
+    <IntDir>$(Configuration)\</IntDir>
+    <LinkIncremental>false</LinkIncremental>
+    <GenerateManifest>false</GenerateManifest>
+    <EmbedManifest>true</EmbedManifest>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">
+    <OutDir>$(Configuration)\</OutDir>
+    <IntDir>$(Configuration)\</IntDir>
+    <LinkIncremental>false</LinkIncremental>
+    <GenerateManifest>true</GenerateManifest>
+    <EmbedManifest>true</EmbedManifest>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">
+    <OutDir>$(Configuration)\</OutDir>
+    <IntDir>$(Configuration)\</IntDir>
+    <LinkIncremental>false</LinkIncremental>
+    <GenerateManifest>false</GenerateManifest>
+    <EmbedManifest>true</EmbedManifest>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">
+    <OutDir>$(Configuration)\</OutDir>
+    <IntDir>$(Configuration)\</IntDir>
+    <LinkIncremental>true</LinkIncremental>
+    <GenerateManifest>false</GenerateManifest>
+    <EmbedManifest>true</EmbedManifest>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">
+    <OutDir>$(Configuration)\</OutDir>
+    <IntDir>$(Configuration)\</IntDir>
+    <LinkIncremental>false</LinkIncremental>
+    <GenerateManifest>false</GenerateManifest>
+    <EmbedManifest>true</EmbedManifest>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">
+    <OutDir>$(Configuration)\</OutDir>
+    <IntDir>$(Configuration)\</IntDir>
+    <LinkIncremental>true</LinkIncremental>
+    <GenerateManifest>false</GenerateManifest>
+    <EmbedManifest>true</EmbedManifest>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">
+    <OutDir>$(Configuration)\</OutDir>
+    <IntDir>$(Configuration)\</IntDir>
+    <LinkIncremental>false</LinkIncremental>
+    <GenerateManifest>false</GenerateManifest>
+    <EmbedManifest>true</EmbedManifest>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <AdditionalOptions>/MP %(AdditionalOptions)</AdditionalOptions>
+      <Optimization>Disabled</Optimization>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <OmitFramePointers>true</OmitFramePointers>
+      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
+      <AdditionalIncludeDirectories>../../include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_WIN32_WINNT=0x0400;_CONSOLE;_DEBUG;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;TRIX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <StringPooling>true</StringPooling>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <BrowseInformation>true</BrowseInformation>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>wsock32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>../../TriX.exe</OutputFile>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <ProgramDatabaseFile>$(OutDir)TriX.pdb</ProgramDatabaseFile>
+      <GenerateMapFile>true</GenerateMapFile>
+      <MapFileName>$(OutDir)TriX.map</MapFileName>
+      <SubSystem>Console</SubSystem>
+      <RandomizedBaseAddress>false</RandomizedBaseAddress>
+      <ImportLibrary>$(OutDir)TriX.lib</ImportLibrary>
+    </Link>
+    <Manifest>
+      <AdditionalManifestFiles>../../TriX.debug.manifest;%(AdditionalManifestFiles)</AdditionalManifestFiles>
+    </Manifest>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <AdditionalOptions>/MP %(AdditionalOptions)</AdditionalOptions>
+      <Optimization>MaxSpeed</Optimization>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <OmitFramePointers>true</OmitFramePointers>
+      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
+      <AdditionalIncludeDirectories>../../include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_WIN32_WINNT=0x0400;_CONSOLE;_NDEBUG;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;TRIX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <StringPooling>true</StringPooling>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <BrowseInformation />
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>wsock32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>../../TriX.exe</OutputFile>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <ProgramDatabaseFile />
+      <GenerateMapFile>false</GenerateMapFile>
+      <SubSystem>Console</SubSystem>
+      <RandomizedBaseAddress>false</RandomizedBaseAddress>
+      <ImportLibrary>$(OutDir)TriX.lib</ImportLibrary>
+    </Link>
+    <Manifest>
+      <AdditionalManifestFiles>../../TriX.manifest;%(AdditionalManifestFiles)</AdditionalManifestFiles>
+    </Manifest>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">
+    <ClCompile>
+      <AdditionalOptions>/MP %(AdditionalOptions)</AdditionalOptions>
+      <Optimization>Disabled</Optimization>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <OmitFramePointers>true</OmitFramePointers>
+      <AdditionalIncludeDirectories>../../include;$(QTDIR)/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_WIN32_WINNT=0x0400;_CONSOLE;_DEBUG;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;QT_CORE_LIB;QT_COMPAT;TRIX_THREADED;TRIX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <StringPooling>true</StringPooling>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <BufferSecurityCheck>true</BufferSecurityCheck>
+      <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
+      <BrowseInformation>true</BrowseInformation>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>wsock32.lib;QtGuid4.lib;QtCored4.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>../../TriX.exe</OutputFile>
+      <AdditionalLibraryDirectories>$(QTDIR)/lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AssemblyDebug>true</AssemblyDebug>
+      <ProgramDatabaseFile>$(OutDir)TriX.pdb</ProgramDatabaseFile>
+      <GenerateMapFile>true</GenerateMapFile>
+      <MapFileName>$(OutDir)TriX.map</MapFileName>
+      <SubSystem>Windows</SubSystem>
+      <RandomizedBaseAddress>false</RandomizedBaseAddress>
+      <ImportLibrary>$(OutDir)TriX.lib</ImportLibrary>
+      <EnableUAC>false</EnableUAC>
+    </Link>
+    <Manifest>
+      <AdditionalManifestFiles>../../TriX.debug.manifest;%(AdditionalManifestFiles)</AdditionalManifestFiles>
+    </Manifest>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">
+    <ClCompile>
+      <AdditionalOptions>/MP %(AdditionalOptions)</AdditionalOptions>
+      <Optimization>MaxSpeed</Optimization>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <OmitFramePointers>true</OmitFramePointers>
+      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
+      <AdditionalIncludeDirectories>../../include;$(QTDIR)/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_WIN32_WINNT=0x0400;_CONSOLE;_NDEBUG;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;QT_CORE_LIB;QT_COMPAT;TRIX_THREADED;TRIX;TRIXPLUG_DL_MEMORY;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <StringPooling>true</StringPooling>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <BrowseInformation />
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>wsock32.lib;QtGui4.lib;QtCore4.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>../../TriX.exe</OutputFile>
+      <AdditionalLibraryDirectories>$(QTDIR)/lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <GenerateMapFile>true</GenerateMapFile>
+      <SubSystem>Windows</SubSystem>
+      <RandomizedBaseAddress>false</RandomizedBaseAddress>
+      <ImportLibrary>$(OutDir)TriX.lib</ImportLibrary>
+    </Link>
+    <Manifest>
+      <AdditionalManifestFiles>../../TriX.manifest;%(AdditionalManifestFiles)</AdditionalManifestFiles>
+    </Manifest>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">
+    <ClCompile>
+      <AdditionalOptions>/MP %(AdditionalOptions)</AdditionalOptions>
+      <Optimization>Disabled</Optimization>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <OmitFramePointers>true</OmitFramePointers>
+      <AdditionalIncludeDirectories>../../include;$(QTDIR)/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_WIN32_WINNT=0x0400;_CONSOLE;_DEBUG;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;QT_CORE_LIB;QT_COMPAT;TRIX_THREADED;PPMODD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <StringPooling>true</StringPooling>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
+      <BrowseInformation>true</BrowseInformation>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>wsock32.lib;QtGuid4.lib;QtCored4.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>../../PPModd.exe</OutputFile>
+      <AdditionalLibraryDirectories>$(QTDIR)/lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <ProgramDatabaseFile>$(OutDir)PPModd.pdb</ProgramDatabaseFile>
+      <GenerateMapFile>true</GenerateMapFile>
+      <MapFileName>$(OutDir)PPModd.map</MapFileName>
+      <SubSystem>Windows</SubSystem>
+      <RandomizedBaseAddress>false</RandomizedBaseAddress>
+      <ImportLibrary>$(OutDir)PPModd.lib</ImportLibrary>
+    </Link>
+    <Manifest>
+      <AdditionalManifestFiles>../../TriX.debug.manifest;%(AdditionalManifestFiles)</AdditionalManifestFiles>
+    </Manifest>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">
+    <ClCompile>
+      <AdditionalOptions>/MP %(AdditionalOptions)</AdditionalOptions>
+      <Optimization>MaxSpeed</Optimization>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <OmitFramePointers>true</OmitFramePointers>
+      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
+      <AdditionalIncludeDirectories>../../include;$(QTDIR)/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_WIN32_WINNT=0x0400;_CONSOLE;_NDEBUG;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;QT_CORE_LIB;QT_COMPAT;TRIX_THREADED;PPMODD;TRIXPLUG_DL_MEMORY;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <StringPooling>true</StringPooling>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <BrowseInformation />
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>wsock32.lib;QtGui4.lib;QtCore4.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>../../PPModd.exe</OutputFile>
+      <AdditionalLibraryDirectories>$(QTDIR)/lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <ProgramDatabaseFile />
+      <GenerateMapFile>false</GenerateMapFile>
+      <SubSystem>Windows</SubSystem>
+      <RandomizedBaseAddress>false</RandomizedBaseAddress>
+      <ImportLibrary>$(OutDir)PPModd.lib</ImportLibrary>
+    </Link>
+    <Manifest>
+      <AdditionalManifestFiles>../../TriX.manifest;%(AdditionalManifestFiles)</AdditionalManifestFiles>
+    </Manifest>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">
+    <ClCompile>
+      <AdditionalOptions>/MP %(AdditionalOptions)</AdditionalOptions>
+      <Optimization>Disabled</Optimization>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <OmitFramePointers>true</OmitFramePointers>
+      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
+      <AdditionalIncludeDirectories>../../include;$(QTDIR)/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_WIN32_WINNT=0x0400;_CONSOLE;_DEBUG;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;QT_CORE_LIB;QT_COMPAT;TRIX_THREADED;PPMODD;PPMODD_EMBEDDED_VERSION;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <StringPooling>true</StringPooling>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <BrowseInformation>true</BrowseInformation>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>wsock32.lib;QtGuid4.lib;QtCored4.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>../../PPModd.exe</OutputFile>
+      <AdditionalLibraryDirectories>$(QTDIR)/lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <ProgramDatabaseFile>$(OutDir)PPModd.pdb</ProgramDatabaseFile>
+      <GenerateMapFile>true</GenerateMapFile>
+      <MapFileName>$(OutDir)PPModd.map</MapFileName>
+      <SubSystem>Windows</SubSystem>
+      <RandomizedBaseAddress>false</RandomizedBaseAddress>
+      <ImportLibrary>$(OutDir)PPModd.lib</ImportLibrary>
+    </Link>
+    <Manifest>
+      <AdditionalManifestFiles>../../TriX.debug.manifest;%(AdditionalManifestFiles)</AdditionalManifestFiles>
+    </Manifest>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">
+    <ClCompile>
+      <AdditionalOptions>/MP %(AdditionalOptions)</AdditionalOptions>
+      <Optimization>MaxSpeed</Optimization>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <OmitFramePointers>true</OmitFramePointers>
+      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
+      <AdditionalIncludeDirectories>../../include;$(QTDIR)/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_WIN32_WINNT=0x0400;_CONSOLE;_NDEBUG;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;QT_CORE_LIB;QT_COMPAT;TRIX_THREADED;TRIXPLUG_DL_MEMORY;PPMODD;PPMODD_EMBEDDED_VERSION;TRIXPLUG_DL_MEMORY;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <StringPooling>true</StringPooling>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <BrowseInformation />
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>wsock32.lib;QtGui4.lib;QtCore4.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>../../PPModd.exe</OutputFile>
+      <AdditionalLibraryDirectories>$(QTDIR)/lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <EnableUAC>false</EnableUAC>
+      <UACUIAccess>true</UACUIAccess>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <ProgramDatabaseFile />
+      <GenerateMapFile>false</GenerateMapFile>
+      <SubSystem>Windows</SubSystem>
+      <RandomizedBaseAddress>false</RandomizedBaseAddress>
+      <ImportLibrary>$(OutDir)PPModd.lib</ImportLibrary>
+    </Link>
+    <Manifest>
+      <AdditionalManifestFiles>../../TriX.manifest;%(AdditionalManifestFiles)</AdditionalManifestFiles>
+    </Manifest>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\scripts\k_compile_arm_c_files\dump_io.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\scripts\k_compile_arm_c_files\dump_objects.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\scripts\k_compile_arm_c_files\fonts.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\scripts\k_compile_arm_c_files\k_lcd_irq_count.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\scripts\k_compile_arm_c_files\k_own_ati_handler.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\scripts\k_compile_arm_c_files\lcd.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\scripts\k_compile_arm_c_files\pin_toggle.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\scripts\k_compile_arm_c_files\rotate_lcd.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\src\arm.c" />
+    <ClCompile Include="..\..\src\bz2\bz2_blocksort.c" />
+    <ClCompile Include="..\..\src\bz2\bz2_bzlib.c" />
+    <ClCompile Include="..\..\src\bz2\bz2_compress.c" />
+    <ClCompile Include="..\..\src\bz2\bz2_crctable.c" />
+    <ClCompile Include="..\..\src\bz2\bz2_decompress.c" />
+    <ClCompile Include="..\..\src\bz2\bz2_huffman.c" />
+    <ClCompile Include="..\..\src\bz2\bz2_randtable.c" />
+    <ClCompile Include="..\..\src\crypto\bigd.c" />
+    <ClCompile Include="..\..\src\crypto\bigdigits.c" />
+    <ClCompile Include="..\..\src\crypto\crypto.c" />
+    <ClCompile Include="..\..\src\crypto\crypto_aes.c" />
+    <ClCompile Include="..\..\src\crypto\crypto_rsa.c" />
+    <ClCompile Include="..\..\src\crypto\crypto_sha1.c" />
+    <ClCompile Include="..\..\src\crypto\md5.c" />
+    <ClCompile Include="..\..\src\crypto\spBigdigits.c" />
+    <ClCompile Include="..\..\src\crypto\spRandom.c" />
+    <ClCompile Include="..\..\src\e32image_deflate.c" />
+    <ClCompile Include="..\..\src\elf.c" />
+    <ClCompile Include="..\..\src\file.c" />
+    <ClCompile Include="..\..\src\file_io.c" />
+    <ClCompile Include="..\..\src\fmt.c" />
+    <ClCompile Include="..\..\src\fmt_bz2.c" />
+    <ClCompile Include="..\..\src\fmt_dct3flash.c" />
+    <ClCompile Include="..\..\src\fmt_dct4crypt.c" />
+    <ClCompile Include="..\..\src\fmt_elf.c" />
+    <ClCompile Include="..\..\src\fmt_epoc.c" />
+    <ClCompile Include="..\..\src\fmt_pdb.c" />
+    <ClCompile Include="..\..\src\fmt_pe.c" />
+    <ClCompile Include="..\..\src\fmt_phoenix.c" />
+    <ClCompile Include="..\..\src\fmt_trixcrypt.c" />
+    <ClCompile Include="..\..\src\fmt_wintesla.c" />
+    <ClCompile Include="..\..\src\http-tiny-1.2\http_lib.c" />
+    <ClCompile Include="..\..\src\main.c" />
+    <ClCompile Include="..\..\src\mem.c" />
+    <ClCompile Include="..\..\src\mutex.c" />
+    <ClCompile Include="..\..\src\netrix.c" />
+    <ClCompile Include="..\..\src\nokia.c" />
+    <ClCompile Include="..\..\src\options.c" />
+    <ClCompile Include="..\..\src\ppmodd_net.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\src\project.c" />
+    <ClCompile Include="..\..\src\seer\seer.c" />
+    <ClCompile Include="..\..\src\seer\seer_callasm.c" />
+    <ClCompile Include="..\..\src\seer\seer_compiler.c" />
+    <ClCompile Include="..\..\src\seer\seer_consts.c" />
+    <ClCompile Include="..\..\src\seer\seer_declare.c" />
+    <ClCompile Include="..\..\src\seer\seer_dict.c" />
+    <ClCompile Include="..\..\src\seer\seer_exp.c" />
+    <ClCompile Include="..\..\src\seer\seer_headers.c" />
+    <ClCompile Include="..\..\src\seer\seer_init.c" />
+    <ClCompile Include="..\..\src\seer\seer_initial.c" />
+    <ClCompile Include="..\..\src\seer\seer_instance.c" />
+    <ClCompile Include="..\..\src\seer\seer_parser.c" />
+    <ClCompile Include="..\..\src\seer\seer_pmem.c" />
+    <ClCompile Include="..\..\src\seer\seer_preproc.c" />
+    <ClCompile Include="..\..\src\seer\seer_protect.c" />
+    <ClCompile Include="..\..\src\seer\seer_script.c" />
+    <ClCompile Include="..\..\src\seer\seer_vars.c" />
+    <ClCompile Include="..\..\src\seer\seer_vcpucode.c" />
+    <ClCompile Include="..\..\src\seer\seer_vcpudeco.c" />
+    <ClCompile Include="..\..\src\segment.c" />
+    <ClCompile Include="..\..\src\stage.c" />
+    <ClCompile Include="..\..\src\symbols.c" />
+    <ClCompile Include="..\..\src\treenode.c" />
+    <ClCompile Include="..\..\src\trixcrypt.c" />
+    <ClCompile Include="..\..\src\trixplug.c" />
+    <ClCompile Include="..\..\src\ui-qt\moc_ui_build_ppm_progress.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ui-qt\moc_ui_commandref.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ui-qt\moc_ui_font_glyphs_model.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ui-qt\moc_ui_font_icon_editor.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ui-qt\moc_ui_font_view.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ui-qt\moc_ui_main.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ui-qt\moc_ui_memviewer_dlg.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ui-qt\moc_ui_object_tree.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ui-qt\moc_ui_opt.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ui-qt\moc_ui_plug.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ui-qt\moc_ui_ppmodd_main.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ui-qt\moc_ui_text_box.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ui-qt\moc_ui_text_edit.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ui-qt\moc_ui_workspace_dlg.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ui-qt\ui_build_ppm_progress.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ui-qt\ui_commandref.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ui-qt\ui_font_glyphs_model.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ui-qt\ui_font_icon_editor.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ui-qt\ui_font_view.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ui-qt\ui_main.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ui-qt\ui_memviewer_dlg.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ui-qt\ui_object_tree.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ui-qt\ui_opt.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ui-qt\ui_plug.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ui-qt\ui_ppmodd_main.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ui-qt\ui_resource.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ui-qt\ui_text_box.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ui-qt\ui_text_edit.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ui-qt\ui_workspace_dlg.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ui.c" />
+    <ClCompile Include="..\..\src\util.c">
+      <InlineFunctionExpansion Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">AnySuitable</InlineFunctionExpansion>
+      <InlineFunctionExpansion Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">AnySuitable</InlineFunctionExpansion>
+      <InlineFunctionExpansion Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">AnySuitable</InlineFunctionExpansion>
+      <InlineFunctionExpansion Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">AnySuitable</InlineFunctionExpansion>
+    </ClCompile>
+    <ClCompile Include="..\..\src\win32\MemoryModule.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\src\workspace.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\include\arm.h" />
+    <ClInclude Include="..\..\include\arm_seer.h" />
+    <ClInclude Include="..\..\include\auto_arm.h" />
+    <ClInclude Include="..\..\include\auto_crypto.h" />
+    <ClInclude Include="..\..\include\auto_elf.h" />
+    <ClInclude Include="..\..\include\auto_file.h" />
+    <ClInclude Include="..\..\include\auto_file_io.h" />
+    <ClInclude Include="..\..\include\auto_fmt.h" />
+    <ClInclude Include="..\..\include\auto_mem.h" />
+    <ClInclude Include="..\..\include\auto_mutex.h" />
+    <ClInclude Include="..\..\include\auto_netrix.h" />
+    <ClInclude Include="..\..\include\auto_nokia.h" />
+    <ClInclude Include="..\..\include\auto_options.h" />
+    <ClInclude Include="..\..\include\auto_project.h" />
+    <ClInclude Include="..\..\include\auto_seer.h" />
+    <ClInclude Include="..\..\include\auto_segment.h" />
+    <ClInclude Include="..\..\include\auto_stage.h" />
+    <ClInclude Include="..\..\include\auto_symbols.h" />
+    <ClInclude Include="..\..\include\auto_treenode.h" />
+    <ClInclude Include="..\..\include\auto_trixcrypt.h" />
+    <ClInclude Include="..\..\include\auto_ui.h" />
+    <ClInclude Include="..\..\include\auto_util.h" />
+    <ClInclude Include="..\..\include\auto_workspace.h" />
+    <ClInclude Include="..\..\include\bz2_bzlib.h" />
+    <ClInclude Include="..\..\include\bz2_bzlib_private.h" />
+    <ClInclude Include="..\..\include\crypto.h" />
+    <ClInclude Include="..\..\include\crypto_aes.h" />
+    <ClInclude Include="..\..\include\crypto_seer.h" />
+    <ClInclude Include="..\..\include\crypto_sha1.h" />
+    <ClInclude Include="..\..\include\defines.h" />
+    <ClInclude Include="..\..\include\e32image_deflate.h" />
+    <ClInclude Include="..\..\include\elf.h" />
+    <ClInclude Include="..\..\include\elf_seer.h" />
+    <ClInclude Include="..\..\include\epoc.h" />
+    <ClInclude Include="..\..\include\file.h" />
+    <ClInclude Include="..\..\include\file_io.h" />
+    <ClInclude Include="..\..\include\file_io_seer.h" />
+    <ClInclude Include="..\..\include\file_seer.h" />
+    <ClInclude Include="..\..\include\fmt.h" />
+    <ClInclude Include="..\..\include\fmt_elf.h" />
+    <ClInclude Include="..\..\include\fmt_epoc.h" />
+    <ClInclude Include="..\..\include\fmt_pe.h" />
+    <ClInclude Include="..\..\include\fmt_seer.h" />
+    <ClInclude Include="..\..\include\fmt_trixcrypt.h" />
+    <ClInclude Include="..\..\include\md5.h" />
+    <ClInclude Include="..\..\include\mem.h" />
+    <ClInclude Include="..\..\include\mem_seer.h" />
+    <ClInclude Include="..\..\include\misc.h" />
+    <ClInclude Include="..\..\include\mutex.h" />
+    <ClInclude Include="..\..\include\mutex_seer.h" />
+    <ClInclude Include="..\..\include\netrix.h" />
+    <ClInclude Include="..\..\include\netrix_seer.h" />
+    <ClInclude Include="..\..\include\nokia.h" />
+    <ClInclude Include="..\..\include\nokia_seer.h" />
+    <ClInclude Include="..\..\include\options.h" />
+    <ClInclude Include="..\..\include\options_seer.h" />
+    <ClInclude Include="..\..\include\pe.h" />
+    <CustomBuild Include="..\..\include\ppmodd_net.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </CustomBuild>
+    <ClInclude Include="..\..\include\project.h" />
+    <ClInclude Include="..\..\include\seer.h" />
+    <ClInclude Include="..\..\include\seer_auto.h" />
+    <ClInclude Include="..\..\include\seer_code.h" />
+    <ClInclude Include="..\..\include\seer_internal.h" />
+    <ClInclude Include="..\..\include\seer_seer.h" />
+    <ClInclude Include="..\..\include\seer_vcpudeco.h" />
+    <ClInclude Include="..\..\include\segment.h" />
+    <ClInclude Include="..\..\include\segment_seer.h" />
+    <ClInclude Include="..\..\include\stage.h" />
+    <ClInclude Include="..\..\include\stage_seer.h" />
+    <ClInclude Include="..\..\include\symbols.h" />
+    <ClInclude Include="..\..\include\symbols_seer.h" />
+    <ClInclude Include="..\..\include\treenode.h" />
+    <ClInclude Include="..\..\include\treenode_seer.h" />
+    <ClInclude Include="..\..\include\trixcrypt.h" />
+    <ClInclude Include="..\..\include\trixcrypt_seer.h" />
+    <ClInclude Include="..\..\include\trixplug.h" />
+    <ClInclude Include="..\..\include\trixplug_arm.h" />
+    <ClInclude Include="..\..\include\trixplug_crypto.h" />
+    <ClInclude Include="..\..\include\trixplug_elf.h" />
+    <ClInclude Include="..\..\include\trixplug_file.h" />
+    <ClInclude Include="..\..\include\trixplug_file_io.h" />
+    <ClInclude Include="..\..\include\trixplug_fmt.h" />
+    <ClInclude Include="..\..\include\trixplug_funcs.h" />
+    <ClInclude Include="..\..\include\trixplug_mem.h" />
+    <ClInclude Include="..\..\include\trixplug_mutex.h" />
+    <ClInclude Include="..\..\include\trixplug_netrix.h" />
+    <ClInclude Include="..\..\include\trixplug_nokia.h" />
+    <ClInclude Include="..\..\include\trixplug_options.h" />
+    <ClInclude Include="..\..\include\trixplug_seer.h" />
+    <ClInclude Include="..\..\include\trixplug_segment.h" />
+    <ClInclude Include="..\..\include\trixplug_stage.h" />
+    <ClInclude Include="..\..\include\trixplug_symbols.h" />
+    <ClInclude Include="..\..\include\trixplug_treenode.h" />
+    <ClInclude Include="..\..\include\trixplug_trixcrypt.h" />
+    <ClInclude Include="..\..\include\trixplug_trixplug.h" />
+    <ClInclude Include="..\..\include\trixplug_ui.h" />
+    <ClInclude Include="..\..\include\trixplug_util.h" />
+    <ClInclude Include="..\..\include\trixplug_version.h" />
+    <ClInclude Include="..\..\include\trixplug_workspace.h" />
+    <ClInclude Include="..\..\include\trixplug_wrapper.h" />
+    <ClInclude Include="..\..\include\ui.h" />
+    <CustomBuild Include="..\..\include\ui_seer.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </CustomBuild>
+    <ClInclude Include="..\..\include\util.h" />
+    <ClInclude Include="..\..\include\util_seer.h" />
+    <ClInclude Include="..\..\include\workspace.h" />
+    <ClInclude Include="..\..\include\workspace_seer.h" />
+    <CustomBuild Include="..\..\scripts\k_compile_arm_c_files\fonts.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </CustomBuild>
+    <ClInclude Include="..\..\src\compress\zconf.h" />
+    <ClInclude Include="..\..\src\compress\zlib.h" />
+    <ClInclude Include="..\..\src\compress\zutil.h" />
+    <ClInclude Include="..\..\src\crypto\bigd.h" />
+    <ClInclude Include="..\..\src\crypto\bigdigits.h" />
+    <ClInclude Include="..\..\src\http-tiny-1.2\http_lib.h" />
+    <CustomBuild Include="..\..\src\ui-qt\ui_BuildPPMProgress.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\ui-qt\ui_build_ppm_progress.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <Message Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">true</ExcludedFromBuild>
+      <Message Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\ui-qt\ui_commandref.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">true</ExcludedFromBuild>
+      <Message Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\ui-qt\ui_CommandReference.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\ui-qt\ui_FontView.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\ui-qt\ui_font_glyphs_model.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <Message Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\ui-qt\ui_font_icon_editor.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <Message Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\ui-qt\ui_font_view.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <Message Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\ui-qt\ui_main.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">true</ExcludedFromBuild>
+      <Message Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\ui-qt\ui_MainWindow.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\ui-qt\ui_MemoryViewer.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\ui-qt\ui_memviewer_dlg.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">true</ExcludedFromBuild>
+      <Message Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\ui-qt\ui_ObjectTree.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\ui-qt\ui_object_tree.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <Message Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\ui-qt\ui_opt.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <Message Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\ui-qt\ui_options.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\ui-qt\ui_plug.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <Message Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\ui-qt\ui_Plugins.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\ui-qt\ui_PPModd.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\ui-qt\ui_ppmodd_main.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <Message Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\ui-qt\ui_TextBox.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\ui-qt\ui_TextEdit.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\ui-qt\ui_text_box.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <Message Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\ui-qt\ui_text_edit.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <Message Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\ui-qt\ui_Workspace.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </CustomBuild>
+    <CustomBuild Include="..\..\src\ui-qt\ui_workspace_dlg.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <Message Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">Performing moc on %(Filename).h $(QTDIR)\bin\moc.exe</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">Performing moc on %(Filename).h</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">$(QTDIR)\bin\moc.exe "%(FullPath)" -o "%(RootDir)%(Directory)moc_%(Filename).cpp"
+</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">%(RootDir)%(Directory)moc_%(Filename).cpp;%(Outputs)</Outputs>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </CustomBuild>
+    <ClInclude Include="..\..\src\win32\MemoryModule.h" />
+    <ClInclude Include="resource.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\g_teradyne.trx" />
+    <None Include="..\..\scripts\g_dump_data.trx" />
+    <None Include="..\..\scripts\g_fchk_test.trx" />
+    <None Include="..\..\scripts\g_misc_scans.trx" />
+    <None Include="..\..\scripts\g_patch_netmon.trx" />
+    <None Include="..\..\scripts\g_pin_toggle.trx" />
+    <None Include="..\..\scripts\g_scan_callee.trx" />
+    <None Include="..\..\scripts\g_test_bz2.trx">
+      <FileType>Text</FileType>
+    </None>
+    <None Include="..\..\scripts\g_test_elf.trx" />
+    <None Include="..\..\scripts\g_test_fileinfo.trx" />
+    <None Include="..\..\scripts\g_test_seer.trx" />
+    <None Include="..\..\scripts\g_test_trixcrypt.trx" />
+    <None Include="..\..\scripts\k_ati9_patch.trx" />
+    <None Include="..\..\scripts\k_compile_arm_c_files.trx" />
+    <None Include="..\..\scripts\k_compile_arm_c_files\makefile" />
+    <None Include="..\..\scripts\k_dump_io.trx" />
+    <None Include="..\..\scripts\k_find_key_transtable.trx" />
+    <None Include="..\..\scripts\k_find_objects.trx" />
+    <None Include="..\..\scripts\k_lcd_irq_count.trx" />
+    <None Include="..\..\scripts\k_own_ati_handler.trx" />
+    <None Include="..\..\scripts\k_term_test.trx" />
+    <None Include="..\..\scripts\k_testnokia.trx" />
+    <None Include="..\..\scripts\k_test_arm.trx" />
+    <None Include="..\..\scripts\nokia_dct4_function_def.trx" />
+    <None Include="..\..\scripts\scan_strings.trx" />
+    <None Include="..\..\scripts\standalone\amulate_shell.trx" />
+    <None Include="..\..\scripts\standalone\options_test.trx" />
+    <None Include="..\..\scripts\test_v0.1.trx" />
+    <None Include="..\..\scripts\test_v0.2.trx" />
+    <None Include="..\..\scripts\trix_signature.trx" />
+    <None Include="..\..\test.trx" />
+  </ItemGroup>
+  <ItemGroup>
+    <UI Include="..\..\src\ui-qt\BuildPPMProgress.ui">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </UI>
+    <UI Include="..\..\src\ui-qt\CommandReference.ui">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </UI>
+    <UI Include="..\..\src\ui-qt\FontView.ui">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </UI>
+    <UI Include="..\..\src\ui-qt\MainWindow.ui">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </UI>
+    <UI Include="..\..\src\ui-qt\MemoryViewer.ui">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd Embedded|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='PPModd|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </UI>
+    <UI Include="..\..\src\ui-qt\ObjectTree.ui">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </UI>
+    <UI Include="..\..\src\ui-qt\options.ui">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </UI>
+    <UI Include="..\..\src\ui-qt\Plugins.ui">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </UI>
+    <UI Include="..\..\src\ui-qt\PPModd.ui">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </UI>
+    <UI Include="..\..\src\ui-qt\TextBox.ui">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </UI>
+    <UI Include="..\..\src\ui-qt\TextEdit.ui">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='QT Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </UI>
+    <UI Include="..\..\src\ui-qt\Workspace.ui">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </UI>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="icon1.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="TriX.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <QRC Include="..\..\src\ui-qt\ui_resource.qrc">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </QRC>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+    <Import Project="QT_UI.targets" />
+    <Import Project="QT_QRC.targets" />
+  </ImportGroup>
+</Project>

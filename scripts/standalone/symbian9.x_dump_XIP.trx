@@ -1,0 +1,103 @@
+#include trix
+
+/*
+ * Dumps XIP address ranges
+ *
+ * g3gg0
+ */
+char *search_path = "D:/cygwin/home/g3gg0/Symbian/S60v5/bins/Z";
+char *search_ext = "*.*";
+
+/* this shouldn't need be modified */ 
+int search_path_length = 0;
+
+int change_endianess ()
+{
+	if ( trix_workspace->flags == FLAGS_ENDIANESS_LE )
+	{
+		trix_workspace->flags = FLAGS_ENDIANESS_BE;
+	}
+	else
+	{
+		trix_workspace->flags = FLAGS_ENDIANESS_LE;
+	}
+	
+	WorkspaceUpdateMemmap ( trix_workspace );
+}
+
+
+void dump_XIP ( char *file )
+{
+	if ( GetWord ( 0x10 ) == 0x434F5045 )
+	{
+		printf ( "(EPOC)                    %s\r\n", &file[search_path_length] );
+		return;
+	}
+	
+	if ( GetWord ( 0x10 ) != GetWord ( 0x14 ) ||  GetWord ( 0x1C ) != GetWord ( 0x20 ) )
+	{
+		printf ( "(unknown)                 %s\r\n", &file[search_path_length] );
+		return;
+	}
+	
+	printf ( "0x%08X - 0x%08X   %s\r\n", GetWord ( 0x10 ), GetWord ( 0x10 ) + GetWord ( 0x1C ), &file[search_path_length] );
+}
+
+
+
+/* don't use parsed file, just the plain input file */
+void search_file ( char *file )
+{
+	unsigned int pos = 0;
+	unsigned int entry = 0;
+	
+	trix_workspace = WorkspaceStartup ( file );
+
+	if ( !trix_workspace )
+	{
+		printf ( "Failed to open %s\r\n", file );
+		return;
+	}
+	
+	SetWorkStage ( 0, 0 );
+
+	change_endianess ();
+	dump_XIP ( file );
+	
+	__workspace_release ( trix_workspace );
+	trix_workspace = NULL;
+}
+
+int search_dir ( char *dir )
+{
+	int pos = 0;
+	unsigned int entries = 0;
+	char *searchname[256];
+	char *filename[256];
+	t_fileinfo *file_infos = NULL;	
+
+	sprintf ( (char*)searchname, "%s/%s", dir, search_ext );
+	file_infos = __file_io_open_directory ( (char*)searchname, &entries );
+
+	for ( pos=0; pos < entries; pos++ )
+	{
+		if(file_infos[pos].options & FILE_DIRECTORY)
+		{
+			sprintf ( (char*)filename, "%s/%s", dir, file_infos[pos].filename );
+			search_dir ( (char*)filename );
+		}
+		else
+		{
+			sprintf ( (char*)filename, "%s/%s", dir, file_infos[pos].filename );
+			search_file ( (char*)filename );
+		}
+		free ( file_infos[pos].filename );
+	}	
+	free ( file_infos );
+}
+
+int main ( )
+{
+	search_path_length = strlen ( search_path );
+	search_dir ( (char*)search_path );
+}

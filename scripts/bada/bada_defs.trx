@@ -1,0 +1,54 @@
+#ifndef BADA_DEFS_TRX
+#define BADA_DEFS_TRX
+
+#define fail(x,s) { if ( x == E_FAIL ) { say ( "%s\n", s ); return E_FAIL; } }
+#define R(x) {if ( x == E_FAIL ) return E_FAIL;}
+#define ALIGN16(x)  ( ( x + 15 ) & ~15 )
+#define ALIGN4(x)   ( ( x + 3 ) & ~3 )
+#define ALIGN2(x)   ( ( x + 1 ) & ~1 )
+#define MOV_LSL(x) ( GetByte ( x ) << ( ( GetHalf ( x + 2 ) >> 6 ) & 0x1F ) )
+
+// check if input file is loaded and init workspace
+#define BADA_INIT \
+{\
+	if ( !trix_workspace->memmap )\
+		fail ( E_FAIL, "No input file selected.\n" );\
+\
+	__fmt_bada_reinit ( trix_workspace );\
+	__stage_set_modified ( __stage_get_current ( trix_workspace->fileinfo->stages ) );\
+}
+
+/******************************************************************************/
+
+char print_bytes[0x100];
+const char *PrintBytes ( unsigned int bytes )
+{
+	float fbytes = (float)bytes;
+
+   if ( bytes < 1024 )
+      sprintf ( print_bytes, "%d  B", bytes );
+   else
+   {
+      fbytes = fbytes / 1024;
+
+      if ( fbytes < 1024 )
+         sprintf ( print_bytes, "%.1f KB", fbytes );
+      else
+         sprintf ( print_bytes, "%.1f MB", fbytes / 1024 );
+   }
+
+   return print_bytes;
+}
+
+unsigned int pause ( )
+{
+	char *buffer = NULL;
+
+	say ( "wait for enter key; you can dump via workspace so long... ;-)\n" );
+
+	UiDlgString ( "Just press enter if you're bored ;).", &buffer );
+
+	return E_OK;
+}
+
+#endif /* BADA_DEFS_TRX */

@@ -1,0 +1,90 @@
+// load plugin
+#plugin trix_fmtbabe
+
+// include headers
+#include trix
+#include trix_fmtbabe
+#include "scripts/SE/se_babe_defs.trx"
+
+unsigned int search_bl ( unsigned int dest, unsigned int start, unsigned int end, unsigned int opt )
+{
+	unsigned int pos = start;
+
+	while ( pos != E_FAIL )
+	{
+		pos = ARMFind ( THUMB_BL, pos, end, opt );
+		if ( pos != E_FAIL )
+		{
+			if ( ARMGet ( pos ) == dest )
+            return pos;
+			pos += 4;
+		}
+	}
+
+	return E_FAIL;
+}
+
+unsigned int check_bl ( unsigned int pos )
+{
+   unsigned int blpos = E_FAIL;
+   unsigned int blend = E_FAIL;
+   unsigned int dest = E_FAIL;
+   unsigned int dt = 0;
+   
+   return E_OK; // comment it to run check, but is so f*cking slow
+
+   dest = ARMGet ( pos + 2 );
+   blpos = pos - 0x400000;
+   blend = pos + 0x400000 - 2;
+
+   while ( blpos != E_FAIL )
+   {
+      blpos = search_bl ( pos, blpos, blend, LOC_FORWARD );
+      if ( blpos != E_FAIL )
+      {
+         if ( blpos < dest )
+            dt = dest - blpos;
+         else
+            dt = blpos - dest;
+
+         if ( dt > 0x400000 )
+            return E_FAIL;
+
+         blpos += 4;
+      }
+   }
+
+   return E_OK;
+}
+
+int main ()
+{
+   BABE_INIT // init babe workspace
+
+   unsigned int pos = ws->memmap->segment->start;
+
+   say ( "Searching for\nPUSH  {LR}\nBL    FUNC\nPOP   {PC}\n\n" );
+
+   pos = ARMFind ( THUMB_BL, pos, MEM_AUTO, LOC_FORWARD );
+	while ( pos != E_FAIL )
+	{
+      pos -= 2;
+
+		if ( pos != rem_tramp ( pos ) )
+		{
+         pos += 8;
+         if ( ARMGet ( pos + 2) != E_FAIL && pos != rem_tramp ( pos ) )
+         {
+            printf ( "checking 0x%08X... ", pos - 8 );
+            if ( check_bl ( pos - 8 ) == E_OK && check_bl ( pos ) == E_OK )
+               printf ( "[OK]\n" );
+            else
+               printf ( "[BAD]\n" );
+         }
+      }
+		pos += 4;
+      pos = ARMFind ( THUMB_BL, pos, MEM_AUTO, LOC_FORWARD );
+	}
+
+	say ( "Done!" );
+}

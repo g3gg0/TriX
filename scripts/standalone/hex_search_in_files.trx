@@ -1,0 +1,141 @@
+#include trix
+
+/*
+ * scans all files matching <search_ext> in the directory <search_path> and its subdirectories for 
+ * the patterns given in <search_patern> and dumps the occurrences.
+ * g3gg0
+*/
+
+char *search_path = "D:/cygwin/home/g3gg0/Symbian/S3/N8_14.002/bins/Z";
+char *search_ext = "*.*";
+
+t_locator search_patern[] = 
+{
+	{ "87500 kHz",  "\xCC\x55\x01\x00", "\xFF\xFF\xFF\xFF", 4, 0 },
+	{ "88100 kHz",  "\x24\x58\x01\x00", "\xFF\xFF\xFF\xFF", 4, 0 },
+	{ "76000 kHz",  "\xE0\x28\x01\x00", "\xFF\xFF\xFF\xFF", 4, 0 },
+	{ "108000 kHz", "\xE0\xA5\x01\x00", "\xFF\xFF\xFF\xFF", 4, 0 },
+	{ "90000 kHz",  "\x90\x5F\x01\x00", "\xFF\xFF\xFF\xFF", 4, 0 },
+	{ NULL, NULL, NULL, 0, 0 }
+};
+
+
+unsigned int status_box = E_FAIL;
+unsigned int found = 0;
+unsigned int files = 0;
+
+/* don't use parsed file, just the plain input file */
+void search_file ( char *filepath, char *filename  )
+{
+	unsigned int pos = 0;
+	unsigned int entry = 0;
+	char dumpname[1024];
+	char message[1024];
+	
+	files++;
+	
+	trix_workspace = WorkspaceStartup ( filepath );
+
+	if ( !trix_workspace )
+	{
+		printf ( "Failed to open %s\r\n", filepath );
+		return;
+	}
+	
+	//printf ( "open %s\r\n", filepath );
+	UiBoxClear ( status_box );
+	
+	sprintf ( message, "Scanned:     [%i]", files );
+	UiBoxMsg ( status_box, message );
+	sprintf ( message, "Found:       [%i]", found );
+	UiBoxMsg ( status_box, message );
+	sprintf ( message, "Processing:  [%s]", filename );
+	UiBoxMsg ( status_box, message );
+	
+
+	SetWorkStage ( 0, 0 );
+	
+	while(search_patern[entry].func_name)
+	{		
+		pos = MEM_AUTO;
+		do 
+		{
+			pos = FindPattern(&search_patern[entry], pos, MEM_AUTO, LOC_FORWARD);
+			if ( pos != E_FAIL )
+			{
+				found++;
+				sprintf ( dumpname, "%s/%s", filepath, filename );
+				printf ( "0x%08X File: %s Pattern: %s\r\n",  pos, filepath, search_patern[entry].func_name );
+				pos += search_patern[entry].length;
+			}
+		} while ( pos != E_FAIL );
+		entry++;
+	}
+	
+	__workspace_release ( trix_workspace );
+	trix_workspace = NULL;
+}
+
+int search_dir ( char *dir )
+{
+	int pos = 0;
+	unsigned int entries = 0;
+	char *searchname[1024];
+	char *filepath[1024];
+	t_fileinfo *file_infos = NULL;	
+
+	sprintf ( (char*)searchname, "%s/%s", dir, search_ext );
+	file_infos = __file_io_open_directory ( (char*)searchname, &entries );
+
+	for ( pos=0; pos < entries; pos++ )
+	{
+		if(!(file_infos[pos].options & FILE_DIRECTORY))
+		{
+			sprintf ( (char*)filepath, "%s/%s", dir, file_infos[pos].filename );
+			search_file ( (char*)filepath, (char*)file_infos[pos].filename );
+		}
+		if(file_infos[pos].filename)
+		{
+			free ( file_infos[pos].filename );
+		}
+	}
+
+	if(file_infos)
+	{
+		free ( file_infos );
+	}
+
+	sprintf ( (char*)searchname, "%s/*.*", dir );
+	file_infos = __file_io_open_directory ( (char*)searchname, &entries );
+
+	for ( pos=0; pos < entries; pos++ )
+	{
+		if(file_infos[pos].options & FILE_DIRECTORY)
+		{
+			sprintf ( (char*)filepath, "%s/%s", dir, file_infos[pos].filename );
+			search_dir ( (char*)filepath );
+		}
+		if(file_infos[pos].filename)
+		{
+			free ( file_infos[pos].filename );
+		}
+	}	
+
+	if(file_infos)
+	{
+		free ( file_infos );
+	}
+}
+
+int main ( )
+{
+	status_box = UiBoxCreate ( "Processing..." );
+	UiBoxSize ( status_box, 500, 80 );
+
+	UiBoxClear ( status_box );
+	UiBoxMsg ( status_box, "Starting..." );
+	
+	search_dir ( (char*)search_path );
+	
+	return 0;
+}

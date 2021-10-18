@@ -1,0 +1,387 @@
+#include trix
+
+
+#plugin trix_ufs
+#plugin trix_nokiacrypt
+
+#include trix_ufs
+#include trix_nokiacrypt
+
+//
+// fit to your paths
+/////////////////////////////////////////////////////////
+unsigned int little_endian = 1;
+
+char *u_2nd = "support\\te_2nd.fia";
+char *u_3rd = "support\\te_amd_b.fia";
+
+/////////////////////////////////////////////////////////
+
+int quiet = 0;
+
+int show_flash_info ( unsigned char *data )
+{
+	int pos = 0;
+	int done = 0;
+	int fl_num = 0;
+	int fl_id = 0;
+	int fl_start = 0;
+
+	while ( !done )
+	{
+		fl_start = (data[pos+2]) & 0xFF;
+		if ( little_endian )
+			fl_id = (data[pos+4] << 24) | (data[pos+3] << 16) | (data[pos+6] << 8) | data[pos+5];
+		else
+			fl_id = (data[pos+3] << 24) | (data[pos+4] << 16) | (data[pos+5] << 8) | data[pos+6];
+		fl_num++;
+		pos += 11;
+
+		if ( fl_id != 0x00000001 )
+			printf ( "  [i] Flash %i: %08X at 0x%02X000000\n", fl_num, fl_id, fl_start );
+		else
+			done = 1;
+
+		//		if ( fl_num == 2 )
+		//			done = 1;
+	}
+	return E_OK;
+}
+
+unsigned char neg_checksum ( unsigned char *buffer, unsigned int bytes )
+{
+	unsigned int i = 0;
+	unsigned char k = 0xFF;
+
+	for(i=0; i<bytes; i++)
+		k = k - buffer[i];
+
+	return k;
+}
+
+
+
+unsigned short pos_checksum ( unsigned char *buffer, unsigned int bytes )
+{
+	unsigned int i = 0;
+	unsigned short k = 0;
+
+	for ( i=0; i < bytes; i++)
+		k = k + buffer[i];
+
+	return k;
+}
+
+unsigned char *load_loader ( unsigned char *name, int *length )
+{
+	t_workspace *ws = NULL;
+	int start = 0;
+
+	if ( !name )
+		return NULL;
+	ws = WorkspaceStartup  ( name );
+	if ( !ws )
+	{
+		printf ( "  [F] unable to open '%s'\n", name );
+		return NULL;
+	}
+
+	if ( __v_get_b(ws, 0) != 0xA0 && __v_get_b(ws, 0) != 0xA1 )
+	{
+		printf ( "  [F] invalid loader '%s'\n", name );
+		return NULL;
+	}
+
+	start = __v_get_w ( ws, 1 );
+	*length = __v_get_size ( ws );
+
+	if ( !quiet )
+		printf ( "  [i] loader type %02X, %i bytes\n", __v_get_b(ws, 0), *length );
+
+
+	return __v_get_ptr ( ws, 0 );
+
+}
+
+
+int do_get_uppid ( )
+{
+	char buffer[1024];
+
+	int length = 0;
+	unsigned char *loader = NULL;
+
+
+	//
+	// initialize phone and get UPP ID
+	//
+	if ( !quiet )
+		printf ( "[x] Init Phone and check UPP ID...\n" );
+	if ( __ufs_check_bootrom ( buffer ) != E_OK )
+		return E_FAIL;
+
+	if ( !quiet )
+		printf ( "  [i] UPP ID: %02X %02X\n", buffer[1], buffer[2] );
+
+	return E_OK;
+}
+
+int do_load_2nd ( )
+{
+	char buffer[1024];
+
+	int length = 0;
+	unsigned char *loader = NULL;
+
+	//
+	// open second loader and upload
+	//
+	if ( !quiet )
+	{
+		printf ( "\n" );
+		printf ( "[x] Load 2nd loader...\n" );
+	}
+
+	loader = load_loader ( u_2nd, &length );
+	if ( !loader )
+		return E_FAIL;
+
+	if ( __ufs_boot_2nd ( buffer, loader, length ) != E_OK )
+		return E_FAIL;
+
+	if ( !quiet )
+		show_flash_info ( buffer );
+
+	return E_OK;
+}
+
+int do_load_3rd ( )
+{
+	char buffer[1024];
+
+	int length = 0;
+	unsigned char *loader = NULL;
+
+
+	//
+	// open third loader and upload
+	//
+	if ( !quiet )
+	{
+		printf ( "\n" );
+		printf ( "[x] Load 3rd loader...\n" );
+	}
+
+	loader = load_loader ( u_3rd, &length );
+	if ( !loader )
+		return E_FAIL;
+
+	if ( __ufs_boot_3rd ( loader, length ) != E_OK )
+		return E_FAIL;
+
+	return E_OK;
+}
+
+int prepare_phone ( )
+{
+	if ( do_get_uppid () != E_OK )
+		return E_FAIL;
+	if ( do_load_2nd () != E_OK )
+		return E_FAIL;
+	if ( do_load_3rd () != E_OK )		
+		return E_FAIL;
+
+	return E_OK;
+}
+
+int get_flash_data ( )
+{
+	unsigned char cmd[0x30];
+	unsigned short res = 0;
+	int pos = 0;
+
+	cmd[0] = 0x03;
+	cmd[1] = 0xFF;
+
+	// send command
+	if ( !quiet )
+		printf ( "[x] Get Flash Info\n" );
+	res = __ufs_send_data ( cmd, 2 );
+	if(res)
+	{
+		printf ( "  [F] Get Flash Info failed! phone has locked up\n" );
+		return E_FAIL;
+	}
+
+	// read ok signal
+	res = __ufs_read_data ( cmd, 1 );
+
+	if ( cmd[0] != 0x98 )
+		printf ( "  [F] Get Flash Info failed? 0x%02X (this case must not happen!)\n", cmd[0] );
+	else
+	{
+		if ( !quiet )
+			printf ( "  [i] successfully executed!\n" );
+	}
+
+	// read data
+	res = __ufs_read_data ( cmd, 0x28 );
+	
+	if ( res != E_OK )
+	{
+		printf ( "  [E] Error reading Flash Info: Retcode %i\n", res );
+		return E_FAIL;
+	}
+		
+	if ( cmd[0x27] != neg_checksum ( cmd, 0x26 ) )
+	{
+		printf ( "  [E] Error reading Flash Info: Checksum error 0x%02X != 0x%02X\n", cmd[13], neg_checksum ( cmd, 13 ) );
+		return E_FAIL;
+	}
+	
+	printf ( "  [i] Flash Info: " );
+	printf ( "%02X ", cmd[pos] );
+	for ( pos=1; pos < 0x26; pos++ )
+		printf ( "%02X", cmd[pos] );
+		
+	printf ( "\n" );
+
+
+	return E_OK;
+}
+
+
+int get_msid ( )
+{
+	unsigned char cmd[14];
+	unsigned char faid[12];
+	unsigned short res = 0;
+	int pos = 0;
+
+	cmd[0] = 0x16;
+	cmd[1] = 0x00;
+	cmd[2] = 0x00;
+	cmd[3] = 0x00;
+	cmd[4] = 0x00;
+	cmd[5] = 0x00;
+	cmd[6] = 0x00;
+	cmd[7] = 0x00;
+	cmd[8] = neg_checksum ( cmd + 1, 7 );
+
+	// send command
+	if ( !quiet )
+		printf ( "[x] Get MSID\n" );
+	res = __ufs_send_data ( cmd, 9 );
+	if(res)
+	{
+		printf ( "  [F] Get MSID failed! phone has locked up\n" );
+		return E_FAIL;
+	}
+
+	// read ok signal
+	res = __ufs_read_data ( cmd, 1 );
+
+	if ( cmd[0] != 0x96 )
+		printf ( "  [F] Get MSID failed? 0x%02X (this case must not happen!)\n", cmd[0] );
+	else
+	{
+		if ( !quiet )
+			printf ( "  [i] successfully executed!\n" );
+	}
+
+	// read ok signal
+	res = __ufs_read_data ( cmd, 14 );
+	
+	if ( res != E_OK )
+	{
+		printf ( "  [E] Error reading MSID: Retcode %i\n", res );
+		return E_FAIL;
+	}
+		
+	if ( cmd[13] != neg_checksum ( cmd, 13 ) )
+	{
+		printf ( "  [E] Error reading MSID: Checksum error 0x%02X != 0x%02X\n", cmd[13], neg_checksum ( cmd, 13 ) );
+		return E_FAIL;
+	}
+	
+	printf ( "  [i] Crypted  MSID: " );
+	printf ( "%02X ", cmd[pos] );
+	for ( pos=1; pos < 13; pos++ )
+		printf ( "%02X", cmd[pos] );
+		
+	printf ( "\n" );
+
+	__nokiacrypt_decode_msid ( cmd );
+	
+	printf ( "  [i] Plain    MSID:    " );
+	for ( pos=1; pos < 13; pos++ )
+		printf ( "%02X", cmd[pos] );
+		
+	printf ( "\n" );
+
+	__nokiacrypt_encode_faid ( faid, cmd );
+
+	printf ( "  [i] Crypted  FAID:    " );
+	for ( pos=0; pos < 12; pos++ )
+		printf ( "%02X", faid[pos] );
+	printf ( "\n" );
+
+	__nokiacrypt_decode_faid ( faid, cmd );
+
+	printf ( "  [i] Plain    FAID:    " );
+	for ( pos=0; pos < 12; pos++ )
+		printf ( "%02X", faid[pos] );
+	printf ( "\n\n" );
+
+	return E_OK;
+}
+
+
+int main ( )
+{
+	int repaint = 1;
+	int done = 0;
+	int command = 0;
+	char *menu[] = { "Get UPP ID", "Load 2nd loader", "Load 3rd loader", "Get MSID", "Get Flash Info", "" };
+
+//	__options_set_int ( "plugins.UFS.timings.timing_factor", 150 );
+	
+	while ( !done )
+	{
+		command = UiDlgMenu ( "ufs Shell", menu, UI_OPT_QUIT | (repaint?0:UI_OPT_NOREPAINT) );
+		if ( command == 0 )
+			return E_OK;
+		repaint = 0;
+
+		switch ( command )
+		{
+		case E_FAIL:
+			repaint = 1;
+			break;
+		case 0:
+			return E_OK;
+			break;
+		case 1:
+			do_get_uppid ();
+			break;
+		case 2:
+			do_load_2nd ();
+			break;
+		case 3:
+			do_load_3rd ();
+			break;
+		case 4:
+			get_msid ( );
+			break;
+		case 5:
+			get_flash_data ( );
+			break;
+		case 6:
+			break;
+		default:
+			break;
+		}
+	}
+
+	return E_OK;
+}

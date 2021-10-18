@@ -1,0 +1,3810 @@
+#ifndef SE_LOCATE_TRX
+#define SE_LOCATE_TRX
+
+// lib functions
+#define SWI_LF_START    0x112
+#define SWI_LF_END      0x3AB
+
+// own functions
+#define SWI_OF_START    0x1000
+#define SWI_OF_END      0x1004
+
+#define SWI_LF_COUNT    ( SWI_LF_END - SWI_LF_START + 1 )
+#define SWI_OF_COUNT    ( SWI_OF_END - SWI_OF_START + 1 )
+
+#define SET_ATD(s)      { *swi = ( *swi & ~SWI_ATD ) | s; }
+
+#define PATT1(s)        { patt1 = str ( s ); }
+#define PATT2(s)        { patt2 = str ( s ); }
+#define PATT3(s)        { patt3 = str ( s ); }
+#define MASK1(s)        { mask1 = str ( s ); }
+#define MASK2(s)        { mask2 = str ( s ); }
+#define MASK3(s)        { mask3 = str ( s ); }
+
+/******************************************************************************/
+
+const char *lib_funcs[] =
+{
+   "memset", // 0x112
+   "memcpy", // 0x113
+   "sprintf", // 0x114
+   "snwprintf", // 0x115
+   "_fopen", // 0x116
+   "fclose", // 0x117
+   "fread", // 0x118
+   "fwrite", // 0x119
+   "_wstat", // 0x11A
+   "fputs", // 0x11B
+   "fstat", // 0x11C
+   "AllocDirHandle", // 0x11D
+   "GetFname",// 0x11E
+   "DataBrowserDesc_Create", // 0x11F
+   "DataBrowserDesc_SetStyle", // 0x120
+   "DataBrowserDesc_SetHeaderText", // 0x121
+   "DataBrowserDesc_SetFolders", // 0x122
+   "DataBrowserDesc_SetOKSoftKeyText", // 0x123
+   "DataBrowser_Create",// 0x124
+   "DataBrowserDesc_Destroy", // 0x125
+   "getFileExtention", // 0x126
+   "DataBrowser_isFileInListExt", // 0x127
+   "Timer_ReSet", // 0x128
+   "Timer_Set", // 0x129
+   "Timer_Kill", // 0x12A
+   "CreateBook", // 0x12B
+   "BookObj_KillBook", // 0x12C
+   "BookObj_GotoPage", // 0x12D
+   "BookObj_ReturnPage",// 0x12E
+   "FreeBook",// 0x12F
+   "FindBook",// 0x130
+   "Find_StandbyBook", // 0x131
+   "BookObj_SetFocus", // 0x132
+   "GuiObject_SetTitleText", // 0x133
+   "ShowWindow", // 0x134
+   "SetCursorToItem", // 0x135
+   "GUI_SetStyle", // 0x136
+   "GUIonMessage_GetCreatedItemIndex", // 0x137
+   "SetMenuItemText0", // 0x138
+   "SetMenuItemText1", // 0x139
+   "SetMenuItemText2", // 0x13A
+   "SetMenuItemText3", // 0x13B
+   "SetListObjectItemIcon", // 0x13C
+   "DispObject_SetTitleText", // 0x13D
+   "ListMenu_GetSelectedItem", // 0x13E
+   "SetMenuItemStyle", // 0x13F
+   "putchar", // 0x140
+   "isScreenSaverBook", // 0x8141
+   "StatusIndication_SetItemText", // 0x142
+   "StatusIndication_ShowNotes", // 0x143
+   "CreateStringInput", // 0x144
+   "CreateOneOfMany", // 0x145
+   "OneOfMany_SetItemCount", // 0x146
+   "OneOfMany_SetChecked", // 0x147
+   "OneOfMany_SetTexts",// 0x148
+   "OneOfMany_GetSelected", // 0x149
+   "StatusIndication_Item8_SetText", // 0x14A
+   "GUIObject_Softkey_SetAction", // 0x14B
+   "GUIObject_Softkey_SetText", // 0x14C
+   "GUIObject_SoftKey_SetEnable", // 0x14D
+   "GUIObject_SoftKey_AddErrorStr", // 0x14E
+   "GUIObject_SoftKey_RemoveItem", // 0x14F
+   "GUIObject_SoftKey_SetVisible", // 0x150
+   "GUIObject_SoftKey_SuppressDefaultAction", // 0x151
+   "wstrcpy", // 0x152
+   "wstrncpy",// 0x153
+   "wstrcat", // 0x154
+   "wstrncat",// 0x155
+   "wstrcmp", // 0x156
+   "wstrlen", // 0x157
+   "str2wstr",// 0x158
+   "strcmp", // 0x159
+   "strlen", // 0x15A
+   "wstr2strn", // 0x15B
+   "int2strID", // 0x15C
+   "Str2ID", // 0x15D
+   "StrID2Str", // 0x15E
+   "TextID2wstr", // 0x15F
+   "TextGetLength",// 0x160
+   "TextFree",// 0x161
+   "AB_DEFAULTNBR_GET", // 0x162
+   "AB_READSTRING",// 0x163
+   "AB_READPHONENBR", // 0x164
+   "AB_GETNBROFITEMS", // 0x165
+   "PNUM_len",// 0x166
+   "PNUM2str",// 0x167
+   "GUIObj_GetDISPObj", // 0x168
+   "List_New",// 0x169
+   "List_Free", // 0x16A
+   "ListElement_AddtoTop", // 0x16B
+   "Gif2ID", // 0x16C
+   "REQUEST_IMAGEHANDLER_INTERNAL_GETHANDLE", // 0x16D
+   "REQUEST_DATEANDTIME_GET", // 0x16E
+   "IndicationDevice_Backlight_FadeToLevel",// 0x16F
+   "GetFreeBytesOnHeap",// 0x170
+   "BookObj_Hide", // 0x171
+   "BookObj_Show", // 0x172
+   "StartAPP",// 0x173
+   "ListMenu_SetOnMessages", // 0x174
+   "manifest_GetParam", // 0x175
+   "lseek", // 0x176
+   "get_VBUFFER", // 0x8177
+   "SetLampLevel", // 0x178
+   "ListElement_Remove",// 0x179
+   "GetCurrentPID",// 0x17A
+   "ListElement_Prt2NumElement", // 0x17B
+   "alloc", // 0x17C
+   "receive", // 0x17D
+   "send", // 0x17E
+   "sender", // 0x17F
+   "free_buf",// 0x180
+   "create_process", // 0x181
+   "start", // 0x182
+   "get_ptype", // 0x183
+   "current_process", // 0x184
+   "delay", // 0x185
+   "hunt", // 0x186
+   "kill_proc", // 0x187
+   "set_bp_adr", // 0x8188
+   "receive_w_tmo",// 0x189
+   "clear_bp_adr", // 0x818A
+   "", // 0x18B
+   "", // 0x18C
+   "", // 0x18D
+   "", // 0x18E
+   "", // 0x18F
+   "", // 0x190
+   "", // 0x191
+   "", // 0x192
+   "", // 0x193
+   "", // 0x194
+   "", // 0x195
+   "", // 0x196
+   "", // 0x197
+   "", // 0x198
+   "", // 0x199
+   "", // 0x19A
+   "", // 0x19B
+   "", // 0x19C
+   "", // 0x19D
+   "", // 0x19E
+   "", // 0x19F
+   "strcpy", // 0x1A0
+   "CreateMessage",// 0x1A1
+   "SendMessage", // 0x1A2
+   "WaitMessage", // 0x1A3
+   "FreeMessage", // 0x1A4
+   "SendDispatchMessage", // 0x1A5
+   "UIEventName", // 0x1A6
+   "MissedEvents", // 0x81A7
+   "UI_Event",// 0x1A8
+   "UI_Event_wData", // 0x1A9
+   "UI_Event_toBookID", // 0x1AA
+   "UI_Event_toBookIDwData", // 0x1AB
+   "ListElement_Find", // 0x1AC
+   "ListElement_GetByIndex", // 0x1AD
+   "wstrrchr",// 0x1AE
+   "BookObj_CallSubroutine", // 0x1AF
+   "ListElement_Add", // 0x1B0
+   "debug_printf", // 0x1B1
+   "PlayFile",// 0x1B2
+   "", // 0x1B3
+   "REQUEST_PROFILE_GETACTIVEPROFILE", // 0x1B4
+   "Profile_SetActive", // 0x1B5
+   "", // 0x1B6
+   "isKeylocked", // 0x1B7
+   "isMediaPlayerVideoBook", // 0x81B8
+   "", // 0x1B9
+   "", // 0x1BA
+   "", // 0x1BB
+   "REQUEST_DATEFORMAT_GET", // 0x1BC
+   "REQUEST_TIMEFORMAT_GET", // 0x1BD
+   "Date2ID", // 0x1BE
+   "Time2ID", // 0x1BF
+   "CreateListObject", // 0x1C0
+   "SetNumOfMenuItem", // 0x1C1
+   "ROOT_APP",// 0x81C2
+   "SoftKey_AddHelpStr",// 0x1C3
+   "SoftKey_SetItemAsSubItem", // 0x1C4
+   "REQUEST_SYSTEM_SHUTDOWN", // 0x1C5
+   "REQUEST_SYSTEM_RESTART", // 0x1C6
+   "SoftKeys_SetText", // 0x1C7
+   "isRightNowBook", // 0x1C8
+   "isVolumeControllerBook", // 0x1C9
+   "CreateTabMenuBar", // 0x1CA
+   "TabMenuBar_SetTabCount", // 0x1CB
+   "TabMenuBar_AssignGuiObj", // 0x1CC
+   "TabMenuBar_SetTabIcon", // 0x1CD
+   "GUI_Free",// 0x1CE
+   "InputFeedback_SetIcon", // 0x1CF
+   "StringInput_GetStringAndLen", // 0x1D0
+   "GetAudioControlPtr",// 0x81D1
+   "AudioControl_Vibrate", // 0x1D2
+   "", // 0x1D3
+   "CreateNOfMany",// 0x1D4
+   "NOfMany_SetTexts", // 0x1D5
+   "NOfMany_SetChecked",// 0x1D6
+   "NOfMany_SetCursor", // 0x1D7
+   "NOfMany_GetCheckedCount", // 0x1D8
+   "NOfMany_GetChecked",// 0x1D9
+   "NOfMany_SetonMessage", // 0x1DA
+   "", // 0x1DB
+   "", // 0x1DC
+   "", // 0x1DD
+   "", // 0x1DE
+   "AudioControl_Init", // 0x1DF
+   "OneOfMany_SetFocused", // 0x1E0
+   "OneOfMany_SetonMessage", // 0x1E1
+   "CreateFeedBack", // 0x1E2*
+   "FeedBack_SetText", // 0x1E3*
+   "GetBatteryState", // 0x1E4*
+   "get_DisplayGC",// 0x1E5*
+   "GetGuiRect", // 0x1E6
+   "get_GC_RECT", // 0x1E7*
+   "get_GC_xx", // 0x1E8*
+   "set_GC_xx", // 0x1E9*
+   "GC_validate_RECT", // 0x1EA*
+   "addGui2book", // 0x1EB*
+   "DrawRect",// 0x1EC*
+   "DrawString", // 0x1ED*
+   "addGui2XGuiList", // 0x1EE*
+   "InvalidateRect", // 0x1EF
+   "CreateObject", // 0x1F0*
+   "SetFont", // 0x1F1*
+   "StatusRow_p", // 0x81F2*
+   "root_list_get_session_count", // 0x1F3
+   "root_list_get_session", // 0x1F4
+   "SESSION_GetTopBook",// 0x1F5*
+   "MainInput_getVisible", // 0x1F6*
+   "MainInput_strlen", // 0x1F7*
+   "MainInput_getPNUM", // 0x1F8*
+   "MainInput_isPlus", // 0x1F9*
+   "BOOK_GetBookID", // 0x1FA
+   "wstrncmp",// 0x1FB*
+   "DISP_OBJ_GetAbsoluteXPos", // 0x1FC*
+   "DISP_OBJ_GetAbsoluteYPos", // 0x1FD*
+   "DISP_OBJ_GetWindow",// 0x1FE
+   "GetThemeColor",// 0x1FF
+   "REQUEST_SETTING_SILENCE_SET", // 0x200
+   "REQUEST_SETTING_SILENCE_GET", // 0x201
+   "VCALL_Init", // 0x202*
+   "VCALL_SetName",// 0x203*
+   "VCALL_SetNameIcon", // 0x204*
+   "VCALL_SetNumber", // 0x205*
+   "VCALL_SetHZ1", // 0x206*
+   "VCALL_SetHZ2", // 0x207*
+   "MakeVoiceCall",// 0x208*
+   "isDirectory", // 0x209*
+   "FileDelete", // 0x20A*
+   "SetFocus",// 0x20B*
+   "CreateSMSCont",// 0x20C*
+   "FreeSMSCont", // 0x20D
+   "PrepareSMSCont", // 0x20E*
+   "CteateNewMessage", // 0x20F*
+   "get_APP_DESC_TABLE",// 0x8210*
+   "Window_GetComponentInterface", // 0x211*
+   "AB_POSITIONNBR_GET",// 0x212*
+   "AB_NAME_ITEM2StrID",// 0x213*
+   "AB_NUM_ITEM2StrID", // 0x214*
+   "GetABRecNum", // 0x215*
+   "get_AB_ITEMS_DESC", // 0x8216*
+   "SBY_GetMainInput", // 0x217*
+   "SBY_GetStatusIndication", // 0x218*
+   "REQUEST_PHONEBOOK_ACCESSSTATUS_TOTAL_GET", // 0x219
+   "PID_MMI", // 0x821A*
+   "", // 0x21B
+   "", // 0x21C
+   "DISPBASE_GetFocused", // 0x21D
+   "DISP_OBJ_getVisible", // 0x21E
+   "DISP_OBJ_GetDESC", // 0x21F*
+   "DISP_DESC_SetName", // 0x220
+   "DISP_OBJ_GetName", // 0x221*
+   "DISP_DESC_SetSize", // 0x222
+   "DISP_DESC_GetSize", // 0x223*
+   "DISP_DESC_SetOnCreate", // 0x224
+   "DISP_OBJ_GetOnCreate", // 0x225
+   "DISP_DESC_SetOnClose", // 0x226
+   "DISP_OBJ_GetOnClose", // 0x227
+   "DISP_DESC_SetOnRedraw", // 0x228
+   "DISP_OBJ_GetOnRedraw", // 0x229
+   "DISP_DESC_SetOnKey",// 0x22A
+   "DISP_OBJ_GetOnKey", // 0x22B
+   "DISP_DESC_SetonRefresh", // 0x22C
+   "DISP_OBJ_GetonRefresh", // 0x22D
+   "DISP_DESC_SetMethod04", // 0x22E*
+   "DISP_OBJ_GetMethod04", // 0x22F*
+   "DISP_DESC_SetMethod05", // 0x230*
+   "DISP_OBJ_GetMethod05", // 0x231*
+   "DISP_DESC_SetMethod06", // 0x232
+   "DISP_OBJ_GetMethod06", // 0x233
+   "DISP_DESC_SetMethod07", // 0x234*
+   "DISP_OBJ_GetMethod07", // 0x235*
+   "DISP_DESC_SetMethod08", // 0x236
+   "DISP_OBJ_GetMethod08", // 0x237
+   "DISP_DESC_SetMethod09", // 0x238*
+   "DISP_OBJ_GetMethod09", // 0x239*
+   "DISP_DESC_SetMethod0A", // 0x23A*
+   "DISP_OBJ_GetMethod0A", // 0x23B*
+   "DISP_DESC_SetMethod0B", // 0x23C*
+   "DISP_OBJ_GetMethod0B", // 0x23D*
+   "DISP_DESC_SetMethod0C", // 0x23E*
+   "DISP_OBJ_GetMethod0C", // 0x23F*
+   "JavaSession_Manager", // 0x240*
+   "JavaSession_GetName", // 0x241*
+   "TextCopyId", // 0x242
+   "Book_GetSession", // 0x243
+   "List2lineSetAsSubitem", // 0x244
+   "List2lineSubitemAddText", // 0x245*
+   "GUIonMessage_GetCreatedSubItemParrentIndex", // 0x246*
+   "GoMusic", // 0x247*
+   "", // 0x248
+   "", // 0x249
+   "PlayFileV", // 0x24A*
+   "GetSilent", // 0x24B*
+   "GetVibrator", // 0x24C*
+   "GetAudioSettings", // 0x24D*
+   "GetChipID", // 0x24E*
+   "", // 0x24F
+   "", // 0x250
+   "", // 0x251
+   "List2LineGetCurrentIndex", // 0x252*
+   "GUIonMessage_GetCurrentItemIndex", // 0x253*
+   "DestroyDirHandle", // 0x254
+   "LastExtDB", // 0x8255*
+   "GetOtherExtMethods",// 0x256*
+   "MessageBox", // 0x257*
+   "Display_GetHeight", // 0x258*
+   "Display_GetWidth", // 0x259*
+   "PlaySystemSound", // 0x25A*
+   "", // 0x25B
+   "", // 0x25C
+   "TabMenuBar_GetFocusedTabIndex", // 0x25D*
+   "TabMenuBar_SetTabFocused", // 0x25E*
+   "GC_GetPenColor", // 0x25F*
+   "GC_SetPenColor", // 0x260*
+   "GC_SetPixel", // 0x261*
+   "GC_DrawLine", // 0x262*
+   "GC_DrawFRect", // 0x263*
+   "GC_DrawBitmap",// 0x264*
+   "png_create_read_struct_2", // 0x265*
+   "png_destroy_read_struct", // 0x266*
+   "png_create_info_struct", // 0x267
+   "png_destroy_info_struct", // 0x268
+   "png_set_progressive_read_fn", // 0x269*
+   "png_process_data", // 0x26A*
+   "png_read_update_info", // 0x26B*
+   "png_get_progressive_ptr", // 0x26C*
+   "png_get_IHDR", // 0x26D*
+   "png_set_strip_16", // 0x26E*
+   "png_set_gray_1_2_4_to_8", // 0x26F*
+   "png_set_gray_to_rgb", // 0x270*
+   "png_get_valid",// 0x271*
+   "png_set_tRNS_to_alpha", // 0x272*
+   "png_set_filler", // 0x273*
+   "png_set_palette_to_rgb", // 0x274*
+   "png_get_rowbytes", // 0x275*
+   "png_progressive_combine_row", // 0x276*
+   "png_sig_cmp", // 0x277
+   "setjmp", // 0x278*
+   "longjmp", // 0x279*
+   "inflateInit2_",// 0x27A*
+   "inflate", // 0x27B*
+   "inflateEnd", // 0x27C*
+   "memcmp", // 0x27D*
+   "strncmp", // 0x27E*
+   "strncpy", // 0x27F*
+   "strcat", // 0x280*
+   "GuiObject_SetTitleType", // 0x281*
+   "GUIonMessage_SetItemDisabled", // 0x282
+   "REQUEST_IMAGEHANDLER_INTERNAL_REGISTER",// 0x283
+   "REQUEST_IMAGEHANDLER_INTERNAL_UNREGISTER", // 0x284*
+   "get_Surfaces", // 0x8285*
+   "iconidname2id",// 0x286*
+   "textidname2id",// 0x287*
+   "ListMenu_SetNoItemText", // 0x288*
+   "", // 0x289
+   "isFmRadioBook",// 0x828A*
+   "isAudioPlayerBook", // 0x828B*
+   "PlayerControl",// 0x28C*
+   "SwitchRadioStationFromList", // 0x28D*
+   "Shortcut_Run", // 0x28E*
+   "mkdir", // 0x28F
+   "rmdir", // 0x290
+   "chmod", // 0x291
+   "rename", // 0x292*
+   "GetImageWidth",// 0x293*
+   "GetImageHeight", // 0x294*
+   "CallID_GetCallStatusDesc", // 0x295*
+   "CallStatusDesc_GetName", // 0x296*
+   "List_FreeElements", // 0x297*
+   "strstr", // 0x298*
+   "GPRS_GetLastSessionInfo", // 0x299*
+   "wstrcmpni", // 0x29A*
+   "wtoi", // 0x29B*
+   "DATE_GetWeekDay", // 0x29C*
+   "Cale_GetSettings", // 0x29D*
+   "wstrwstr",// 0x29E*
+   "wstrcmpi",// 0x29F*
+   "wstrchr", // 0x2A0
+   "GUIObject_HideSoftkeys", // 0x2A1
+   "GUIObject_ShowSoftkeys", // 0x2A2
+   "DispObject_SoftKeys_Get", // 0x2A3*
+   "StandbyBackground_SetImage", // 0x2A4*
+   "CreateYesNoQuestionVA", // 0x2A5*
+   "ListMenu_SetSecondLineText", // 0x2A6*
+   "_REQUEST_OAF_START_APPLICATION", // 0x2A7*
+   "FSX_isNameInvalid", // 0x2A8*
+   "DataBrowserDesc_SetFoldersNumber", // 0x2A9
+   "DataBrowserDesc_SetActions", // 0x2AA
+   "DataBrowserDesc_SetSelectAction", // 0x2AB
+   "DataBrowserDesc_SetSelectActionOnFolders", // 0x2AC
+   "DataBrowserDesc_SetBookID", // 0x2AD
+   "DataBrowserDesc_SetItemFilter", // 0x2AE
+   "DataBrowserDesc_SetOption", // 0x2AF
+   "DataBrowserDesc_SetOpenEmptyFolder", // 0x2B0
+   "DataBrowserDesc_SetFileExtList", // 0x2B1
+   "FSX_RemoveIllegalSymbolsName", // 0x2B2*
+   "FILEITEM_Create", // 0x2B3
+   "FILEITEM_Destroy", // 0x2B4*
+   "CreateDateInputVA", // 0x2B5*
+   "CreateTimeInputVA", // 0x2B6*
+   "StringInput_SetCursorPosition", // 0x2B7*
+   "BookObj_CallPage", // 0x2B8
+   "DateInput_GetDateInt", // 0x2B9*
+   "TimeInput_GetTimeInt", // 0x2BA*
+   "GetFontDesc", // 0x82BB*
+   "GetFontCount", // 0x82BC*
+   "GC_GetBrushColor", // 0x2BD*
+   "GC_SetBrushColor", // 0x2BE*
+   "GC_DrawRoundRect", // 0x2BF*
+   "MenuBook_Desktop", // 0x2C0*
+   "MenuBook_Desktop_GetSelectedItemID", // 0x2C1*
+   "BookObj_Softkey_SetAction", // 0x2C2*
+   "BookObj_Softkey_SetText", // 0x2C3*
+   "FindBookByID", // 0x2C4
+   "TextFeedbackWindow",// 0x2C5*
+   "Feedback_SetKeyHook", // 0x2C6*
+   "Feedback_SetOnClose", // 0x2C7*
+   "Feedback_SetTimeout", // 0x2C8*
+   "Feedback_SetTextExtended", // 0x2C9
+   "TabMenuBar_SetOnTabSwitch", // 0x2CA*
+   "KeyCode2Name", // 0x2CB
+   "ImageID_Get", // 0x2CC*
+   "ImageID_Free", // 0x2CD*
+   "DataBrowser_CreateSubExecute", // 0x2CE
+   "DataBrowser_ExecuteSubroutine", // 0x2CF
+   "FILEITEM_SetFname", // 0x2D0
+   "FILEITEM_SetPath", // 0x2D1
+   "FILEITEM_GetFname", // 0x2D2*
+   "FILEITEM_GetPath", // 0x2D3*
+   "FILEITEM_SetFnameAndContentType", // 0x2D4*
+   "FILEITEM_SetPathAndContentType", // 0x2D5
+   "JavaDialog_Open", // 0x2D6
+   "JavaDialog_Close", // 0x2D7
+   "JavaAppDesc_Get", // 0x2D8
+   "JavaAppDesc_GetFirstApp", // 0x2D9*
+   "JavaAppDesc_GetNextApp", // 0x2DA*
+   "JavaAppDesc_GetJavaAppInfo", // 0x2DB*
+   "OrangeLED_Control", // 0x2DC*
+   "DispObject_SetRefreshTimer", // 0x2DD*
+   "DispObject_KillRefreshTimer", // 0x2DE*
+   "isDataBrowserBook", // 0x2DF
+   "BrowserItem_Get_SUB_EXECUTE", // 0x2E0
+   "Shortcut_Get_MenuItemName", // 0x2E1*
+   "Shortcut_Get_MenuItemIconID", // 0x2E2
+   "FindBookEx", // 0x2E3
+   "FILEITEM_CreateCopy", // 0x2E4
+   "ActionCreate", // 0x2E5*
+   "BOOK_GetSessionID", // 0x2E6*
+   "UI_Event_toSID", // 0x2E7
+   "GetIMSI", // 0x2E8*
+   "UI_CONTROLLED_SHUTDOWN_RESPONSE", // 0x2E9*
+   "MainInput_getCurPos", // 0x2EA*
+   "MainInput_Hide", // 0x2EB*
+   "DispObject_SoftKey_RestoreDefaultAction", // 0x2EC*
+   "PNUM2Name", // 0x2ED*
+   "SpeedDial_GetPNUM", // 0x2EE*
+   "MetaData_Desc_Create", // 0x2EF*
+   "MetaData_Desc_Destroy", // 0x2F0*
+   "MetaData_Desc_GetTags", // 0x2F1*
+   "MetaData_Desc_GetTrackNum", // 0x2F2*
+   "DISP_OBJ_GetWindowWidth", // 0x2F3*
+   "DISP_OBJ_GetWindowHeight", // 0x2F4*
+   "get_system_langID", // 0x2F5
+   "lang_get_name",// 0x2F6
+   "w_chdir", // 0x2F7*
+   "w_fopen", // 0x2F8
+   "w_fstat", // 0x2F9
+   "w_fwrite",// 0x2FA
+   "w_fread", // 0x2FB
+   "w_lseek", // 0x2FC
+   "w_fclose",// 0x2FD
+   "w_mkdir", // 0x2FE*
+   "DirHandle_SetFilterStr", // 0x2FF
+   "Disp_GetStrIdWidth",// 0x300*
+   "MetaData_Desc_GetCoverInfo", // 0x301*
+   "ImageID_GetIndirect", // 0x302*
+   "unixtime2datetime", // 0x303
+   "ListElement_Insert",// 0x304
+   "FileCopy",// 0x305*
+   "FileMove",// 0x306*
+   "RedLED_On", // 0x307*
+   "RedLED_Off", // 0x308*
+   "DispObject_SetLayerColor", // 0x309*
+   "JavaAppDesc_GetJavaAppID", // 0x30A
+   "REQUEST_UI_OAF_START_APPLICATION", // 0x30B
+   "JavaApp_LogoImageID_Get", // 0x30C*
+   "CreateProgressBar", // 0x30D*
+   "ProgressBar_SetText", // 0x30E
+   "ProgressBar_SetIcon", // 0x30F*
+   "ProgressBar_SetPercentValue", // 0x310
+   "ProgressBar_SetBarDisabled", // 0x311*
+   "StringInput_DispObject_SetText", // 0x312*
+   "GuiObject_SetTitleImage", // 0x313*
+   "GuiObject_SetTitleIcon", // 0x314*
+   "GuiObject_SetHighlightImage", // 0x315*
+   "GuiObject_SetBackgroundImage", // 0x316*
+   "DispObject_Softkeys_GetParams", // 0x317
+   "DispObject_Softkeys_GetList", // 0x318
+   "BookObj_GetDisplayOrientation", // 0x319
+   "BookObj_SetDisplayOrientation", // 0x31A
+   "DISPLAY_GetTopBook",// 0x31B*
+   "DISPLAY_SetBrightness", // 0x31C*
+   "DISPLAY_GetBrightness", // 0x31D*
+   "DataBrowserDesc_Menu_AddFSFunctions", // 0x31E
+   "DataBrowserDesc_Menu_AddNewFolder",// 0x31F
+   "DataBrowserDesc_Menu_AddMarkFiles",// 0x320
+   "SetTheme",// 0x321*
+   "Softkeys_GetLabel", // 0x322*
+   "Softkeys_Update", // 0x323*
+   "get_CellData", // 0x8324*
+   "IncommingCall_Reject", // 0x325*
+   "IncommingCall_Mute",// 0x326*
+   "GetRadioState",// 0x327*
+   "Bluetooth_GetState",// 0x328*
+   "Bluetooth_GetPhoneVisibility", // 0x329*
+   "Bluetooth_isBusy", // 0x32A*
+   "USB_isConnected", // 0x32B*
+   "w_diropen", // 0x32C*
+   "w_dirread", // 0x32D*
+   "w_dirclose", // 0x32E*
+   "w_rename",// 0x32F*
+   "w_remove",// 0x330*
+   "ConnectionManager_Connection_GetState", // 0x331*
+   "GetSignalQuality", // 0x332*
+   "isCameraBook", // 0x8333*
+   "isSoundRecorderBook", // 0x8334*
+   "StringInput_MenuItem_SetPriority", // 0x335*
+   "VideoPlayerControl",// 0x336*
+   "Video_ActionBack", // 0x337*
+   "Video_ExtractFrame",// 0x338*
+   "Video_ZoomOn", // 0x339*
+   "RightNow_SetActive",// 0x33A*
+   "VideoResize_AutomateMode", // 0x33B*
+   "VideoResize_AllScreenMode", // 0x33C*
+   "Video_GetCurrentSkinID", // 0x33D*
+   "Video_SetSkin",// 0x33E*
+   "Video_SetPermit", // 0x33F*
+   "Video_Refresh",// 0x340*
+   "Video_Play", // 0x341*
+   "Video_Pause", // 0x342
+   "Video_Stop", // 0x343*
+   "Audio_Pause", // 0x344*
+   "Audio_Play", // 0x345*
+   "CreatePercentInputVA", // 0x346*
+   "PercentInput_GetPercent", // 0x347*
+   "GUIonMessage_SetLineSeparator", // 0x348*
+   "", // 0x349
+   "", // 0x34A
+   "GUIObject_Softkeys_RemoveBackground", // 0x34B
+   "GUIObject_Softkeys_RestoreBackground", // 0x34C
+   "SetTrayIcon", // 0x34D*
+   "REQUEST_SETTING_RINGVOLUME_SET", // 0x34E
+   "REQUEST_SETTING_VIBRATOR_SET", // 0x34F
+   "REQUEST_SETTING_RINGTYPESOUNDFILE_SET", // 0x350
+   "REQUEST_SETTING_ANSWERINGMODE_SET",// 0x351
+   "REQUEST_SETTING_INCREASINGRING_SET", // 0x352
+   "REQUEST_SETTING_ALLOWEDCALLERS_SET", // 0x353
+   "JavaAppDesc_GetJavaAppFullpath", // 0x354*
+   "SoundRecorderDesc_Create", // 0x355*
+   "SoundRecorderDesc_Destroy", // 0x356*
+   "SoundRecorderDesc_SetBookID", // 0x357*
+   "SoundRecorderDesc_SetType", // 0x358*
+   "SoundRecorderDesc_SetFolder", // 0x359*
+   "SoundRecorderDesc_SetFname", // 0x35A*
+   "SoundRecorderDesc_SetRecordSize", // 0x35B*
+   "SoundRecorder_Create", // 0x35C*
+   "SoundRecorder_RecordCall", // 0x35D*
+   "Browser_OpenURI", // 0x35E*
+   "GetURIScheme", // 0x35F*
+   "CreateURI", // 0x360*
+   "DataBrowserDesc_SetViewModeAndSortOrder", // 0x361
+   "Alarm_GetCurrentTypeAndAlarmID", // 0x362*
+   "Alarm_GetState", // 0x363*
+   "Alarm_GetTIME", // 0x364*
+   "Alarm_GetWeekSettings", // 0x365*
+   "IrDa_GetState", // 0x366*
+   "REQUEST_SETTING_ALLOWEDCALLERS_GET", // 0x367
+   "IncommingCall_Accept", // 0x368*
+   "MediaPlayer_SoftKey_SetText", // 0x369*
+   "MediaPlayer_SoftKey_SetAction", // 0x36A*
+   "MediaPlayer_SoftKey_SetItemAsSubItem", // 0x36B*
+   "MediaPlayer_SoftKey_AddHelpStr", // 0x36C*
+   "MediaPlayer_ShowNowPlaying", // 0x36D*
+   "DispObject_Show", // 0x36E*
+   "Request_EventChannel_Subscribe", // 0x36F
+   "GUIObject_Softkey_ExecuteAction", // 0x370*
+   "Request_ICA_ShutdownAllConnections",  // 0x371*
+   "REQUEST_PROFILE_GETPROFILENAME",   // 0x372
+   "DataBrowserDesc_SetFocusToFILEITEM",  // 0x373*
+   "GUIonMessage_GetMsg",  // 0x374*
+   "GUIonMessage_GetBook", // 0x375*
+   "GUIonMessage_GetGui",  // 0x376*
+   "GUIonMessage_GetSelectedItem",  // 0x377*
+   "GUIonMessage_GetPrevSelectedItem", // 0x378*
+   "ObexSendFile",   // 0x379*
+   "Feedback_SetManualScrollingText",  // 0x37A*
+   "EqualizerGain_Set", // 0x37B*
+   "CANVAS_Get_GviGC",  // 0x37C
+   "GVI_BitBlt",  // 0x37D
+   "GVI_StretchBlt", // 0x37E
+   "GVI_TransformBlt",  // 0x37F
+   "GVI_CreatePen",  // 0x380
+   "GVI_CreateDashedPen",  // 0x381
+   "GVI_CreateSolidBrush", // 0x382
+   "GVI_Delete_GVI_Object",   // 0x383
+   "GVI_DrawEllipse",   // 0x384
+   "GVI_DrawLine",   // 0x385
+   "GVI_DrawLines",  // 0x386
+   "GVI_DrawPolyLine",  // 0x387
+   "GVI_DrawRectangle", // 0x388
+   "GVI_DrawRoundRect", // 0x389
+   "GVI_DrawSolidLines",   // 0x38A
+   "GVI_DrawSolidPolyLine",   // 0x38B
+   "GVI_DrawSolidRectangle",  // 0x38C
+   "GVI_FillEllipse",   // 0x38D
+   "GVI_FillPolygon",   // 0x38E
+   "GVI_FillRectangle", // 0x38F
+   "GVI_FillRectangles",   // 0x390
+   "GVI_FillSolidEllipse", // 0x391
+   "GVI_FillSolidRectangle",  // 0x392
+   "GVI_FillSolidRoundRect",  // 0x393
+   "GVI_FillSolidTriangle",   // 0x394
+   "GC_CreateMemoryGC", // 0x395
+   "GC_FreeGC",   // 0x396
+	"REQUEST_ALARMCLOCKSTATUS_GET",  // 0x397
+	"REQUEST_ALARMCLOCKTIME_GET", // 0x398
+	"REQUEST_ALARMDATEANDTIMESTATUS_GET",  // 0x399
+	"Settings_ShowNumber_Get", // 0x39A
+	"GVI_CreateBitmap",   // 0x39B
+	"GVI_CreateMemoryGC",  // 0x39C
+	"GVI_DeleteMemoryGC",   // 0x39D
+	"StringInput_DispObject_SetLanguage",  // 0x39E
+	"ListElement_InsertSorted",   // 0x39F
+	"ListMenu_SetItemIcon", // 0x3A0
+	"wstrnupr", // 0x3A1
+	"wstrnlwr", // 0x3A2
+	"ListMenu_SetItemTextScroll", // 0x3A3
+   "GuiObject_SetTitleTextColor",	// 0x3A4
+   "GuiObject_SetListTextColor",	// 0x3A5
+   "DISP_OBJ_SetTitleTextColor", // 0x3A6
+   "DISP_OBJ_SetListTextColor",  // 0x3A7
+   "DISP_OBJ_SetHighlightImage", // 0x3A8
+   "DISP_OBJ_SetBackgroundImage",   // 0x3A9
+   "DISP_OBJ_SetTitleImage",  // 0x3AA
+	"TabMenuBar_SetTabTitle",  // 0x3AB
+   ""
+};
+
+const char *own_funcs[] =
+{
+   "datetime2unixtime", // 0x1000
+   "REQUEST_SETTING_RINGVOLUME_GET",   // 0x1001
+   "isStandbyBook",  // 0x1002
+   "memalloc", // 0x1003
+   "memfree",   // 0x1004
+   ""
+};
+
+/******************************************************************************/
+
+unsigned int _swi_ext ( unsigned int swi ) 
+{
+   switch ( swi ) 
+   {
+      case 0x141: // isScreenSaverBook
+      case 0x177: // get_VBUFFER
+      case 0x188: // set_bp_adr
+      case 0x18A: // clear_bp_adr
+      case 0x1A7: // MissedEvents
+      case 0x1B8: // isMediaPlayerVideoBook
+      case 0x1C2: // ROOT_APP
+      case 0x1D1: // GetAudioControlPtr
+      case 0x1F2: // StatusRow_p
+      case 0x210: // get_APP_DESC_TABLE
+      case 0x216: // get_AB_ITEMS_DESC
+      case 0x21A: // PID_MMI
+      case 0x255: // LastExtDB
+      case 0x285: // get_Surfaces
+      case 0x28A: // isFmRadioBook
+      case 0x28B: // isAudioPlayerBook
+      case 0x2B4: // FILEITEM_Destroy_adr
+      case 0x2BB: // GetFontDesc
+      case 0x2BC: // GetFontCount
+      case 0x324: // get_CellData
+      case 0x333: // isCameraBook
+      case 0x334: // isSoundRecorderBook
+         swi = swi | 0x8000;
+   }
+
+   return swi;
+}
+
+unsigned int name2swi ( const char *func ) 
+{
+   unsigned int swi;
+
+   swi = 0;
+   while ( lib_funcs[swi] ) 
+   {
+      if ( !strcmp ( lib_funcs[swi], func ) ) 
+         return _swi_ext ( swi + SWI_LF_START );
+      swi++;
+   }
+
+   swi = 0;
+   while ( own_funcs[swi] ) 
+   {
+      if ( !strcmp ( own_funcs[swi], func ) ) 
+         return swi + SWI_OF_START;
+      swi++;
+   }
+
+   return E_FAIL;
+}
+
+const char *swi2name ( unsigned int swi ) 
+{
+   unsigned int subs = swi & 0x3000;
+   swi = ( swi & 0xFFF ) - subs;
+
+   switch ( subs ) 
+   {
+      case 0:
+      {
+         swi = swi - SWI_LF_START;
+         if ( swi > SWI_LF_COUNT ) 
+            swi = SWI_LF_COUNT;
+
+         return lib_funcs[swi];
+      }
+      break;
+
+      case 0x1000:
+      {
+         if ( swi > SWI_OF_COUNT ) 
+            swi = SWI_OF_COUNT;
+
+         return own_funcs[swi];
+      }
+      break;
+   }
+
+   return lib_funcs[SWI_LF_COUNT];
+}
+
+unsigned int locate_own_funcs ( unsigned int *swi ) 
+{
+   char *patt1 = NULL;
+   char *mask1 = NULL;
+   char *patt2 = NULL;
+   char *mask2 = NULL;
+   char *patt3 = NULL;
+   char *mask3 = NULL;
+   unsigned int rc = E_FAIL;
+
+   switch ( *swi ) 
+   {
+      case 0x1000: // datetime2unixtime
+      {
+         RRC ( "unixtime2datetime" );
+         rc = FindPushLr ( rc - 4, LOC_BACKWARD );
+      }
+      break;
+
+      case 0x1001: // REQUEST_SETTING_RINGVOLUME_GET
+      {
+         rc = FuncFindByName ( "REQUEST_SETTING_RINGVOLUME_GET" );
+      }
+      break;
+
+      case 0x1002: // isStandbyBook
+      {
+         rc = E_FAIL;
+      }
+      break;
+
+      case 0x1003: // memalloc
+      {
+         if ( DB201x ) 
+         {
+            PATT1 ( "\x00\x28\x0c\xd1\x68\x46\x00\x88\x05\x22\x01\x21" );
+            MASK1 ( "\xff\xff\x00\xff\xff\xff\xff\xff\xff\xff\xff\xff" );
+            rc = SimpleFindPattern ( patt1, mask1, 12, LOC_FORWARD );
+         }
+         else // db2020, db3150, db3210
+         {
+            PATT1 ( "\x03\xb4\x02\x99\x05\x23\x01\x22\x00\x20" );
+            rc = SimpleFindPattern ( patt1, NULL, 10, LOC_FORWARD );
+         }
+
+         rc = ARMFind ( THUMB_BL, rc, MEM_AUTO, LOC_FORWARD );
+         rc = ARMGet ( rc );
+
+         if ( A2_PLATFORM ) 
+            SET_ATD ( SWI_ARM );
+      }
+      break;
+
+      case 0x1004: // memfree
+      {
+         RRC ( "memalloc" );
+         if ( A1_PLATFORM ) 
+         {
+            rc = FindPushLr ( rc + 2, LOC_FORWARD );
+            if ( DB201x ) 
+               rc = FindPushLr ( rc + 2, LOC_FORWARD );
+         }
+         else // A2
+         {
+            rc += 40;
+            SET_ATD ( SWI_ARM );
+         }
+      }
+      break;
+   }
+
+   if ( ! ( *swi & SWI_ARM ) ) 
+      SET_ATD ( SWI_THUMB ); // default is thumb
+
+   return rem_tramp ( rc );
+}
+
+unsigned int locate_lib_funcs ( unsigned int *swi )
+{
+   char *patt1 = NULL;
+   char *mask1 = NULL;
+   char *patt2 = NULL;
+   char *mask2 = NULL;
+   char *patt3 = NULL;
+   char *mask3 = NULL;
+   unsigned int rc = E_FAIL;
+   unsigned int f1, f2, f3, f4, f5, f6, f7, f8, f8, f9, f10;
+
+   switch ( *swi ) 
+   {
+      case 0x112: // memset
+      {
+         if ( DB201x ) 
+				rc = DoAnyway ( "031C02E019705B1C521E002AFAD17047", NULL );
+         else // db2020, db3150, db3210
+            rc = DoAnyway ( "033010E20400000A043063E2032042E0", NULL );
+
+         R ( rc );
+         rc -= 12;
+         SET_ATD ( SWI_ARM );
+      }
+      break;
+
+      case 0x113: // memcpy
+      {
+         // db201x, db2020, db3150, db3210
+         rc = DoAnyway ( "030052E33D00009A03C010E20800000A0130D1E402005CE3", NULL );
+
+         SET_ATD ( SWI_ARM );
+      }
+      break;
+
+      case 0x114: // sprintf
+      {
+         if ( DB201x ) 
+         {
+            PATT1 ( "\x0c\xb4\x10\xb5\x81\xb0\x04\x1c\x03\xa8\x00\x90\x6b\x46\x0a\x1c\x21\x1c\x06\x48" );
+            rc = SimpleFindPattern ( patt1, NULL, 20, LOC_UNIQUE );
+         }
+         else // db2020, db3150, db3210
+         {
+            PATT1 ( "\x0c\xb4\x10\xb5\x82\xb0\x04\x1c\x04\xab\x01\x93\x00\x90\x09\x48\x01\xab\x0a\x1c\x69\x46" );
+            rc = SimpleFindPattern ( patt1, NULL, 22, LOC_UNIQUE );
+         }
+      }
+      break;
+
+      case 0x115: // snwprintf
+      {
+         if ( A1_PLATFORM ) 
+         {
+            PATT1 ( "\x04\xf0\x1d\xfb\x00\x28\x02\xd4\x00\x21\x42\x00\xa1\x52\x03\xb0\x10\xbc\x02\xbc\x01\xb0\x08\x47\xc0\x46" );
+            MASK1 ( "\x00\xf0\x00\xf8\xff\xff\xff\xff\x00\x00\x00\x00\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff" );
+            rc = SimpleFindPattern ( patt1, mask1, 26, LOC_UNIQUE );
+            R ( rc );
+            rc -= 22;
+         }
+         else // db3150, db3210
+         {
+            PATT1 ( "\x08\xb4\x10\xb5\x84\xb0\x06\xab\x00\x93\x01\xac\x00\x23\xa3\x60\x00\x29\x03\xd1" );
+            rc = SimpleFindPattern ( patt1, NULL, 20, LOC_UNIQUE );
+         }
+      }
+      break;
+
+      case 0x116: // _fopen
+      {
+         if ( DB201x ) 
+         {
+            PATT1 ( "\xff\xb5\x00\x98\x00\x24\x00\x25\x00\x28\x09\x9f\x26\x4e\x05\xd0\x03\x99\x02\x98" );
+            MASK1 ( "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\x00\xff\xff\xff\xff\xff\xff\xff" );
+            rc = SimpleFindPattern ( patt1, mask1, 20, LOC_UNIQUE );
+         }
+         else // db2020, db3150, db3210
+         {
+            PATT1 ( "\xfb\xb5\x00\x99\x08\x9f\x68\x4d\x14\x1c\x00\x26\x00\x29\x05\xd0\x02\x99\x20\x1c\xff\xf7\xf2\xfc\x00\x28\x07\xd1" );
+            MASK1 ( "\xff\xff\xff\xff\xff\xfc\x00\xf8\xff\xff\xff\xf8\xff\xff\xff\xff\xff\xff\xff\xff\x00\xf0\x00\xf8\xff\xff\xff\xff" );
+            rc = SimpleFindPattern ( patt1, mask1, 28, LOC_UNIQUE );
+         }
+      }
+      break;
+
+      case 0x117: // fclose
+      {
+         if ( DB201x ) 
+         {
+            PATT1 ( "\xf0\xb5\x00\x22\x84\xb0\xd5\x43\x00\x28\x03\x92\x02\x92\x01\x92\x56\x4c\x09\xd4\x32\x28\x07\xda" );
+            MASK1 ( "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\x00\xf8\xff\xff\x00\xff\xff\xff" );
+            rc = SimpleFindPattern ( patt1, mask1, 24, LOC_UNIQUE );
+         }
+         else // db2020, db3150, db3210
+         {
+            PATT1 ( "\xf0\xb5\x82\xb0\x00\x25\x01\x95\x00\x95\x2c\x1c\x67\x4d\x09\x27\x00\x28" );
+            MASK1 ( "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\x00\xf8\xff\xff\xff\xff" );
+            rc = SimpleFindPattern ( patt1, mask1, 18, LOC_UNIQUE );
+         }
+      }
+      break;
+
+      case 0x118: // fread
+      {
+         if ( DB201x ) 
+         {
+            PATT1 ( "\xf4\xb5\x06\x1c\x0f\x1c\x00\x22\x82\xb0\xd5\x43\x00\x2e\x01\x92\x39\x4c\x0e\xd4\x32\x2e\x0c\xda" );
+            MASK1 ( "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\x00\xf8\xff\xff\xff\xff\xff\xff" );
+            rc = SimpleFindPattern ( patt1, mask1, 24, LOC_UNIQUE );
+         }
+         else // db2020, db3150, db3210
+         {
+            PATT1 ( "\xf2\xb5\x70\x4e\x82\xb0\x15\x1c\x00\x23\x00\x93\x00\x24\xe4\x43\x00\x28\x0e\xd4" );
+            rc = SimpleFindPattern ( patt1, NULL, 20, LOC_UNIQUE );
+         }
+      }
+      break;
+
+      case 0x119: // fwrite
+      {
+         if ( DB201x ) 
+         {
+            PATT1 ( "\xf4\xb5\x04\x1c\x0f\x1c\x00\x21\x83\xb0\xce\x43\x00\x28\x00\x91\x01\x91\x4c\x4d\x12\xd4\x32\x2c\x10\xda\x4c\x4b" );
+            MASK1 ( "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\x00\xf8\xff\xff\xff\xff\xff\xff\xff\xff\xff" );
+            rc = SimpleFindPattern ( patt1, mask1, 28, LOC_UNIQUE );
+         }
+         else // db2020, db3150, db3210
+         {
+            PATT1 ( "\xf2\xb5\x68\x4c\x82\xb0\x16\x1c\x00\x25\x01\x95\x00\x28\x12\xd4\x32\x28\x10\xda\x47\x49\x87\x00" );
+            MASK1 ( "\xff\xff\x00\xf8\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff" );
+            rc = SimpleFindPattern ( patt1, mask1, 24, LOC_UNIQUE );
+         }
+      }
+      break;
+
+      case 0x11B: // fputs, TODO 11AC93E0
+      {
+         // db201x, db2020, db3150, db3210
+         PATT1 ( "\x4c\x1e\x06\xd4\x80\x2c\x04\xda\x13\x48\xa5\x00\x42\x59\x00\x2a\x03\xd1\x18\x1c\x00\xf0" );
+         MASK1 ( "\xf8\xff\xff\xff\x0f\xf8\xff\xff\x00\xf8\x00\xff\x00\xff\xff\xff\xff\xff\x00\x00\x00\xf0" );
+
+         //rc = SimpleFindPattern ( patt1, mask1, 22, LOC_UNIQUE );
+         //rc = FindPushLr ( rc, 2 );
+         rc = E_FAIL;
+      }
+      break;
+
+      case 0x11C: // fstat
+      {
+         if ( DB201x ) 
+         {
+            PATT1 ( "\xf3\xb5\x00\x98\x14\x1c\x00\x25\xed\x43\x00\x28\x06\xd1\x16\x24\x11\x4e" );
+            rc = SimpleFindPattern ( patt1, NULL, 18, LOC_UNIQUE );
+         }
+         else // db2020, db3150, db3210
+         {
+            PATT1 ( "\xf2\xb5\x04\x1c\x15\x1c\x00\x26\xf6\x43\x00\x28\x02\xd0\x22\x88\x00\x2a\x06\xd1" );
+            rc = SimpleFindPattern ( patt1, NULL, 20, LOC_UNIQUE );
+         }
+      }
+      break;
+
+      case 0x11D: // AllocDirHandle
+      {
+         if ( DB201x ) 
+         {
+            PATT1 ( "\x31\xb5\x00\x98\x00\x28\x07\xd1\x16\x24\x06\x4d\x04\xf0\x52\xf9\x41\x00\x6c\x52\x00\x20\x03\xe0" );
+            MASK1 ( "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\x00\xf8\x00\xf0\x00\xf8\xff\xff\xff\xff\xff\xff\xff\xff" );
+            rc = SimpleFindPattern ( patt1, mask1, 24, LOC_UNIQUE );
+         }
+         else if ( DB2020 ) 
+         {
+            PATT1 ( "\x01\xb5\x00\x99\x00\x29\x07\xd1\x04\xf0\x62\xfd\x05\x49\x40\x00\x16\x22\x0a\x52" );
+            MASK1 ( "\xff\xff\xff\xff\xff\xff\xff\xff\x00\xf0\x00\xf8\x00\xf8\xff\xff\xff\xff\xff\xff" );
+            rc = SimpleFindPattern ( patt1, mask1, 20, LOC_UNIQUE );
+         }
+         else // db3150, db3210
+         {
+            PATT1 ( "\x00\xb5\x00\x28\x07\xd1\xff\xf7\xf1\xfa\x05\x49\x40\x00\x16\x22\x0a\x52\x00\x20\x00\xbd" );
+            MASK1 ( "\xff\xff\xff\xff\xff\xff\x00\xf0\x00\xf8\x00\xf8\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff" );
+            rc = SimpleFindPattern ( patt1, mask1, 20, LOC_UNIQUE );
+         }
+      }
+      break;
+
+      case 0x11E: // GetFname
+      {
+         if ( DB201x ) 
+         {
+            PATT1 ( "\xf0\xb5\x06\x1c\x0c\x1c\x00\x28\x89\xb0\x05\xd0\xf0\x89\x5a\x4f\xb8\x42\x01\xd1" );
+            MASK1 ( "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\x00\xf8\xff\xff\xff\xff" );
+            rc = SimpleFindPattern ( patt1, mask1, 20, LOC_UNIQUE );
+
+         }
+         else // db2020, db3150, db3210
+         {
+            PATT1 ( "\xf0\xb5\x89\xb0\x06\x1c\x0c\x1c\x00\x28\x05\xd0\x31\x8a\x82\x4b\x99\x42\x01\xd1\x00\x2c\x0a\xd1" );
+            MASK1 ( "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\x00\xf8\xff\xff\xff\xff\xff\xff\xff\xff" );
+            rc = SimpleFindPattern ( patt1, mask1, 24, LOC_UNIQUE );
+         }
+      }
+      break;
+
+      case 0x124: // DataBrowser_Create
+      {
+         if ( DB201x ) 
+         {
+            PATT1 ( "\xf0\xb5\x90\xb0\x04\x1c\x00\x20\x69\x46\x88\x71\x00\xf0\xf4\xfa\x00\x90\x00\x20" );
+            MASK1 ( "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\x00\xf0\x00\xf8\xff\xff\xff\xff" );
+            rc = SimpleFindPattern ( patt1, mask1, 20, LOC_UNIQUE );
+         }
+         else // db2020, db3150, db3210
+         {
+            PATT1 ( "\xf0\xb5\x93\xb0\x04\x1c\x68\x46\x00\x21\x01\x72\x20\x1c\x03\xf0\x4b\xff\x72\xf2\xb9\xfa\x05\x1c" );
+            MASK1 ( "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\x00\xf0\x00\xf8\x00\xf0\x00\xf8\xff\xff" );
+            rc = SimpleFindPattern ( patt1, mask1, 24, LOC_UNIQUE );
+         }
+      }
+      break;
+
+      case 0x2DF: // isDataBrowserBook
+      {
+         RRC ( "DataBrowser_Create" );
+         rc = QuickFindPattern ( "\x88\x42\x01\xd1\x01\x20\x70\x47\x00\x20\x70\x47", NULL, 12, rc, MEM_AUTO, LOC_FORWARD );
+         R ( rc );
+         rc -= 4;
+      }
+      break;
+
+      case 0x11F: // DataBrowserDesc_Create
+      case 0x125: // DataBrowserDesc_Destroy
+      {
+         // db201x, db2020, db3150, db3210
+         PATT1 ( "\x82\x62\xc2\x62\x02\x63\x42\x63\xc3\x63\x03\x64\x03\x75\x43\x64\x83\x64\xc3\x76" );
+         MASK1 ( "\x38\xf8\x38\xf8\x38\xf8\x00\xf8\x38\xf8\x38\xf8\x00\xf8\x00\xf8\x00\xf8\x00\xf8" );
+
+         rc = SimpleFindPattern ( patt1, mask1, 20, LOC_UNIQUE );
+
+         f1  = FindPushLr ( rc, LOC_BACKWARD );
+         f2  = FindPushLr ( rc, LOC_FORWARD );
+
+         AddSymbolEx ( 0x11F, f1 );
+         AddSymbolEx ( 0x125, f2 );
+         rc = E_FAIL;
+      }
+      break;
+
+      case 0x126: // getFileExtention
+      {
+         // db201x, db2020, db3150, db3210
+         PATT1 ( "\x10\xbd\x2e\x21\xbe\xf7\xdc\xfa\x00\x28\x01\xd0\x80\x1c\x10\xbd\x20\x1c\xbd\xf7\x33\xf9\x43\x00\xe0\x18\x10\xbd" );
+         MASK1 ( "\x0f\xff\xff\xff\x00\xf0\x00\xf8\xff\xff\xff\xff\xff\xff\x0f\xff\xff\xff\x00\xf0\x00\xf8\xf0\xff\x0f\xff\x0f\xff" );
+
+         rc = SimpleFindPattern ( patt1, mask1, 28, LOC_UNIQUE );
+
+         R ( rc );
+         rc -= 20;
+      }
+      break;
+
+      case 0x127: // DataBrowser_isFileInListExt
+      {
+         if ( DB201x ) 
+         {
+            PATT1 ( "\x00\xb5\x11\x1c\x04\xf0\x70\xf8\x00\x28\x01\xd0\x01\x20\x00\xbd\x00\x20\x00\xbd" );
+            MASK1 ( "\xff\xff\xff\xff\x00\xf0\x00\xf8\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff" );
+            rc = SimpleFindPattern ( patt1, mask1, 20, LOC_UNIQUE );
+         }
+         else // db2020, db3150, db3210
+         {
+            PATT1 ( "\x00\xb5\x11\x1c\x04\xf0\x3e\xfc\x40\x1e\x80\x41\xc0\x43\xc0\x0f\x00\xbd" );
+            MASK1 ( "\xff\xff\xff\xff\x00\xf0\x00\xf8\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff" );
+            rc = SimpleFindPattern ( patt1, mask1, 18, LOC_UNIQUE );
+         }
+      }
+      break;
+
+      case 0x128: // Timer_ReSet
+      {
+         RRC ( "Timer_Set" );
+         rc = FindPushLr ( rc + 2, LOC_FORWARD );
+      }
+      break;
+
+      case 0x129: // Timer_Set
+      {
+         if ( DB201x ) 
+         {
+            PATT1 ( "\xf0\xb5\x04\x1c\x0d\x1c\x16\x1c\xff\xf7\xd8\xff\x07\x04\x3f\x0c\x05\xd0\x33\x1c\x2a\x1c\x21\x1c" );
+            MASK1 ( "\xff\xff\xff\xff\xff\xff\xff\xff\x00\xf0\x00\xf8\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff" );
+            rc = SimpleFindPattern ( patt1, mask1, 24, LOC_UNIQUE );
+         }
+         else // db2020, db3150, db3210
+         {
+            PATT1 ( "\xf0\xb5\x04\x1c\x0d\x1c\x16\x1c\xff\xf7\xde\xff\x07\x1c\x0d\xd0\x00\xf0\x68\xf9\x00\x28\x03\xd0" );
+            MASK1 ( "\xff\xff\xff\xff\xff\xff\xff\xff\x00\xf0\x00\xf8\xff\xff\xff\xff\x00\xf0\x00\xf8\xff\xff\xff\xff" );
+            rc = SimpleFindPattern ( patt1, mask1, 24, LOC_UNIQUE );
+         }
+      }
+      break;
+
+      case 0x12A: // Timer_Kill
+      {
+         RRC ( "Timer_ReSet" );
+         rc = FindPushLr ( rc + 2, LOC_FORWARD );
+      }
+      break;
+
+      case 0x12B: // CreateBook
+      {
+         RRC ( "BookObj_KillBook" );
+         rc = FindPushLr ( rc - 2, LOC_BACKWARD );
+      }
+      break;
+
+      case 0x12C: // BookObj_KillBook
+      {
+         if ( DB201x ) 
+         {
+            PATT1 ( "\x73\xb5\x04\x1c\x38\x4e\x04\xd1\x00\x21\x30\x1c\x6d\x30\x7c\xf0\x45\xf8\x20\x1c\x00\xf0\x6a\xf8" );
+            MASK1 ( "\xff\xff\xff\xff\x00\xf8\xff\xff\xff\xff\xff\xff\xff\xff\x00\xf0\x00\xf8\xff\xff\x00\xf0\x00\xf8" );
+            rc = SimpleFindPattern ( patt1, mask1, 24, LOC_UNIQUE );
+         }
+         else // db2020, db3150, db3210
+         {
+            PATT1 ( "\x33\xb5\x45\x4d\x04\x1c\x00\xf0\x89\xf8\x00\x28\x03\xd0\x28\x1c\x14\x30\xfe\xf7\xa9\xfd\x20\x68" );
+            MASK1 ( "\xff\xff\x00\xf8\xff\xff\x00\xf0\x00\xf8\xff\xff\xff\xff\xff\xff\xff\xff\x00\xf0\x00\xf8\xff\xff" );
+            rc = SimpleFindPattern ( patt1, mask1, 24, LOC_UNIQUE );
+         }
+      }
+      break;
+
+      case 0x12D: // BookObj_GotoPage
+      case 0x31A: // BookObj_SetDisplayOrientation
+      case 0x319: // BookObj_GetDisplayOrientation
+      case 0x2C4: // FindBookByID
+      {
+         RRC ( "BrowserItem_Get_SUB_EXECUTE" );
+
+         f1 = ARMFind ( THUMB_BL, rc, MEM_AUTO, LOC_BACKWARD );
+         f2 = ARMFind ( THUMB_BL, f1 - 4, MEM_AUTO, LOC_BACKWARD );
+         f3 = ARMFind ( THUMB_BL, f2 - 4, MEM_AUTO, LOC_BACKWARD );
+         f4 = ARMFind ( THUMB_BL, f3 - 4, MEM_AUTO, LOC_BACKWARD );
+
+         f1 = ARMGet ( f1 );
+         f2 = ARMGet ( f2 );
+         f3 = ARMGet ( f3 );
+         f4 = ARMGet ( f4 );
+
+         AddSymbolEx ( 0x12D, f1 );
+         AddSymbolEx ( 0x2C4, f2 );
+         AddSymbolEx ( 0x319, f3 );
+         AddSymbolEx ( 0x31A, f4 );
+         rc = E_FAIL;
+      }
+      break;
+
+      case 0x130: // FindBook
+      {
+         RRC ( "FindBookEx" );
+         rc = FindPushLr ( rc - 2, LOC_BACKWARD );
+      }
+      break;
+
+      case 0x131: // Find_StandbyBook
+      {
+         if ( DB201x ) 
+         {
+            PATT1 ( "\xf0\xb5\x51\xf1\xf1\xfa\x04\x1c\xc0\x69\xfd\xf7\x3b\xfe\x00\x28\x27\xd0\xe0\x69\x25\x1c\xa4\x35" );
+            MASK1 ( "\xff\xff\x00\xf0\x00\xf8\xff\xff\xff\xff\x00\xf0\x00\xf8\xff\xff\x00\xff\xff\xff\xff\xff\xff\xff" );
+            rc = SimpleFindPattern ( patt1, mask1, 24, LOC_UNIQUE );
+         }
+         else if ( DB2020 ) 
+         {
+            PATT1 ( "\x10\xb5\x0c\x1c\x09\xf0\x02\xf9\x00\x2c\x15\xd0\xa0\x69\x00\x28\x12\xd1\x00\x22\x11\x1c\x20\x1c" );
+            MASK1 ( "\xff\xff\xff\xff\x00\xf0\x00\xf8\xff\xff\x00\xff\xff\xff\xff\xff\x00\xff\xff\xff\xff\xff\xff\xff" );
+            rc = SimpleFindPattern ( patt1, mask1, 24, LOC_UNIQUE );
+         }
+         else // db3150, db3210
+         {
+            PATT1 ( "\x71\xb5\x25\x4e\x83\xb0\x0d\x1c\xfc\xf7\x0a\xfa\x04\x1c\x3d\xd0\x2d\x06\x36\xd0\x1e\x48\x69\x46" );
+            MASK1 ( "\xff\xff\x00\xff\xff\xff\xff\xff\x00\xf0\x00\xf8\xff\xff\x00\xff\xff\xff\x00\xff\x00\xff\xff\xff" );
+            rc = SimpleFindPattern ( patt1, mask1, 24, LOC_UNIQUE );
+         }
+         rc = ARMFind ( THUMB_BL, rc, MEM_AUTO, LOC_FORWARD );
+         rc = ARMGet ( rc );
+      }
+      break;
+
+      case 0x132: // BookObj_SetFocus
+      {
+         RRC ( "BookObj_KillBook" );
+         rc = FindPushLr ( rc + 2, LOC_FORWARD );
+         rc = FindPushLr ( rc + 2, LOC_FORWARD );
+         if ( ARMGet ( rc - 2 ) == 0x2800 ) // db201x
+            rc -= 2;
+      }
+      break;
+
+      case 0x171: // BookObj_Hide
+      {
+         RRC ( "BookObj_SetFocus" );
+         rc = FindPushLr ( rc + 2, LOC_FORWARD );
+         rc = FindPushLr ( rc + 2, LOC_FORWARD );
+      }
+      break;
+
+      case 0x172: // BookObj_Show
+      {
+         RRC ( "BookObj_Hide" );
+         rc = FindPushLr ( rc + 2, LOC_FORWARD );
+      }
+      break;
+
+      case 0x142: // StatusIndication_SetItemText
+      {
+         unsigned int ok = 0;
+         RRC ( "Find_StandbyBook" );
+         rc = ARMFind ( THUMB_LDR, rc, MEM_AUTO, LOC_FORWARD );
+         rc = ARMGet ( rc );
+         rc = GetWord ( rc ) & ~1; // thumb bit
+
+         while ( !ok ) 
+         {
+            rc = ARMFind ( THUMB_BL, rc - 4, MEM_AUTO, LOC_BACKWARD );
+            if ( GetHalf ( rc - 2 ) == 0x2102 ) // mov r1, #2
+               ok = 1;
+         }
+         rc = ARMGet ( rc );
+      }
+      break;
+
+      case 0x143: // StatusIndication_ShowNotes
+      {
+         PATT1 ( "\x10\xb5\x04\x1c\x06\x48\xea\xf7\x6d\xfb\x00\x28\x04\xd0\xc0\x69\x22\x1c\x09\x21" );
+         MASK1 ( "\xff\xff\xff\xff\xf0\xff\x00\xf0\x00\xf8\xff\xff\xf0\xff\x8f\xff\xff\xff\xff\xff" );
+
+         rc = SimpleFindPattern ( patt1, mask1, 20, LOC_UNIQUE );
+      }
+      break;
+
+      case 0x144: // CreateStringInput
+      {
+         PATT1 ( "\x28\x68\x20\x21\xf7\xf7\x50\xfb\x8c\x4f\x20\x1c\x39\x1c\x00\xf0\xa9\xfd\x00\x28\x08\xd0\x39\x1c\x20\x1c" );
+         MASK1 ( "\xff\xff\xff\xff\x00\xf0\x00\xf8\x00\xff\x00\xff\x00\xff\x00\xf0\x00\xf8\xff\xff\xff\xff\xff\xff\xff\xff" );
+
+         rc = SimpleFindPattern ( patt1, mask1, 26, LOC_UNIQUE );
+         rc = FindPushLr ( rc, LOC_BACKWARD ) - 2;
+      }
+      break;
+
+      case 0x145: // CreateOneOfMany
+      {
+         if ( DB201x ) 
+         {
+            PATT1 ( "\x30\xb5\x04\x1c\x05\x22\x01\x21\x2c\x20\xe1\xf2\xc7\xfa\x05\x1c\x26\xd0\x00\x22\x00\x21\x13\x48" );
+            MASK1 ( "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\x00\xf0\x00\xf8\xff\xff\x00\xff\xff\xff\xff\xff\x00\xff" );
+            rc = SimpleFindPattern ( patt1, mask1, 24, LOC_UNIQUE );
+         }
+         else if ( DB2020 ) 
+         {
+            PATT1 ( "\x70\xb5\x25\x4e\x04\x1c\x99\x23\x32\x1c\x2c\x21\x00\x20\x0a\xf0\xa5\xfc\x05\x1c\x0a\xd1\x99\x21" );
+            MASK1 ( "\xff\xff\x00\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\x00\xf0\x00\xf8\xff\xff\x00\xff\xff\xff" );
+            rc = SimpleFindPattern ( patt1, mask1, 24, LOC_UNIQUE );
+         }
+         else // db3150, db3210
+         {
+            PATT1 ( "\x70\xb5\x19\x4e\x04\x1c\x62\x21\x30\x1c\x03\xb4\x05\x23\x01\x22\x4c\x21\x00\x20\xc0\x43" );
+            MASK1 ( "\xff\xff\x00\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff" );
+            rc = SimpleFindPattern ( patt1, mask1, 22, LOC_UNIQUE );
+         }
+      }
+      break;
+
+      case 0x1E0: // OneOfMany_SetFocused
+      case 0x146: // OneOfMany_SetItemCount
+      case 0x147: // OneOfMany_SetChecked
+      case 0x149: // OneOfMany_GetSelected
+      case 0x1E1: // OneOfMany_SetonMessage
+      case 0x148: // OneOfMany_SetTexts
+      {
+         RRC ( "CreateOneOfMany" );
+         rc = FindPushLr ( rc + 2, LOC_FORWARD );
+         rc = ARMFind ( THUMB_BNE, rc, MEM_AUTO, LOC_FORWARD );
+         f1 = FindPushLr ( rc, LOC_FORWARD );
+         rc = FindPushLr ( f1 + 2, LOC_FORWARD );
+         f2 = FindPushLr ( rc + 2, LOC_FORWARD );
+         rc = FindPushLr ( f2 + 2, LOC_FORWARD );
+         f3 = FindPushLr ( rc + 2, LOC_FORWARD );
+         f4 = FindPushLr ( f3 + 2, LOC_FORWARD );
+         rc = ARMFind ( THUMB_BEQ, f4, MEM_AUTO, LOC_FORWARD );
+         f5 = rc - 2;
+         f6 = FindPushLr ( f5, LOC_FORWARD );
+
+         AddSymbolEx ( 0x1E0, f1 );
+         AddSymbolEx ( 0x146, f2 );
+         AddSymbolEx ( 0x147, f3 );
+         AddSymbolEx ( 0x149, f4 );
+         AddSymbolEx ( 0x1E1, f5 );
+         AddSymbolEx ( 0x148, f6 );
+         rc = E_FAIL;
+      }
+      break;
+
+      case 0x14A: // StatusIndication_Item8_SetText
+      {
+         // db201x, db2020, db3150, db3210
+         PATT1 ( "\x10\xb5\x04\x1c\x45\x48\x61\xf0\xd3\xfa\x00\x28\x04\xd0\x80\x69\x22\x1c\x08\x21\xfe\xf7\x64\xfa\x10\xbd" );
+         MASK1 ( "\xff\xff\xff\xff\x00\xf8\x00\xf0\x00\xf8\xff\xff\xff\xff\x00\xff\xff\xff\xff\xff\x00\xf0\x00\xf8\xff\xff" );
+         
+         rc = SimpleFindPattern ( patt1, mask1, 26, LOC_FORWARD );
+      }
+      break;
+
+      case 0x1C0: // CreateListObject
+      case 0x133: // GuiObject_SetTitleText
+      case 0x136: // GUI_SetStyle
+      case 0x1C1: // SetNumOfMenuItem
+      case 0x13F: // SetMenuItemStyle
+      case 0x174: // ListMenu_SetOnMessages
+      {
+         // db201x, db2020, db3150, db3210
+         PATT1 ( "\x00\xe0\x49\x1c\xaa\x89\x91\x42\x09\xda\xaa\x68\x52\x5c\x82\x42\xf7\xd1\x6c\x48\x09\x04\x09\x0c\x81\x42\x00\xd0" );
+         MASK1 ( "\xff\xff\xff\xff\x00\xff\xff\xff\xff\xff\x00\xff\xff\xff\xff\xff\xff\xff\x00\xff\xff\xff\xff\xff\xff\xff\xff\xff" );
+
+         rc = SimpleFindPattern ( patt1, mask1, 28, LOC_FORWARD );
+         rc = ARMFind ( THUMB_BL, rc, MEM_AUTO, LOC_FORWARD );
+
+         f1 = ARMGet ( rc );
+         rc = ARMFind ( THUMB_BL, rc + 4, MEM_AUTO, LOC_FORWARD );
+         f2 = ARMGet ( rc );
+         rc = ARMFind ( THUMB_BL, rc + 4, MEM_AUTO, LOC_FORWARD );
+         f3 = ARMGet ( rc );
+         rc = ARMFind ( THUMB_BL, rc + 4, MEM_AUTO, LOC_FORWARD );
+         f4 = ARMGet ( rc );
+         rc = ARMFind ( THUMB_BL, rc + 4, MEM_AUTO, LOC_FORWARD );
+         f5 = ARMGet ( rc );
+         rc = ARMFind ( THUMB_BL, rc + 4, MEM_AUTO, LOC_FORWARD );
+         f6 = ARMGet ( rc );
+
+         AddSymbolEx ( 0x1C0, f1 );
+         AddSymbolEx ( 0x133, f2 );
+         AddSymbolEx ( 0x136, f3 );
+         AddSymbolEx ( 0x1C1, f4 );
+         AddSymbolEx ( 0x13F, f5 );
+         AddSymbolEx ( 0x174, f6 );
+         rc = E_FAIL;
+      }
+      break;
+
+      case 0x135: // SetCursorToItem
+      case 0x13E: // ListMenu_GetSelectedItem
+      {
+         RRC ( "SetNumOfMenuItem" );
+         rc = FindPushLr ( rc - 2, LOC_BACKWARD );
+         if ( *swi == 0x135 ) 
+            rc = FindPushLr ( rc - 2, LOC_BACKWARD );
+      }
+      break;
+
+      case 0x137: // GUIonMessage_GetCreatedItemIndex
+      case 0x138: // SetMenuItemText0
+      case 0x13A: // SetMenuItemText2
+      case 0x13B: // SetMenuItemText3
+      case 0x139: // SetMenuItemText1
+      case 0x13C: // SetListObjectItemIcon
+      case 0x244: // List2lineSetAsSubitem
+      case 0x282: // GUIonMessage_SetItemDisabled
+      {
+         // db201x, db2020, db3150, db3210
+         PATT1 ( "\x00\xb5\xc0\x68\x0a\x1c\x00\x21\x71\xf1\x3a\xfb\x00\xbd\x00\x00\x00\xb5\xc0\x68\x0a\x1c\x02\x21\x71\xf1\x32\xfb\x00\xbd\x00\x00" );
+         MASK1 ( "\xff\xff\xff\xff\xff\xff\xff\xff\x00\xf0\x00\xf8\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\x00\xf0\x00\xf8\xff\xff\xff\xff" );
+
+         rc = SimpleFindPattern ( patt1, mask1, 32, LOC_UNIQUE );
+
+         f1 = FindPushLr ( rc - 2, LOC_BACKWARD );
+         f2 = rc;
+         f3 = FindPushLr ( f2 + 4, LOC_FORWARD );
+         f4 = FindPushLr ( f3 + 4, LOC_FORWARD );
+         f5 = FindPushLr ( f4 + 4, LOC_FORWARD );
+         f6 = FindPushLr ( f5 + 4, LOC_FORWARD );
+         f7 = FindPushLr ( f6 + 4, LOC_FORWARD );
+         f8 = FindPushLr ( f7 + 4, LOC_FORWARD );
+
+         AddSymbolEx ( 0x137, f1 );
+         AddSymbolEx ( 0x138, f2 );
+         AddSymbolEx ( 0x13A, f3 );
+         AddSymbolEx ( 0x13B, f4 );
+         AddSymbolEx ( 0x139, f5 );
+         AddSymbolEx ( 0x13C, f6 );
+         AddSymbolEx ( 0x244, f7 );
+         AddSymbolEx ( 0x282, f8 );
+         rc = E_FAIL;
+      }
+      break;
+
+      case 0x2E3: // FindBookEx
+      {
+         RRC ( "root_list_get_session_count" );
+         rc = QuickFindPattern ( "\xf3\xb5\x81\xb0", NULL, 4, rc, MEM_AUTO, LOC_BACKWARD );
+      }
+      break;
+
+      case 0x1AF: // BookObj_CallSubroutine
+      {
+         RRC ( "BookObj_GotoPage" );
+         rc = FindPushLr ( rc + 2, LOC_FORWARD );
+      }
+      break;
+
+      case 0x2B8: // BookObj_CallPage
+      {
+         RRC ( "BookObj_CallSubroutine" );
+         rc = FindPushLr ( rc + 2, LOC_FORWARD );
+      }
+      break;
+
+      case 0x12E: // BookObj_ReturnPage
+      {
+         RRC ( "BookObj_CallPage" );
+         rc = FindPushLr ( rc + 2, LOC_FORWARD );
+      }
+      break;
+
+      case 0x169: // List_New
+      case 0x1B0: // ListElement_Add
+      {
+         RRC ( "BookObj_ReturnPage" );
+         rc = FindPushLr ( rc + 2, LOC_FORWARD );
+
+         f1 = ARMFind ( THUMB_BL, rc, MEM_AUTO, LOC_FORWARD );
+         f2 = ARMFind ( THUMB_BL, f1 + 4, MEM_AUTO, LOC_FORWARD );
+         f1 = ARMGet ( f1 );
+         f2 = ARMGet ( f2 );
+
+         AddSymbolEx ( 0x169, f1 );
+         AddSymbolEx ( 0x1B0, f2 );
+         rc = E_FAIL;
+      }
+      break;
+
+      case 0x16B: // ListElement_AddtoTop
+      case 0x304: // ListElement_Insert
+      {
+         RRC ( "ListElement_Add" );
+         f1 = QuickFindPattern ( "\x0a\x1c\x00\x21", NULL, 4, rc, MEM_AUTO, LOC_BACKWARD );
+         if ( GetWord ( f1 - 2 ) == 0xB500 ) // db201x
+            f1 -= 2;
+         f2 = ARMGet ( rc + 4 ); // b or bl
+
+         AddSymbolEx ( 0x16B, f1 );
+         AddSymbolEx ( 0x304, f2 );
+         rc = E_FAIL;
+      }
+      break;
+
+      case 0x17B: // ListElement_Prt2NumElement
+      {
+         RRC ( "ListElement_AddtoTop" );
+         rc = QuickFindPattern ( "\x10\xb4\x42\x88", NULL, 4, rc, MEM_AUTO, LOC_BACKWARD );
+      }
+      break;
+
+      case 0x179: // ListElement_Remove
+      {
+         RRC ( "ListElement_Insert" );
+         rc = FindPushLr ( rc + 2, LOC_FORWARD );
+      }
+      break;
+
+      case 0x16A: // List_Free
+      {
+         RRC ( "ListElement_Insert" );
+         rc = FindPushLr ( rc - 2, LOC_BACKWARD );
+      }
+      break;
+
+      case 0x16E: // REQUEST_DATEANDTIME_GET
+      {
+         rc = FuncFindByName ( "REQUEST_DATEANDTIME_GET" );
+      }
+      break;
+
+      case 0x16F: // IndicationDevice_Backlight_FadeToLevel
+      {
+			//2B 48 00 68 00 28 4C D0 29 7D 63 29 09 D0 28 4F 27 48 3F 68 00 68 3F 68 32 23 3F 69 32 1C B8 47
+			//2F 48 00 68 00 28 56 D0 31 7F 63 29 09 D0 2C 4F 2B 48 3F 68 00 68 3F 68 32 23 3F 69 22 1C B8 47
+
+      }
+      break;
+
+      case 0x170: // GetFreeBytesOnHeap
+      {
+
+      }
+      break;
+
+      case 0x173: // StartAPP
+      {
+			//28 60 02 B0 00 28 0B D0 00 22 64 21 4A F0 B9 F9 20 1C CC F0 38 FC 02 1C
+			//20 60 02 B0 00 28 0E D0 00 22 31 1C 26 F5 84 F9 28 1C D8 F7 75 FC 02 1C
+
+      }
+      break;
+
+      case 0x175: // manifest_GetParam
+      {
+			//00 99 17 1C 00 25 2E 1C 8A 5D 76 1C 00 2A FB D1 76 1E 04 1C 1D E0 64 1C 20 78
+			//02 99 15 1C 00 26 37 1C CA 5D 7F 1C 00 2A FB D1 7F 1E 04 1C 1D E0 64 1C 20 78
+      }
+      break;
+
+      case 0x176: // lseek
+      {
+			//F0 B5 C5 4C 83 B0 0D 1C 16 1C 00 28 0E D4 32 28 0C DA 81 00 54 48 42 18 00 92 12 68 00 2A
+			//F0 B5 BE 4C 83 B0 0D 1C 16 1C 00 28 0E D4 32 28 0C DA 81 00 54 48 42 18 00 92 12 68 00 2A
+      }
+      break;
+
+      case 0x177: // get_VBUFFER
+      {
+
+      }
+      break;
+
+      case 0x178: // SetLampLevel
+      {
+
+      }
+      break;
+
+      case 0x17A: // GetCurrentPID
+      {
+			//""crt/src/exec/pflib.c"" + 0x20
+      }
+      break;
+
+
+      case 0x152: // wstrcpy
+      {
+         // db2010, db2020, db3150
+         PATT1 ( "\x02\x1c\x0b\x88\x89\x1c\x13\x80\x92\x1c\x00\x2b\xf9\xd1\x70\x47" );
+
+         rc = SimpleFindPattern ( patt1, NULL, 16, LOC_FORWARD );
+      }
+      break;
+
+      case 0x153: // wstrncpy
+      {
+         if ( DB201x ) 
+         {
+            PATT1 ( "\x10\xb4\x03\x1c\x00\x2a\x0b\xd0\x0c\x88\x00\x2c\x08\xd0\x1c\x80\x89\x1c\x9b\x1c\x52\x1e\xf5\xe7" );
+            rc = SimpleFindPattern ( patt1, NULL, 24, LOC_FORWARD );
+         }
+         else // db2020, db3150, db3210
+         {
+            PATT1 ( "\x10\xb4\x03\x1c\x03\xe0\x1c\x80\x89\x1c\x9b\x1c\x52\x1e\x00\x2a\x02\xd0\x0c\x88\x00\x2c\xf6\xd1" );
+            rc = SimpleFindPattern ( patt1, NULL, 24, LOC_FORWARD );
+         }
+      }
+      break;
+
+      case 0x154: // wstrcat
+      {
+         if ( DB201x ) 
+         {
+            PATT1 ( "\x02\x1c\x13\x88\x00\x2b\x03\xd0\x92\x1c\xfa\xe7\x92\x1c\x89\x1c\x0b\x88\x00\x2b" );
+            rc = SimpleFindPattern ( patt1, NULL, 20, LOC_UNIQUE );
+         }
+         else // db2020, db3150, db3210
+         {
+            PATT1 ( "\x02\x1c\x00\xe0\x92\x1c\x13\x88\x00\x2b\xfb\xd1\x0b\x88\x13\x80\x00\x2b\x02\xd0\x92\x1c\x89\x1c" );
+            rc = SimpleFindPattern ( patt1, NULL, 24, LOC_UNIQUE );
+         }
+      }
+      break;
+
+      case 0x155: // wstrncat
+      {
+         if ( DB201x ) 
+         {
+            PATT1 ( "\x10\xb4\x03\x1c\x1c\x88\x00\x2c\x05\xd0\x9b\x1c\xfa\xe7\x1c\x80\x89\x1c\x9b\x1c\x52\x1e" );
+            rc = SimpleFindPattern ( patt1, NULL, 22, LOC_UNIQUE );
+         }
+         else // db2020, db3150, db3210
+         {
+            PATT1 ( "\x10\xb4\x03\x1c\x00\xe0\x9b\x1c\x1c\x88\x00\x2c\xfb\xd1\x00\x2a\x07\xd0\x0c\x88\x00\x2c" );
+            rc = SimpleFindPattern ( patt1, NULL, 22, LOC_UNIQUE );
+         }
+      }
+      break;
+
+      case 0x156: // wstrcmp
+      {
+         RRC ( "wstrchr" );
+         rc = SimpleFindPattern ( "\x01\xe0\x80\x1c\x89\x1c", NULL, 6, LOC_FORWARD );
+         if ( GetHalf ( rc - 2 ) == 0xb410 ) // db2010, push r4
+            rc -= 2;
+      }
+      break;
+
+      case 0x157: // wstrlen
+      {
+         if ( DB201x ) 
+         {
+            PATT1 ( "\x01\x1c\x00\xe0\x89\x1c\x0a\x88\x00\x2a\xfb\xd1\x4b\x08\x40\x08\x18\x1a\x70\x47" );
+            rc = SimpleFindPattern ( patt1, NULL, 20, LOC_UNIQUE );
+         }
+         else // db2020, db3150, db3210
+         {
+            PATT1 ( "\x01\x1c\x00\x20\x00\xe0\x40\x1c\x0a\x1c\x13\x88\x89\x1c\x00\x2b\xf9\xd1\x70\x47" );
+            rc = SimpleFindPattern ( patt1, NULL, 20, LOC_UNIQUE );
+         }
+      }
+      break;
+
+      case 0x158: // str2wstr
+      {
+         // db2010, db2020, db3150, db3210
+         PATT1 ( "\x02\x1c\x0b\x78\x49\x1c\x13\x80\x92\x1c\x00\x2b\xf9\xd1\x70\x47" );
+
+         rc = SimpleFindPattern ( patt1, NULL, 16, LOC_FORWARD );
+      }
+      break;
+
+      case 0x159: // strcmp
+      {
+         if ( DB201x ) 
+         {
+            PATT1 ( "\x10\xb4\x01\xe0\x40\x1c\x49\x1c\x02\x78\x0c\x78\x13\x1c\xa2\x42\x04\xd1\x00\x2a" );
+            rc = SimpleFindPattern ( patt1, NULL, 20, LOC_UNIQUE );
+         }
+         else // db2020, db3150, db3210
+         {
+            PATT1 ( "\x01\xe0\x40\x1c\x49\x1c\x02\x78\x0b\x78\x9a\x42\x03\xd1\x00\x2a\xf7\xd1\x00\x20\x70\x47" );
+            rc = SimpleFindPattern ( patt1, NULL, 22, LOC_FORWARD );
+         }
+      }
+      break;
+
+      case 0x15A: // strlen
+      {
+         // db2010, db2020, db3150, db3210
+         PATT1 ( "\x01\x1c\x00\xe0\x49\x1c\x0a\x78\x00\x2a\xfb\xd1\x08\x1a\x70\x47" );
+
+         rc = SimpleFindPattern ( patt1, NULL, 16, LOC_FORWARD );
+      }
+      break;
+
+      case 0x15B: // wstr2strn // TODO
+      {
+         // db2010
+         char *patt1 = "\x10\xb4\x03\x1c\x0c\x1c\x03\xe0\x19\x70\x5b\x1c\xa4\x1c\x52\x1e\x00\x2a\x02\xd0\x21\x78\x00\x29";
+         // db2020, db3150
+         PATT3 ( "\x10\xb4\x03\x1c\x03\xe0\x04\x70\x40\x1c\x89\x1c\x52\x1e\x00\x2a\x02\xd0\x0c\x78\x00\x2c\xf6\xd1" );
+
+         rc = SimpleFindPattern ( patt1, NULL, 24, LOC_UNIQUE );
+         if ( rc == E_FAIL ) 
+            rc = SimpleFindPattern ( patt2, NULL, 24, LOC_UNIQUE );
+
+      }
+      break;
+
+      case 0x15C: // int2strID
+      {
+         rc = SimpleFindPattern ( "\x00\x80\xff\xff\x00\x80\xff\x7f\x00\x80\x00\x70", NULL, 12, LOC_UNIQUE );
+         rc = ARMFindLdr ( rc );
+
+         if ( GetHalf ( rc + 2 ) !=0xb500 ) // db3150
+            rc = FindPushLr ( rc, LOC_BACKWARD );
+      }
+      break;
+
+      case 0x134: // ShowWindow
+      case 0x15D: // Str2ID
+      case 0x2C9: // Feedback_SetTextExtended
+      {
+         // db2010, db2020, db3150
+         PATT1 ( "\x1a\x29\x06\xd0\x1c\x29\x08\xd0\x1e\x29\x0b\xd0\x20\x29\x0d\xd0\x1f\xe0" );
+         MASK1 ( "\xf0\xff\xff\xff\xf0\xff\xf0\xff\xf0\xff\xf0\xff\xc0\xff\xf0\xff\xc0\xff" );
+
+         rc = SimpleFindPattern ( patt1, mask1, 18, LOC_UNIQUE );
+
+         rc = ARMFind ( THUMB_BL, rc, MEM_AUTO, LOC_FORWARD );
+         f2 = ARMGet ( rc );
+
+         rc = ARMFind ( THUMB_BL, rc + 4, MEM_AUTO, LOC_FORWARD );
+         f3 = ARMGet ( rc );
+
+         rc = ARMFind ( THUMB_BL, rc + 4, MEM_AUTO, LOC_FORWARD );
+         f1 = ARMGet ( rc );
+
+         AddSymbolEx ( 0x134, f1 );
+         AddSymbolEx ( 0x15D, f2 );
+         AddSymbolEx ( 0x2C9, f3 );
+         rc = E_FAIL;
+      }
+      break;
+
+      case 0x1FE: // DISP_OBJ_GetWindow
+      {
+         RRC ( "DISP_OBJ_getVisible" );
+         rc = ARMGet ( rc + 2 );
+      }
+      break;
+
+      case 0x1EF: // InvalidateRect
+      {
+         PATT1 ( "\x10\xb5\x0c\x1c\x00\x28\x16\xd0\x41\x68\x4d\x4a\x91\x42\x12\xd1\x00\x2c\x0b\xd0\x00\x23" );
+         MASK1 ( "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\x00\xf8\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff" );
+
+         rc = SimpleFindPattern ( patt1, mask1, 22, LOC_UNIQUE );
+
+      }
+      break;
+
+      case 0x1E6: // GetGuiRect
+      {
+         RRC ( "InvalidateRect" );
+         rc = ARMFind ( THUMB_BNE, rc, MEM_AUTO, LOC_BACKWARD );
+         rc = ARMFind ( THUMB_BL, rc, MEM_AUTO, LOC_FORWARD );
+         rc = ARMGet ( rc );
+      }
+      break;
+
+      case 0x14B: // GUIObject_Softkey_SetAction
+      case 0x168: // GUIObj_GetDISPObj
+      case 0x14F: // GUIObject_SoftKey_RemoveItem
+      case 0x1C3: // SoftKey_AddHelpStr
+      case 0x14C: // GUIObject_Softkey_SetText
+      case 0x1C7: // SoftKeys_SetText
+      case 0x150: // GUIObject_SoftKey_SetVisible
+      case 0x14E: // GUIObject_SoftKey_AddErrorStr
+      case 0x14D: // GUIObject_SoftKey_SetEnable
+      case 0x1C4: // SoftKey_SetItemAsSubItem
+      {
+         // db2010, db2020, db3150
+         PATT1 ( "\x28\x1c\xbe\xf1\x54\xf8\x40\xb4\x23\x1c\x00\x22\x39\x1c\xfa\xf7\x3e\xff\x28\x1c" );
+         MASK1 ( "\xff\xff\x00\xf0\x00\xf8\xff\xff\xff\xff\xff\xff\xff\xff\x00\xf0\x00\xf8\xff\xff" );
+
+         rc = SimpleFindPattern ( patt1, mask1, 20, LOC_UNIQUE );
+
+         f1 = FindPushLr ( rc, LOC_BACKWARD );
+         f2 = ARMGet ( rc + 2 );
+         f3 = QuickFindPattern ( "\x70\xb5\x04\x1c\x0d\x1c", NULL, 6, rc, MEM_AUTO, LOC_BACKWARD );
+
+         rc = FindPushLr ( rc, LOC_FORWARD );
+
+         f4  = FindPushLr ( rc + 4, LOC_FORWARD );
+         f5  = FindPushLr ( f1 + 4, LOC_FORWARD );
+         f6  = FindPushLr ( f2 + 4, LOC_FORWARD );
+         f7  = FindPushLr ( f3 + 4, LOC_FORWARD );
+         f8  = FindPushLr ( f4 + 4, LOC_FORWARD );
+         rc  = FindPushLr ( f5 + 4, LOC_FORWARD );
+         f9  = FindPushLr ( rc + 4, LOC_FORWARD );
+         f10 = FindPushLr ( f6 + 4, LOC_FORWARD );
+
+         AddSymbolEx ( 0x14B, f1 );
+         AddSymbolEx ( 0x168, f2 );
+         AddSymbolEx ( 0x14F, f3 );
+         AddSymbolEx ( 0x1C3, f4 );
+         AddSymbolEx ( 0x14C, f5 );
+         AddSymbolEx ( 0x1C7, f6 );
+         AddSymbolEx ( 0x150, f7 );
+         AddSymbolEx ( 0x14E, f8 );
+         AddSymbolEx ( 0x14D, f9 );
+         AddSymbolEx ( 0x1C4, f10 );
+         rc = E_FAIL;
+      }
+      break;
+
+      case 0x151: // GUIObject_SoftKey_SuppressDefaultAction
+      {
+         RRC ( "GUIObject_HideSoftkeys" );
+         rc = FindPushLr ( rc - 2, LOC_BACKWARD );
+         rc = FindPushLr ( rc - 2, LOC_BACKWARD );
+         rc = FindPushLr ( rc - 2, LOC_BACKWARD );
+         if ( GetHalf ( rc + 10 ) == 0xBD00 ) 
+            rc = FindPushLr ( rc - 2, LOC_BACKWARD );
+      }
+
+      case 0x15E: // StrID2Str
+      {
+         // db2010, db2020, db3150
+         PATT1 ( "\x00\xb5\x9c\xb0\x00\x23\x64\x22\x69\x46\xff\xf7\xfb\xfe\x69\x46\x02\xa0\x8e\xf2\x2f\xf9\x1c\xb0\x00\xbd" );
+         MASK1 ( "\xff\xff\x00\xff\x7f\xf8\x00\x00\xff\xff\x00\xf0\x00\xf8\xff\xff\xff\x00\x00\xf0\x00\xf8\x00\xff\xff\xff" );
+
+         rc = SimpleFindPattern ( patt1, mask1, 26, LOC_UNIQUE );
+         rc = ARMGet ( rc + 10 );
+      }
+      break;
+
+      case 0x15F: // TextID2wstr
+      {
+         RRC ( "TextGetLength" );
+         rc = FindPushLr ( rc + 4, LOC_FORWARD );
+      }
+      break;
+
+      case 0x160: // TextGetLength
+      {
+         RRC ( "TextFree" );
+         rc = FindPushLr ( rc + 4, LOC_FORWARD );
+         if ( GetByte ( rc - 1 ) == 0x4A ) // db201x: ldr, r2, ...
+            rc -= 2;
+      }
+      break;
+
+      case 0x161: // TextFree
+      {
+         RRC ( "TextCopyId" );
+         rc = FindPushLr ( rc + 4, LOC_FORWARD );
+         if ( GetByte ( rc - 1 ) == 0x4B ) // db3150: ldr, r3, ...
+            rc -= 2;
+      }
+      break;
+
+      case 0x162: // AB_DEFAULTNBR_GET
+      {
+         // db201x
+         char *patt1 = "\xf5\xb5\x0e\x1c\x01\x25\x05\x22\x01\x21\x70\x20\x3f\xf2\xc6\xfb\x04\x1c\x00\x27\x87\x74\x00\x99\x00\x1d";
+         char *mask1 = "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\x00\xf0\x00\xf8\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff";
+         // db2020, db3150
+         PATT3 ( "\xbd\x73\x00\x99\x38\x1d\x06\xf0\x8e\xf9\x0d\x48\x39\x1c\x00\x68\xeb\xf6\x95\xfb\x00\x28\x0a\xd1" );
+         MASK2 ( "\xff\xff\xff\xff\xff\xff\x00\xf0\x00\xf8\x00\xff\xff\xff\xff\xff\x00\xf0\x00\xf8\xff\xff\xff\xff" );
+
+         rc = SimpleFindPattern ( patt1, mask1, 26, LOC_UNIQUE );
+         if ( rc == E_FAIL ) 
+         {
+            rc = SimpleFindPattern ( patt2, mask2, 24, LOC_UNIQUE );
+            rc = FindPushLr ( rc, LOC_BACKWARD );
+         }
+      }
+      break;
+
+      case 0x163: // AB_READSTRING
+      {
+			// db201x, db2020
+			//07 D0 0C 2C 05 D0 0D 2C 03 D0 0F 2C 01 D0 0E 2C 01 D1 06 20 00 E0 02 20 B0 75 0B 48
+			//07 D0 0C 2C 05 D0 0D 2C 03 D0 0F 2C 01 D0 0E 2C 01 D1 06 20 00 E0 02 20 B8 75 62 48
+      }
+      break;
+
+      case 0x164: // AB_READPHONENBR
+      {
+         // db2020, db3150
+			//07 1C 02 B0 1F D0 00 20 B8 74 00 99 38 1D FF F7 62 FF 69 46 09 79 70 20 39 54 36 48 39 1C 00 68
+			//07 1C 02 B0 1F D0 00 20 B8 73 00 99 38 1D FF F7 A2 FF 69 46 09 79 6C 20 39 54 5E 48 39 1C 00 68
+
+      }
+      break;
+
+      case 0x165: // AB_GETNBROFITEMS
+      {
+         // db2020, db3150
+			//07 1C 02 B0 14 D0 68 46 00 78 39 1C B8 71 0B 48 FC 71 00 68 78 F7 F0 FB 00 28 03 D1 38 78 00 28 00 D0 7D 88
+			//07 1C 02 B0 15 D0 68 46 00 78 39 1C B8 71 33 48 FC 71 00 68 E3 F6 C5 FE 00 28 03 D1 38 78 00 28 00 D0 7D 88
+
+      }
+      break;
+
+      case 0x166: // PNUM_len
+      {
+         // db2020, db3150
+			//10 B5 01 1C 00 20 00 E0 40 1C 00 04 00 0C 42 10 8A 5C 01 24 04 40 A3 00 DA 40 12 07 12 0F 0F 2A
+      }
+      break;
+
+      case 0x167: // PNUM2str
+      {
+         // db2020, db3150
+			//F3 B5 00 24 21 1C 00 E0 49 1C 01 9F 09 06 09 0E 4E 10 BE 5D 0D 1C 01 27 0F 40 BF 00 FE 40 36 07
+      }
+      break;
+
+      case 0x16C: // Gif2ID
+      {
+
+      }
+      break;
+
+      case 0x16D: // REQUEST_IMAGEHANDLER_INTERNAL_GETHANDLE
+      {
+         // db2020, db3150
+			//11 4A 12 49 0C 20 C2 F1 B9 FA 00 90 00 28 02 D1 09 20 28 70 0A E0 00 98 71 68
+			//14 4A 15 49 0C 20 BB F2 19 FD 00 90 00 28 02 D1 09 20 28 70 0A E0 00 98 71 68
+      }
+      break;
+
+      case 0x17C: // alloc
+      {
+         // db2010, db2020, db3150
+         char *patt1 = "\xc0\x40\x2d\xe9\x02\x70\xa0\xe3\xd9\xff\xff\xea";
+         rc = SimpleFindPattern ( patt1, NULL, 12, LOC_UNIQUE );
+         SET_ATD ( SWI_ARM );
+      }
+      break;
+
+      case 0x17D: // receive
+      {
+         // db2010, db2020, db3150
+         char *patt1 = "\xc0\x40\x2d\xe9\x28\x70\xa0\xe3\x0c\x30\x8d\xe2\xd1\xff\xff\xea";
+         rc = SimpleFindPattern ( patt1, NULL, 16, LOC_UNIQUE );
+         SET_ATD ( SWI_ARM );
+      }
+      break;
+
+      case 0x17E: // send
+      {
+         // db2010, db2020, db3150
+         char *patt1 = "\xc0\x40\x2d\xe9\x2d\x70\xa0\xe3\x0c\x30\x8d\xe2\xd5\xff\xff\xea";
+         rc = SimpleFindPattern ( patt1, NULL, 16, LOC_UNIQUE );
+         SET_ATD ( SWI_ARM );
+      }
+      break;
+
+      case 0x17F: // sender
+      {
+         // db2010, db2020, db3150
+         char *patt1 = "\xc0\x40\x2d\xe9\x2e\x70\xa0\xe3\x0c\x30\x8d\xe2\xc1\xff\xff\xea";
+         rc = SimpleFindPattern ( patt1, NULL, 16, LOC_UNIQUE );
+         SET_ATD ( SWI_ARM );
+      }
+      break;
+
+      case 0x180: // free_buf
+      {
+         // db2010, db2020, db3150
+         char *patt1 = "\xc0\x40\x2d\xe9\x11\x70\xa0\xe3\x0c\x30\x8d\xe2\xcd\xff\xff\xea";
+         rc = SimpleFindPattern ( patt1, NULL, 16, LOC_UNIQUE );
+         SET_ATD ( SWI_ARM );
+      }
+      break;
+
+      case 0x181: // create_process
+      {
+         // db2010, db2020, db3150
+         char *patt1 = "\xc8\x40\x2d\xe9\x0a\x70\xa0\xe3\x10\x30\x8d\xe2\xaf\xff\xff\xea";
+         rc = SimpleFindPattern ( patt1, NULL, 16, LOC_UNIQUE );
+         SET_ATD ( SWI_ARM );
+      }
+      break;
+
+      case 0x182: // start
+      {
+         // db2010, db2020, db3150
+         char *patt1 = "\xc0\x40\x2d\xe9\x39\x70\xa0\xe3\x0c\x30\x8d\xe2\x12\xff\xff\xea";
+         rc = SimpleFindPattern ( patt1, NULL, 16, LOC_UNIQUE );
+         SET_ATD ( SWI_ARM );
+      }
+      break;
+
+      case 0x183: // get_ptype
+      {
+         // db2010, db2020, db3150
+         char *patt1 = "\xc0\x40\x2d\xe9\x1c\x70\xa0\xe3\x67\xff\xff\xea";
+         rc = SimpleFindPattern ( patt1, NULL, 12, LOC_UNIQUE );
+         SET_ATD ( SWI_ARM );
+      }
+      break;
+
+      case 0x184: // current_process
+      {
+         // db2010, db2020, db3150
+         char *patt1 = "\xc0\x40\x2d\xe9\x0c\x70\xa0\xe3\x94\xff\xff\xea";
+         rc = SimpleFindPattern ( patt1, NULL, 12, LOC_UNIQUE );
+         SET_ATD ( SWI_ARM );
+      }
+      break;
+
+      case 0x185: // delay
+      {
+         // db2010, db2020, db3150
+         char *patt1 = "\xc0\x40\x2d\xe9\x0d\x70\xa0\xe3\x0c\x30\x8d\xe2\xc5\xff\xff\xea";
+         rc = SimpleFindPattern ( patt1, NULL, 16, LOC_UNIQUE );
+         SET_ATD ( SWI_ARM );
+      }
+      break;
+
+      case 0x186: // hunt
+      {
+         // db2010, db2020, db3150
+         char *patt1 = "\xc8\x40\x2d\xe9\x22\x70\xa0\xe3\x10\x30\x8d\xe2\x68\xff\xff\xea";
+         rc = SimpleFindPattern ( patt1, NULL, 16, LOC_UNIQUE );
+         SET_ATD ( SWI_ARM );
+      }
+      break;
+
+      case 0x187: // kill_proc
+      {
+         // db2010, db2020, db3150
+         char *patt1 = "\xc0\x40\x2d\xe9\x24\x70\xa0\xe3\x4c\xff\xff\xea";
+         rc = SimpleFindPattern ( patt1, NULL, 12, LOC_UNIQUE );
+         SET_ATD ( SWI_ARM );
+      }
+      break;
+
+      case 0x188: // set_bp_adr
+      {
+
+      }
+      break;
+
+      case 0x189: // receive_w_tmo
+      {
+
+      }
+      break;
+
+      case 0x18A: // clear_bp_adr
+      {
+
+      }
+      break;
+
+      case 0x1A0: // strcpy
+      {
+         // db2010, db2020, db3150
+         char *patt1 = "\x02\x1c\x0b\x78\x49\x1c\x13\x70\x52\x1c\x00\x2b\xf9\xd1\x70\x47";
+         rc = SimpleFindPattern ( patt1, NULL, 16, LOC_FORWARD );
+      }
+      break;
+
+      case 0x1A1: // CreateMessage
+      {
+         // db2010, db2020, db3150
+         char *patt1 = "\x01\x88\xe0\x22\xd2\x01\x91\x42\x01\xd1\x2c\x30\x70\x47\x00\x20\x70\x47";
+         rc = SimpleFindPattern ( patt1, NULL, 18, LOC_FORWARD );
+         rc = FindPushLr ( rc, LOC_FORWARD );
+      }
+      break;
+
+      case 0x1A2: // SendMessage
+      {
+         RRC ( "CreateMessage" );
+         rc = FindPushLr ( rc + 4, LOC_FORWARD );
+         if ( ARMFind ( THUMB_LDR, rc - 2, MEM_AUTO, LOC_FORWARD ) == rc - 2 ) // db2020, db3150
+            rc -= 2;
+      }
+      break;
+
+      case 0x1A3: // WaitMessage, TODO
+      {
+         RRC ( "FreeMessage" );
+         rc = QuickFindPattern ( "\x00\x23", NULL, 2, rc, MEM_AUTO, LOC_BACKWARD );
+         if ( GetHalf ( rc - 2 ) == 0xb500 ) // db2010
+            rc -= 2;
+      }
+      break;
+
+      case 0x1A4: // FreeMessage
+      {
+         RRC ( "SendMessage" );
+         rc = FindPushLr ( rc + 4, LOC_FORWARD );
+         rc = ARMFind ( THUMB_BL, rc, MEM_AUTO, LOC_FORWARD );
+         rc = ARMGet ( rc );
+      }
+      break;
+
+      case 0x1A5: // SendDispatchMessage
+      {
+			//28 1C 0B 30 38 F0 95 FD 69 46 09 7A 00 90 2A 1C 01 71 00 98 44 71 00 98 C5 80 00 98 03 99 08 30
+			//28 1C 0B 30 38 F2 DC FB 69 46 09 7A 00 90 2A 1C 01 71 00 98 44 71 00 98 C5 80 00 98 03 99 08 30
+      }
+      break;
+
+      case 0x1A6: // UIEventName
+      {
+			//01 1C B2 48 64 29 00 D9 5D E1 02 A2 49 00 52 5A 97 44
+			//01 1C C6 48 82 29 00 D9 AE E1 02 A2 49 00 52 5A 97 44
+      }
+      break;
+
+      case 0x1A7: // MissedEvents
+      {
+
+      }
+      break;
+
+      case 0x1A8: // UI_Event
+      {
+         RRC ( "UI_Event_wData" );
+         rc = FindPushLr ( rc - 2, LOC_BACKWARD );
+      }
+      break;
+
+      case 0x1A9: // UI_Event_wData
+      {
+         RRC ( "FreeBook" );
+         rc = ARMFind ( THUMB_BEQ, rc, MEM_AUTO, LOC_FORWARD );
+         rc = ARMGet ( rc );
+         rc = ARMFind ( THUMB_BL, rc, MEM_AUTO, LOC_BACKWARD );
+         rc = ARMGet ( rc );
+      }
+      break;
+
+      case 0x1AA: // UI_Event_toBookID
+      {
+         RRC ( "UI_Event_toSID" );
+         rc = FindPushLr ( rc + 2, LOC_FORWARD );
+         rc = FindPushLr ( rc + 2, LOC_FORWARD );
+         rc = FindPushLr ( rc + 2, LOC_FORWARD );
+      }
+      break;
+
+      case 0x1AB: // UI_Event_toBookIDwData
+      {
+         RRC ( "UI_Event_toSID" );
+         rc = FindPushLr ( rc + 2, LOC_FORWARD );
+      }
+      break;
+
+      case 0x1AC: // ListElement_Find
+      {
+         RRC ( "DispObject_Softkeys_GetParams" );
+         rc = ARMFind ( THUMB_BL, rc, MEM_AUTO, LOC_FORWARD );
+         rc = ARMGet ( rc );
+      }
+      break;
+
+      case 0x1AD: // ListElement_GetByIndex
+      {
+			//42 88 91 42 03 D2 40 68 8B 00 C0 58 70 47 00 20 70 47
+      }
+      break;
+
+      case 0x1AE: // wstrrchr
+      {
+			//02 1C 00 20 00 E0 92 1C 13 88 8B 42 00 D1 10 1C 00 2B F8 D1 70 47
+			//30 B5 04 1C 0D 1C FE F7 39 FE 41 00 60 18 00 E0 80 1E A0 42 03 D3 02 88 AA 42 F9 D1 30 BD
+      }
+      break;
+
+      case 0x1B1: // debug_printf
+      {
+         // db2010, not tested
+         char *patt1 = "\x16\xd1\x31\x1c\x78\x20\x6e\xf0\x50\xff\x28\x60\x6e\xf0\x35\xff\x29\x68\x48\x60\x2b\x68\x0a\x20\x20\x22";
+         char *mask1 = "\xff\xff\xff\xff\xff\xff\x00\xf0\x00\xf8\xff\xff\x00\xf0\x00\xf8\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff";
+         // db2020, db3150
+         PATT3 ( "\x15\xd1\x29\x1c\x78\x20\x98\xf0\xa0\xfe\x20\x60\xae\xf1\x13\xf8\x21\x68\x0a\x22\x48\x60\x20\x68\x20\x21\x12\x30" );
+         MASK2 ( "\xff\xff\xff\xff\xff\xff\x00\xf0\x00\xf8\xff\xff\x00\xf0\x00\xf8\xf0\xff\x00\xf8\x00\xff\xff\xff\x00\xf8\xff\xff" );
+
+         rc = SimpleFindPattern ( patt1, mask1, 26, LOC_FORWARD );
+         if ( rc == E_FAIL ) 
+            rc = SimpleFindPattern ( patt2, mask2, 28, LOC_FORWARD );
+
+         rc = FindPushLr ( rc , LOC_BACKWARD );
+         rc = FindPushLr ( rc - 4 , LOC_BACKWARD ) - 2; // FIXME
+      }
+      break;
+
+      case 0x1B2: // PlayFile
+		{
+			//00 22 43 E0 F7 B5 05 1C 0E 1C 00 F0 A1 F8 04 1C 68 46 00 21 01 71 00 2C 34 D0 31 1C 28 1C
+			//00 22 45 E0 F7 B5 05 1C 0E 1C 00 F0 9F F8 04 1C 68 46 00 21 01 71 00 2C 36 D0 31 1C 28 1C
+		}
+		break;
+
+      case 0x1DF: // AudioControl_Init
+		{
+         RRC ( "PlayFile" );
+         rc = ARMFind ( THUMB_BL, rc, MEM_AUTO, LOC_FORWARD );
+         rc = ARMGet ( rc );
+		}
+		break;
+
+      case 0x140: // putchar
+      {
+         // db201x, db2020, db3150
+         PATT1 ( "\x00\x28\x05\xd0\x00\x29\x03\xd0\x42\x6b\x91\x42\x00\xd0\x41\x63\x70\x47\x00\x00\x01\x1c\x00\x20\x00\x29\x00\xd0\x48\x6b\x70\x47" );
+         
+         char *p = "\xf2\xb5\x8d\xb0\x04\x1c\x15\x1c";
+         char *m = "\xf0\xff\x00\xff\xff\xff\xf0\xff";
+
+         rc = SimpleFindPattern ( patt1, NULL, 32, LOC_UNIQUE );
+         rc = QuickFindPattern ( p, m, 8, rc, MEM_AUTO, LOC_FORWARD );
+
+      }
+      break;
+
+      case 0x1E2: // CreateFeedBack
+		{
+//05 1C C0 6A 00 2C 15 D0 00 28 18 D1 0D 4B 0E 48 0D 4A 08 B4 29 1C F9 F7 50 F8 E8 62
+//05 1C 00 6B 00 2C 15 D0 00 28 18 D1 0D 4B 0E 48 0D 4A 08 B4 29 1C 00 F0 AC FA 28 63
+         rc = ARMFind ( THUMB_BL, rc, MEM_AUTO, LOC_FORWARD );
+         rc = ARMGet ( rc );
+		}
+		break;
+
+      case 0x1E3: // FeedBack_SetText
+		{
+//23 49 E0 6A F9 F7 E1 F8 22 4A E0 6A FA 21 C9 00 F9 F7 D5 F8 22 6A E0 6A 01 21 A0 F0 24 FA 10 BD
+//23 49 20 6B 00 F0 CB FA 22 4A 20 6B FA 21 C9 00 00 F0 C9 FA E2 69 20 6B 01 21 41 F4 3E F9 10 BD
+         rc = ARMFind ( THUMB_BL, rc, MEM_AUTO, LOC_FORWARD );
+         rc = ARMGet ( rc );
+		}
+		break;
+
+      case 0x1E4: // GetBatteryState
+		{
+//F1 B5 89 B0 0C 1C 01 D1 66 48 B9 E0 66 48 67 4D 00 68 67 4E 69 46
+//F1 B5 89 B0 0C 1C 01 D1 68 48 BB E0 68 48 69 4D 00 68 69 4E 69 46
+
+		}
+		break;
+
+      case 0x1E5: // get_DisplayGC
+		{
+
+		}
+		break;
+
+      case 0x1E7: // get_GC_RECT
+		{
+//30 B5 84 B0 0C 1C 00 28 26 D0 05 68 00 2D 23 D0 00 2C 21 D0 03 AB 08 B4 28 1C 2D 68 03 AB 2D 6C
+//30 B5 84 B0 0C 1C 00 28 27 D0 05 68 00 2D 24 D0 00 2C 22 D0 03 AB 08 B4 28 1C 2D 68 03 AB AD 6C
+
+		}
+		break;
+
+      case 0x1E8: // get_GC_xx
+		{
+
+		}
+		break;
+
+      case 0x1E9: // set_GC_xx
+		{
+
+		}
+		break;
+
+      case 0x1EA: // GC_validate_RECT
+		{
+
+		}
+		break;
+
+      case 0x1EB: // addGui2book
+		{
+
+		}
+		break;
+
+      case 0x1EC: // DrawRec
+		{
+
+		}
+		break;
+
+      case 0x1ED: // DrawString
+		{
+
+		}
+		break;
+
+      case 0x1EE: // addGui2XGuiList
+		{
+
+		}
+		break;
+
+      case 0x1F0: // CreateObject
+		{
+
+		}
+		break;
+
+      case 0x1F1: // SetFont
+		{
+
+		}
+		break;
+
+      case 0x1F2: // StatusRow_p
+		{
+
+		}
+		break;
+
+      case 0x1F3: // root_list_get_session_count
+      case 0x1F4: // root_list_get_session
+      {
+         // db201x
+         char *patt1 = "\x00\xb5\x03\x48\x80\x68\x4d\xf5\xe5\xff\x00\x04\x00\x0c\x00\xbd\x8c\xc7\x2d\x4c\x00\xb5";
+         char *mask1 = "\xff\xff\xff\xff\xff\xff\x00\xf8\x00\xf8\xff\xff\xff\xff\xff\xff\x00\x00\x00\x00\xff\xff";
+
+         // db2020
+         PATT3 ( "\x06\x48\x00\xb5\x40\x68\x12\xf7\x65\xfc\x00\xbd\x01\x1c\x03\x48\x00\xb5\x40\x68\x12\xf7\xd0\xfc\x00\xbd" );
+         MASK2 ( "\xff\xff\xff\xff\xff\xff\x00\xf0\x00\xf8\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\x00\xf0\x00\xf8\xff\xff" );
+
+         // db3150
+         PATT3 ( "\x07\x48\x00\xb5\x40\x68\xc0\x46\x75\xf4\xfe\xff\x00\xbd\x00\x00\x01\x1c\x03\x48\x00\xb5\x40\x68" );
+         MASK3 ( "\xff\xff\xff\xff\xff\xff\xff\xff\x00\xf0\x00\xf8\xff\xff\x00\x00\xff\xff\xff\xff\xff\xff\xff\xff" );
+
+         rc = SimpleFindPattern ( patt1, mask1, 22, LOC_UNIQUE );
+         if ( rc != E_FAIL )
+         {
+            f1 = rc;
+            f2 = rc + 20;
+         }
+         else
+         {
+            rc = SimpleFindPattern ( patt2, mask2, 26, LOC_UNIQUE );
+            if ( rc == E_FAIL )
+               rc = SimpleFindPattern ( patt3, mask3, 24, LOC_UNIQUE );
+            f1 = rc;
+            f2 = QuickFindPattern ( "\x01\x1c", NULL, 2, rc, MEM_AUTO, LOC_FORWARD );
+         }
+
+         AddSymbolEx ( 0x1F3, f1 );
+         AddSymbolEx ( 0x1F4, f2 );
+         rc = E_FAIL;
+      }
+      break;
+
+      case 0x1F5: // SESSION_GetTopBoo
+		{
+
+		}
+		break;
+
+      case 0x1F6: // MainInput_getVisible
+		{
+
+		}
+		break;
+
+      case 0x1F7: // MainInput_strlen
+		{
+
+		}
+		break;
+
+      case 0x1F8: // MainInput_getPNUM
+		{
+
+		}
+		break;
+
+      case 0x1F9: // MainInput_isPlus
+		{
+
+		}
+		break;
+
+      case 0x1FB: // wstrncm
+		{
+
+		}
+		break;
+
+      case 0x1FC: // DISP_OBJ_GetAbsoluteXPos
+		{
+
+		}
+		break;
+
+      case 0x1FD: // DISP_OBJ_GetAbsoluteYPos
+		{
+
+		}
+		break;
+
+      case 0x1FF: // GetThemeColor
+      {
+         // db2010, db2020, db3150
+         char *patt1 = "\xf0\xb5\x04\x1c\x0f\x1c\x15\x1c\x00\x28\x04\xd1\x29\x1c\x38\x1c\xff\xf7\xf0\xff\xf0\xbd";
+         char *mask1 = "\xff\xff\xff\xff\xf8\xff\xf8\xff\xff\xff\xff\xff\x88\xff\xcf\xff\xff\xff\x00\xff\xff\xff";
+
+         rc = SimpleFindPattern ( patt1, mask1, 22, LOC_UNIQUE );
+         rc = ARMGet ( rc + 16 );
+      }
+      break;
+
+      case 0x21D: // DISPBASE_GetFocused
+      {
+//30 B5 04 1C 00 25 00 28 0A D0 61 68 8F 4A 91 42 06 D1 02 F0 1B FF FF F7 E9 FF 84 42 00 D1 01 25
+//30 B5 04 1C 00 25 00 28 0A D0 61 68 29 4A 91 42 06 D1 03 F0 65 FB FF F7 E7 FF 84 42 00 D1 01 25
+//back
+      }
+      break;
+
+      case 0x21E: // DISP_OBJ_getVisible
+      {
+         RRC ( "ShowWindow" );
+         rc = ARMFind ( THUMB_BL, rc, MEM_AUTO, LOC_BACKWARD );
+         rc = ARMGet ( rc );
+      }
+      break;
+
+      case 0x220: // DISP_DESC_SetName
+      {
+         RRC ( "DISP_DESC_SetSize" );
+         rc = QuickFindPattern ( "\x01\x60", NULL, 2, rc, MEM_AUTO, LOC_BACKWARD );
+      }
+      break;
+
+      case 0x222: // DISP_DESC_SetSize
+      case 0x224: // DISP_DESC_SetOnCreate
+      case 0x226: // DISP_DESC_SetOnClose
+      case 0x228: // DISP_DESC_SetOnRedraw
+      case 0x22C: // DISP_DESC_SetonRefresh
+      case 0x22A: // DISP_DESC_SetOnKey
+      case 0x232: // DISP_DESC_SetMethod06
+      case 0x236: // DISP_DESC_SetMethod08
+      {
+         // db2010, db2020, db3150
+         char *patt1 = "\x01\x60\x70\x47\x81\x80\x70\x47\xc1\x60\x70\x47\x01\x61\x70\x47\x41\x61\x70\x47\x81\x61\x70\x47";
+
+         rc = SimpleFindPattern ( patt1, NULL, 24, LOC_UNIQUE );
+
+         AddSymbolEx ( 0x222, rc );
+         AddSymbolEx ( 0x224, rc + 4 );
+         AddSymbolEx ( 0x226, rc + 8 );
+         AddSymbolEx ( 0x228, rc + 12 );
+         AddSymbolEx ( 0x22C, rc + 16 );
+         AddSymbolEx ( 0x22A, rc + 20 );
+         AddSymbolEx ( 0x232, rc + 24 );
+         AddSymbolEx ( 0x236, rc + 32 );
+         rc = E_FAIL;
+      }
+      break;
+
+      case 0x225: // DISP_OBJ_GetOnCreate
+      {
+         // db2010, db2020, db3150
+         char *patt1 = "\x01\x1c\x00\x20\x00\x29\x07\xd0\x4a\x68\x78\x4b\x9a\x42\x03\xd1\x89\x6d\x00\x29";
+         char *mask1 = "\xff\xff\xff\xff\xff\xff\xff\xff\xf8\xff\x00\xf8\xff\xff\xff\xff\xf8\xf8\xff\xf8";
+
+         rc = SimpleFindPattern ( patt1, NULL, 20, LOC_FORWARD );
+      }
+      break;
+
+      case 0x227: // DISP_OBJ_GetOnClose
+      {
+         RRC ( "DISP_OBJ_GetOnCreate" );
+         rc = QuickFindPattern ( "\x01\x1c\x00\x20", NULL, 4, rc + 4, MEM_AUTO, LOC_FORWARD );
+      }
+      break;
+
+      case 0x229: // DISP_OBJ_GetOnRedraw
+      {
+         RRC ( "DISP_OBJ_GetOnClose" );
+         rc = QuickFindPattern ( "\x01\x1c\x00\x20", NULL, 4, rc + 4, MEM_AUTO, LOC_FORWARD );
+      }
+      break;
+
+      case 0x22D: // DISP_OBJ_GetonRefresh
+      {
+         RRC ( "DISP_OBJ_GetOnRedraw" );
+         rc = QuickFindPattern ( "\x01\x1c\x00\x20", NULL, 4, rc + 4, MEM_AUTO, LOC_FORWARD );
+      }
+      break;
+
+      case 0x22B: // DISP_OBJ_GetOnKey
+      {
+         RRC ( "DISP_OBJ_GetonRefresh" );
+         rc = QuickFindPattern ( "\x01\x1c\x00\x20", NULL, 4, rc + 4, MEM_AUTO, LOC_FORWARD );
+      }
+      break;
+
+      case 0x233: // DISP_OBJ_GetMethod06
+      {
+         RRC ( "DISP_OBJ_GetOnKey" );
+         rc = QuickFindPattern ( "\x01\x1c\x00\x20", NULL, 4, rc + 4, MEM_AUTO, LOC_FORWARD );
+      }
+      break;
+
+      case 0x237: // DISP_OBJ_GetMethod08
+      {
+         RRC ( "DISP_OBJ_GetMethod06" );
+         rc = QuickFindPattern ( "\x01\x1c\x00\x20", NULL, 4, rc + 4, MEM_AUTO, LOC_FORWARD );
+         rc = QuickFindPattern ( "\x01\x1c\x00\x20", NULL, 4, rc + 4, MEM_AUTO, LOC_FORWARD );
+      }
+      break;
+
+      case 0x242: // TextCopyId
+      {
+         RRC ( "Str2ID" );
+         rc = FindPushLr ( rc + 2, LOC_FORWARD );
+         if ( GetByte ( rc - 1 ) == 0x4B ) // db3150: ldr, r3, ...
+            rc -= 2;
+      }
+      break;
+
+      case 0x243: // Book_GetSession
+      {
+         RRC ( "FreeBook" );
+         rc = QuickFindPattern ( "\x00\x68\x80\x68\x70\x47", NULL, 6, rc, MEM_AUTO, LOC_FORWARD );
+      }
+      break;
+
+      case 0x254: // DestroyDirHandle
+      {
+         RRC ( "GetFname" );
+         rc = ARMFind ( THUMB_B, rc, MEM_AUTO, LOC_FORWARD );
+         rc = ARMGet ( rc );
+         rc = FindPushLr ( rc + 2, LOC_FORWARD );
+      }
+      break;
+
+      case 0x267: // png_create_info_struct
+      {
+         // db201x
+         PATT1 ( "\x01\xb5\x01\xd1\x00\x20\x08\xbd\xae\x21\x49\x00\x42\x58\x40\x18\x41\x68\x02\x20" );
+         // db2020, db3150
+         PATT2 ( "\x00\xb5\x81\xb0\x00\x28\x01\xd1\x00\x20\x11\xe0\xae\x21\x49\x00\x42\x58\xb0\x21" );
+
+         rc = SimpleFindPattern ( patt1, NULL, 20, LOC_FORWARD );
+
+         if ( rc == E_FAIL ) 
+            rc = SimpleFindPattern ( patt2, NULL, 20, LOC_FORWARD );
+
+      }
+      break;
+
+      case 0x268: // png_destroy_info_struct
+      {
+         RRC ( "png_create_info_struct" );
+         rc = FindPushLr ( rc + 4, LOC_FORWARD );
+      }
+      break;
+
+      case 0x277: // png_sig_cmp
+      {
+         // db201x, db2020, db3150
+         char *patt1 = "\x04\xd3\x08\x22\x08\x2b\x05\xd3\x00\x20\x0d\xe0\x00\x2a\xf9\xd1\x00\x20\x09\xe0\x99\x18";
+         char *mask1 = "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\x00\x00\xff\xff\xff\xff\xff\xff\x00\x00\xff\xff";
+
+         rc = SimpleFindPattern ( patt1, mask1, 22, LOC_UNIQUE );
+         rc = FindPushLr ( rc, LOC_BACKWARD );
+      }
+      break;
+
+      case 0x28F: // mkdir
+      {
+         // db201x
+         char *patt1 = "\xf0\xb5\x00\x21\x82\xb0\xcc\x43\x00\x28\x01\x91\x34\x4d\x02\xd0\x02\x88\x00\x2a";
+         char *mask1 = "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\x00\xf8\xff\xff\xff\xff\xff\xff";
+         // db2020, db3150
+         PATT3 ( "\xf0\xb5\xa1\x4d\x81\xb0\x00\x24\x00\x28\x02\xd0\x06\x88\x00\x2e\x07\xd1\x05\xf0\x99\xfa\x44\x00" );
+         MASK2 ( "\xff\xff\x00\xf8\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\x00\xf0\x00\xf8\xff\xff" );
+
+         rc = SimpleFindPattern ( patt1, mask1, 20, LOC_FORWARD );
+         if ( rc == E_FAIL ) 
+            rc = SimpleFindPattern ( patt2, mask2, 24, LOC_FORWARD );
+      }
+      break;
+
+      case 0x290: // rmdir
+      {
+         // db201x
+         char *patt1 = "\xf1\xb5\x69\x46\x08\x78\x00\x24\xe5\x43\x43\x07\x5b\x0f\x83\x42\x06\xd0\x16\x24";
+         // db2020, db3150
+         PATT3 ( "\xf3\xb5\x00\x9a\x00\x24\x00\x2a\x01\xd1\x2b\x4b\x00\x93\x00\x98\x2a\x4d\x61\xf1\x97\xfb\xff\x28" );
+         MASK2 ( "\xff\xff\xff\xf8\xff\xff\xff\xf8\xff\xff\x00\xf8\xff\xf8\xff\xff\x00\xf8\x00\xf0\x00\xf8\xff\xff" );
+
+         rc = SimpleFindPattern ( patt1, NULL, 20, LOC_FORWARD );
+         if ( rc == E_FAIL ) 
+            rc = SimpleFindPattern ( patt2, mask2, 24, LOC_FORWARD );
+      }
+      break;
+
+      case 0x291: // chmod
+      {
+         // db201x
+         char *patt1 = "\xf0\xb5\x00\x23\x83\xb0\x00\x24\xdd\x43\x00\x28\x02\x93\x00\x93\x07\xd1\x16\x24";
+         // db2020, db3150
+         PATT3 ( "\xf0\xb5\x83\xb0\x00\x24\x02\x94\x00\x94\x00\x25\xed\x43\x00\x28\x07\xd1\xa6\x4f\x02\xf0\x32\xf8" );
+         MASK2 ( "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\x00\xf8\x00\xf0\x00\xf8" );
+
+         rc = SimpleFindPattern ( patt1, NULL, 20, LOC_FORWARD );
+         if ( rc == E_FAIL ) 
+            rc = SimpleFindPattern ( patt2, mask2, 24, LOC_FORWARD );
+      }
+      break;
+
+      case 0x2A0: // wstrchr
+      {
+         RRC ( "wstrcat" );
+         rc = ARMFind ( THUMB_BLX, rc, MEM_AUTO, LOC_FORWARD );
+         rc = ARMFind ( THUMB_B, rc, MEM_AUTO, LOC_FORWARD );
+      }
+      break;
+
+      case 0x2A1: // GUIObject_HideSoftkeys
+      case 0x2A2: // GUIObject_ShowSoftkeys
+      case 0x34B: // GUIObject_Softkeys_RemoveBackground
+      case 0x34C: // GUIObject_Softkeys_RestoreBackground
+      {
+         // db201x, db2020, db3150
+         PATT1 ( "\x00\xb5\xbd\xf1\x7f\xfe\xfc\xf7\xb3\xf8\x00\xbd\x00\xb5\xbd\xf1\x79\xfe\xfc\xf7\xc9\xf8\x00\xbd" );
+         MASK1 ( "\xff\xff\x00\xf0\x00\xf8\x00\xf0\x00\xf8\xff\xff\xff\xff\x00\xf0\x00\xf8\x00\xf0\x00\xf8\xff\xff" );
+
+         RRC ( "SoftKey_SetItemAsSubItem" );
+         rc = QuickFindPattern ( patt1, mask1, 24, rc, MEM_AUTO, LOC_FORWARD );
+
+         AddSymbolEx ( 0x2A1, rc );
+         AddSymbolEx ( 0x2A2, rc + 12 );
+         AddSymbolEx ( 0x34B, rc + 24 );
+         AddSymbolEx ( 0x34C, rc + 36 );
+         rc = E_FAIL;
+      }
+      break;
+
+      case 0x2D6: // JavaDialog_Open
+      {
+         // db201x
+         char *patt1 = "\x30\xb5\x0c\x1c\x15\x1c\x02\xb4\x00\x23\x01\x1c\x07\x48\x00\x68\x07\x4a\x03\xf0\x81\xf9\x00\x06\x00\x0e";
+         char *mask1 = "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\x00\xf0\x00\xf8\xff\xff\xff\xff";
+         // db2020, db3150
+         PATT3 ( "\x30\xb5\x0c\x1c\x01\x1c\x08\x48\x10\xb4\x00\x68\x15\x1c\x07\x4a\x00\x23\x03\xf0\x0d\xfd\x01\xb0" );
+         MASK2 ( "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\x00\xf0\x00\xf8\xff\xff" );
+
+         rc = SimpleFindPattern ( patt1, mask1, 26, LOC_UNIQUE );
+         if ( rc = E_FAIL ) 
+            rc = SimpleFindPattern ( patt2, mask2, 24, LOC_UNIQUE );
+      }
+      break;
+
+      case 0x2D7: // JavaDialog_Close
+      {
+         // db201x, db2020, db3150
+         PATT1 ( "\x71\xb5\x83\x4d\x06\x1c\x01\x1c\x28\x68\x6a\x46\x0a\xf0\xae\xfb\x0a\xf0\xca\xfb\x04\x1c\x68\x46" );
+         MASK1 ( "\xff\xff\x00\xf8\xff\xff\xff\xff\xff\xff\xff\xff\x00\xf0\x00\xf8\x00\xf0\x00\xf8\xff\xff\xff\xff" );
+
+         rc = SimpleFindPattern ( patt1, mask1, 24, LOC_UNIQUE );
+      }
+      break;
+
+      case 0x2D8: // JavaAppDesc_Get
+      {
+         RRC ( "JavaDialog_Open" );
+         rc = ARMFind ( THUMB_BL, rc, MEM_AUTO, LOC_FORWARD );
+         rc = ARMFind ( THUMB_BL, rc + 4, MEM_AUTO, LOC_FORWARD );
+         rc = ARMGet ( rc );
+      }
+      break;
+
+      case 0x30A: // JavaAppDesc_GetJavaAppID
+      {
+         // db201x, db2020, db3150
+         PATT1 ( "\x00\x28\x01\xd0\x80\x68\x70\x47\x00\x20\x70\x47\x00\x7c\x70\x47" );
+         rc = SimpleFindPattern ( patt1, NULL, 16, LOC_UNIQUE );
+      }
+      break;
+
+      case 0x2AB: // DataBrowserDesc_SetSelectAction
+      case 0x2AC: // DataBrowserDesc_SetSelectActionOnFolders
+      {
+         RRC ( "DataBrowserDesc_Menu_AddFSFunctions" );
+         rc = QuickFindPattern ( "\x01\x71\x01\x20\x70\x47", NULL, 6, rc, MEM_AUTO, LOC_FORWARD );
+
+         AddSymbolEx ( 0x2AB, rc );
+         AddSymbolEx ( 0x2AC, rc + 8 );
+         rc = E_FAIL;
+      }
+      break;
+
+      case 0x2AD: // DataBrowserDesc_SetBookID
+      case 0x31E: // DataBrowserDesc_Menu_AddFSFunctions
+      {
+         RRC ( "DataBrowserDesc_SetFileExtList" );
+         rc = QuickFindPattern ( "\x01\x60\x01\x20\x70\x47", NULL, 6, rc, MEM_AUTO, LOC_FORWARD );
+
+         AddSymbolEx ( 0x2AD, rc );
+         AddSymbolEx ( 0x31E, rc + 8 );
+         rc = E_FAIL;
+      }
+      break;
+
+      case 0x31F: // DataBrowserDesc_Menu_AddNewFolder
+      {
+         RRC ( "DataBrowserDesc_Menu_AddFSFunctions" );
+         rc = QuickFindPattern ( "\x41\x72\x01\x20\x70\x47", NULL, 6, rc, MEM_AUTO, LOC_FORWARD );
+      }
+      break;
+
+      case 0x320: // DataBrowserDesc_Menu_AddMarkFiles
+      {
+         RRC ( "DataBrowserDesc_Menu_AddFSFunctions" );
+         rc = QuickFindPattern ( "\x41\x73\x01\x20\x70\x47", NULL, 6, rc, MEM_AUTO, LOC_FORWARD );
+      }
+      break;
+
+      case 0x2AA: // DataBrowserDesc_SetActions
+      {
+         RRC ( "DataBrowserDesc_Menu_AddMarkFiles" );
+         rc = QuickFindPattern ( "\x01\x66", "\x3f\xf8", 2, rc, MEM_AUTO, LOC_FORWARD ); // str r1, [r0, _i5]
+      }
+      break;
+
+      case 0x120: // DataBrowserDesc_SetStyle
+      {
+         RRC ( "DataBrowserDesc_SetActions" );
+         rc = QuickFindPattern ( "\x41\x75", "\x3f\xf8", 2, rc, MEM_AUTO, LOC_FORWARD ); // strb r1, [r0, _i5]
+      }
+      break;
+
+      case 0x122: // DataBrowserDesc_SetFolders
+      case 0x2A9: // DataBrowserDesc_SetFoldersNumber
+      {
+         RRC ( "DataBrowserDesc_SetStyle" );
+         rc = QuickFindPattern ( "\x01\x76", "\x3f\xf8", 2, rc, MEM_AUTO, LOC_FORWARD ); // strb r1, [r0, _i5]
+
+         AddSymbolEx ( 0x122, rc );
+         AddSymbolEx ( 0x2A9, rc + 8 );
+         rc = E_FAIL;
+      }
+      break;
+
+      case 0x121: // DataBrowserDesc_SetHeaderText
+      case 0x123: // DataBrowserDesc_SetOKSoftKeyText
+      case 0x2AF: // DataBrowserDesc_SetOption
+      {
+         RRC ( "DataBrowserDesc_SetFoldersNumber" );
+         rc = QuickFindPattern ( "\x41\x75", "\x3f\xf8", 2, rc + 2, MEM_AUTO, LOC_FORWARD ); // str r1, [r0, _i5]
+
+         f1 = rc;
+         f2 = rc + 8;
+         f3 = FindPushLr ( rc, LOC_FORWARD );
+
+         AddSymbolEx ( 0x121, f1 );
+         AddSymbolEx ( 0x123, f2 );
+         AddSymbolEx ( 0x2AF, f3 );
+         rc = E_FAIL;
+      }
+      break;
+
+      case 0x2B0: // DataBrowserDesc_SetOpenEmptyFolder
+      {
+         RRC ( "DataBrowserDesc_SetOption" );
+         rc = QuickFindPattern ( "\x54\x30", "\xc0\xff", 2, rc, MEM_AUTO, LOC_FORWARD ); // add r0, _i8
+      }
+      break;
+
+      case 0x2AE: // DataBrowserDesc_SetItemFilter, TODO
+      case 0x2B1: // DataBrowserDesc_SetFileExtList
+      {
+         // db201x, db2020, db3150
+         PATT1 ( "\xc1\x63\x01\x20\x70\x47\x00\x00\x01\x64\x01\x20\x70\x47\x00\x00" );
+         MASK1 ( "\x3f\xf8\xff\xff\xff\xff\xff\xff\x3f\xf8\xff\xff\xff\xff\xff\xff" );
+
+         rc = SimpleFindPattern ( patt1, mask1, 16, LOC_UNIQUE );
+
+         AddSymbolEx ( 0x2AE, rc );
+         AddSymbolEx ( 0x2B1, rc + 8 );
+         rc = E_FAIL;
+      }
+      break;
+
+      case 0x20D: // FreeSMSCont
+      case 0x12F: // FreeBook
+      {
+         RRC ( "DataBrowser_CreateSubExecute" );
+         rc = FindPushLr ( rc + 2, LOC_FORWARD );
+         rc = FindPushLr ( rc + 2, LOC_FORWARD );
+         rc = ARMFind ( THUMB_BEQ, rc, MEM_AUTO, LOC_FORWARD );
+         rc = ARMGet ( rc );
+         rc = ARMFind ( THUMB_BL, rc, MEM_AUTO, LOC_FORWARD );
+         f1 = ARMGet ( rc );
+         rc = ARMFind ( THUMB_BEQ, rc, MEM_AUTO, LOC_FORWARD );
+         rc = ARMGet ( rc );
+         rc = ARMFind ( THUMB_BL, rc, MEM_AUTO, LOC_BACKWARD );
+         f2 = ARMGet ( rc );
+
+         AddSymbolEx ( 0x20D, f1 );
+         AddSymbolEx ( 0x12F, f2 );
+         rc = E_FAIL;
+      }
+      break;
+
+      case 0x2E0: // BrowserItem_Get_SUB_EXECUTE
+      case 0x1FA: // BOOK_GetBookID
+      case 0x2CE: // DataBrowser_CreateSubExecute
+      case 0x2E4: // FILEITEM_CreateCopy
+      case 0x2D1: // FILEITEM_SetPath
+      case 0x2D0: // FILEITEM_SetFname
+      case 0x12E: // BookObj_ReturnPage
+      {
+         // db201x, db2020, db3150
+         PATT1 ( "\x30\xb5\x05\x1c\x0a\xf0\xe8\xfa\x04\x1c\x40\x69\x00\x21\x9b\xf7\x19\xfc\x28\x1c\xab\xf2\xaa\xff\x61\x68\xfb\xf7\x99\xf9\x60\x65" );
+         MASK1 ( "\xff\xff\xff\xff\x00\xf0\x00\xf8\xff\xff\xff\xff\xff\xff\x00\xf0\x00\xf8\xff\xff\x00\xf0\x00\xf8\xff\xff\x00\xf0\x00\xf8\x00\xff" );
+
+         rc = SimpleFindPattern ( patt1, mask1, 32, LOC_FORWARD );
+
+         f1 = ARMGet ( rc + 0x04 );
+         f2 = ARMGet ( rc + 0x14 );
+         f3 = ARMGet ( rc + 0x1A );
+         f4 = ARMGet ( rc + 0x22 );
+
+         f5 = ARMFind ( THUMB_BL, f4 + 4, MEM_AUTO, LOC_FORWARD );
+         f5 = ARMFind ( THUMB_BL, f5 + 4, MEM_AUTO, LOC_FORWARD );
+         f6 = ARMFind ( THUMB_BL, f5 + 4, MEM_AUTO, LOC_FORWARD );
+         f5 = ARMGet ( f5 );
+         f6 = ARMGet ( f6 );
+
+         f7 = ARMFind ( THUMB_BL, rc - 4, MEM_AUTO, LOC_BACKWARD );
+         f8 = ARMFind ( THUMB_BL, f7 - 4, MEM_AUTO, LOC_BACKWARD );
+         f7 = ARMGet ( f7 );
+
+         AddSymbolEx ( 0x2E0, f1 );
+         AddSymbolEx ( 0x1FA, f2 );
+         AddSymbolEx ( 0x2CE, f3 );
+         AddSymbolEx ( 0x2E4, f4 );
+         AddSymbolEx ( 0x2D1, f5 );
+         AddSymbolEx ( 0x2D0, f6 );
+         AddSymbolEx ( 0x12E, f7 );
+         rc = E_FAIL;
+      }
+      break;
+
+      case 0x2D5: // FILEITEM_SetPathAndContentType
+      {
+         RRC ( "FILEITEM_SetPath" );
+         rc = FindPushLr ( rc - 2, LOC_BACKWARD );
+      }
+      break;
+
+      case 0x2CF: // DataBrowser_ExecuteSubroutine
+      {
+         // db201x, db2020, db3150
+         PATT1 ( "\xf4\xb5\x85\xb0\x04\x1c\x0d\x1c\x02\x27\x0a\x1c\x01\x68\x01\xa8\xff\xf7\xe2\xff\x68\x46" );
+         MASK1 ( "\xff\xff\xf0\xff\x00\xff\x00\xff\x00\x00\xf0\xff\x00\x00\xf0\xff\x00\xf0\x00\xf8\xf0\xff" );
+
+         rc = SimpleFindPattern ( patt1, mask1, 22, LOC_UNIQUE );
+      }
+      break;
+
+      case 0x2CB: // KeyCode2Name
+      {
+         // db201x
+         char *patt1 = "\x11\xb5\x56\x49\x6a\x46\x11\x80\x55\x49\x4a\x1e\x03\x04\x1b\x0c\x38\x2b\x00\xd9";
+         char *mask1 = "\xff\xff\x00\xf8\xff\xff\xff\xff\x00\xf8\xff\xff\xff\xff\xff\xff\x00\xff\xff\xff";
+         // db2020, db3150
+         PATT3 ( "\xb5\x88\xb0\x01\x1c\x68\x46\x02\x80\x03\xa8\x00\x22\x14\x23\x1b\x1f\xc2\x50\xfc\xd1" );
+
+         rc = SimpleFindPattern ( patt1, mask1, 20, LOC_UNIQUE );
+
+         if ( rc == E_FAIL ) 
+            rc = SimpleFindPattern ( patt2, NULL, 21, LOC_UNIQUE ) - 3;
+      }
+      break;
+
+      case 0x200: // REQUEST_SETTING_SILENCE_SET
+      case 0x34F: // REQUEST_SETTING_VIBRATOR_SET
+      case 0x13D: // DispObject_SetTitleText
+      case 0x1CF: // InputFeedback_SetIcon
+      {
+         RRC ( "KeyCode2Name" );
+         rc = FindPushLr ( rc + 4, LOC_FORWARD );
+         rc = ARMFind ( THUMB_BEQ, rc, MEM_AUTO, LOC_FORWARD );
+         rc = ARMFind ( THUMB_BL , rc, MEM_AUTO, LOC_FORWARD );
+         rc = ARMFind ( THUMB_BEQ, rc, MEM_AUTO, LOC_FORWARD );
+         rc = ARMFind ( THUMB_BL , rc, MEM_AUTO, LOC_FORWARD );
+         f1 = ARMGet ( rc );
+
+         rc = ARMFind ( THUMB_BL, rc + 4, MEM_AUTO, LOC_FORWARD );
+         f2 = ARMGet ( rc );
+
+         rc = ARMFind ( THUMB_B , rc    , MEM_AUTO, LOC_FORWARD );
+         rc = ARMFind ( THUMB_BL, rc    , MEM_AUTO, LOC_FORWARD );
+         rc = ARMFind ( THUMB_BL, rc + 4, MEM_AUTO, LOC_FORWARD );
+         f3 = rem_tramp ( ARMGet ( rc ) );
+         f3 = ARMGet ( f3 + 4 );
+
+         rc = ARMFind ( THUMB_BL, rc + 4, MEM_AUTO, LOC_FORWARD );
+         f4 = ARMGet ( rc );
+
+         AddSymbolEx ( 0x200, f1 );
+         AddSymbolEx ( 0x34F, f2 );
+         AddSymbolEx ( 0x13D, f3 );
+         AddSymbolEx ( 0x1CF, f4 );
+         rc = E_FAIL;
+      }
+      break;
+
+      case 0x361: // DataBrowserDesc_SetViewModeAndSortOrder
+      {
+
+      }
+      break;
+
+      case 0x2E7: // UI_Event_toSID
+      {
+         RRC ( "UI_Event_wData" );
+         rc = FindPushLr ( rc + 2, LOC_FORWARD );
+      }
+      break;
+
+      case 0x2F5: // get_system_langID
+      {
+         // db201x
+         char *patt1 = "\x10\xb5\x04\x1c\x30\xf0\xf4\xf8\x00\x06\x00\x0e\x84\x42\x02\xd1";
+         char *mask1 = "\xff\xff\xff\xff\x00\xf0\x00\xf8\xff\xff\xff\xff\xff\xff\xff\xff";
+         // db2020, db3150
+         PATT3 ( "\x83\xf2\x4f\xf9\x68\x60\xfe\x28\x02\xd1\x8a\xf0\x12\xfe\x68\x60" );
+         MASK2 ( "\x00\xf0\x00\xf8\xff\xff\xff\xff\xff\xff\x00\xf0\x00\xf8\xff\xff" );
+
+         rc = SimpleFindPattern ( patt1, mask1, 16, LOC_UNIQUE );
+
+         if ( rc == E_FAIL ) 
+            rc = SimpleFindPattern ( patt2, mask2, 16, LOC_UNIQUE );
+         else
+            rc += 4;
+         rc = ARMGet ( rc ); // bl get_system_langID
+      }
+      break;
+
+      case 0x2F6: // lang_get_name
+      {
+         // db201x
+         char *patt1 = "\x34\x28\x05\x4a\x04\xd2\x0c\x21\x48\x43\x10\x18\x40\x68\x70\x47\x9c\x23\x9b\x00\xd0\x18\x70\x47";
+         char *mask1 = "\x00\xff\x00\xf8\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff";
+         // db2// db2020, db3150
+         PATT3 ( "\x3d\x28\x05\xd2\x43\x4a\x0c\x21\x48\x43\x13\x18\x58\x68\x70\x47\x00\xa0\x70\x47" );
+         MASK2 ( "\x00\xff\xff\xff\x00\xf8\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff" );
+
+         rc = SimpleFindPattern ( patt1, mask1, 24, LOC_UNIQUE );
+         if ( rc == E_FAIL ) 
+            rc = SimpleFindPattern ( patt2, mask2, 20, LOC_UNIQUE );
+      }
+      break;
+
+      case 0x2F8: // w_fopen
+      case 0x2FA: // w_fwrite
+      case 0x2FD: // w_fclose
+      {
+         // db201x, db2020, db3150
+         char *patt1 = "\x42\x00\x21\x1c\x38\x1c\xf5\xf6\xea\xf8\x38\x1c\xf5\xf6\xf3\xf8\x28\x1c\x60\xf6\x48\xff\x07\x98\x00\x23";
+         char *mask1 = "\xff\xff\x8f\xff\xf7\xff\x00\xf0\x00\xf8\xf7\xff\x00\xf0\x00\xf8\xff\xff\x00\xf0\x00\xf8\xf8\xff\xff\xff";
+
+         rc = SimpleFindPattern ( patt1, mask1, 26, LOC_UNIQUE );
+
+         f1 = ARMGet ( rc + 30 );
+         f2 = ARMGet ( rc + 6 );
+         f3 = ARMGet ( rc + 12 );
+
+         AddSymbolEx ( 0x2F8, f1 );
+         AddSymbolEx ( 0x2FA, f2 );
+         AddSymbolEx ( 0x2FD, f3 );
+         rc = E_FAIL;
+      }
+      break;
+
+      case 0x11A: // _wstat
+      case 0x2F9: // w_fstat
+      {
+         // db201x
+         char *patt1 = "\x30\xb5\x04\x1c\x0d\x1c\x06\x22\x05\x49\x01\xf3\x9d\xf8\x00\x28\x01\xd1\x61\x24\x66\xe0\x29\x1c\x20\x1c";
+         char *mask1 = "\xff\xff\xff\xff\xff\xff\xff\xff\x00\xf8\x00\xf0\x00\xf8\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff";
+         // db2020, db3150
+         PATT3 ( "\x00\x28\x04\xd0\x29\x1c\x20\x1c\x00\xf0\xb1\xf8\x30\xbd\x4f\xf0\x9c\xfc\x61\x21\x01\x60" );
+         MASK2 ( "\xff\xff\xff\xff\xff\xff\xff\xff\x00\xf0\x00\xf8\xff\xff\x00\xf0\x00\xf8\xff\xff\xff\xff" );
+
+
+         rc = SimpleFindPattern ( patt1, mask1, 26, LOC_UNIQUE );
+         if ( rc == E_FAIL ) 
+            rc = FindPushLr ( SimpleFindPattern ( patt2, mask2, 22, LOC_UNIQUE ) , LOC_BACKWARD );
+         else
+            rc = ARMFindSrcOfDest ( THUMB_BL, rc, MEM_AUTO, MEM_AUTO, LOC_FORWARD ) - 2;
+
+         AddSymbolEx ( 0x11A, rc );
+         AddSymbolEx ( 0x2F9, rc );
+         rc = E_FAIL;
+      }
+      break;
+
+      case 0x2FB: // w_fread
+      {
+         RRC ( "w_fopen" );
+         rc = ARMFind ( THUMB_LDR, rc + 2, MEM_AUTO, LOC_FORWARD );
+         rc = ARMFind ( THUMB_LDR, rc + 2, MEM_AUTO, LOC_FORWARD );
+         rc = FindPushLr ( rc, LOC_BACKWARD );
+      }
+      break;
+
+      case 0x2FC: // w_lseek
+      {
+         // db201x
+         char *patt1 = "\x00\x28\x30\xb5\x06\xd4\x80\x28\x04\xda\x14\x4c\x83\x00\xe3\x58\x00\x2b\x02\xd1\x00\xf0\x02\xfc\x30\xbd";
+         char *mask1 = "\xff\xff\xff\xff\xff\xff\x00\xff\xff\xff\x00\xf8\xff\xff\xff\xff\xff\xff\xff\xff\x00\xf0\x00\xf8\xff\xff";
+         // db2020, db3150
+         PATT3 ( "\x10\xb5\x03\x1c\x08\x1c\x00\x2b\x05\xd4\x40\x2b\x03\xda\x42\x49\x9c\x00\x09\x59\x00\xe0\x00\x21\x00\x29\x04\xd1" );
+         MASK2 ( "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\x00\xff\xff\xff\x00\xf8\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff" );
+
+         rc = SimpleFindPattern ( patt1, mask1, 26, LOC_UNIQUE );
+         if ( rc == E_FAIL ) 
+            rc = SimpleFindPattern ( patt2, mask2, 28, LOC_UNIQUE );
+      }
+      break;
+
+      case 0x2FF: // DirHandle_SetFilterStr
+      {
+         RRC ( "DestroyDirHandle" );
+         rc = ARMFind ( THUMB_BEQ, rc, MEM_AUTO, LOC_FORWARD );
+         rc = ARMGet ( rc );
+         rc = QuickFindPattern ( "\x00\x28", NULL, 2, rc + 10, MEM_AUTO, LOC_FORWARD ); // cmp r0, 0
+         rc = FindPushLr ( rc, LOC_BACKWARD );
+      }
+      break;
+
+      case 0x303: // unixtime2datetime
+      {
+         // db201x, db2020, db3150
+         PATT1 ( "\x85\x42\x03\xd3\x20\x1c\x00\xf0\x9d\xf9\xf0\xbd\x2e\x48\x85\x42\x04\xd3\x2e\x48\x2d\x18\xfa\x20\xc0\x00\x05\xe0\x63\x48\x03\xe0" );
+         MASK1 ( "\xff\xff\xff\xff\xff\xff\x00\xf0\x00\xf8\xff\xff\x00\xf8\x00\xff\xff\xff\x00\xf8\x00\x00\x00\x00\xf0\xff\xff\xff\x00\xf8\xff\xff" );
+
+         rc = QuickFindPattern ( patt1, mask1, 32, MEM_AUTO, MEM_AUTO, LOC_FORWARD );
+         rc = QuickFindPattern ( patt1, mask1, 32, rc + 4, MEM_AUTO, LOC_FORWARD );
+
+         rc = FindPushLr ( rc, LOC_BACKWARD );
+      }
+      break;
+
+      case 0x30E: // ProgressBar_SetText
+      {
+         // db201x, db2020, db3150
+         PATT1 ( "\x3f\xb5\x04\x1c\x40\x6b\x0d\x1c\xfb\xf7\xca\xf9\x68\x46\x07\x21\x01\x70\x01\x95\x60\x6b" );
+         MASK1 ( "\xff\xff\xff\xff\xf0\xf8\xff\xff\x00\xf0\xff\xf8\x00\x00\x00\x00\xf0\xff\xff\xff\x0f\xf8" );
+
+         rc = SimpleFindPattern ( patt1, mask1, 22, LOC_UNIQUE );
+      }
+      break;
+
+      case 0x310: // ProgressBar_SetPercentValue
+      {
+         RRC ( "ProgressBar_SetText" );
+         rc = ARMFind ( THUMB_BCC, rc, MEM_AUTO, LOC_BACKWARD );
+         rc = FindPushLr ( rc , LOC_BACKWARD );
+      }
+      break;
+
+      case 0x317: // DispObject_Softkeys_GetParams
+
+      {
+         RRC ( "DispObject_Softkeys_GetList" );
+         rc = ARMFind ( THUMB_BL, rc, MEM_AUTO, LOC_FORWARD );
+         rc = ARMGet ( rc );
+      }
+      break;
+
+      case 0x318: // DispObject_Softkeys_GetList
+      {
+         RRC ( "SoftKey_SetItemAsSubItem" );
+         rc = ARMFind ( THUMB_BL, rc, MEM_AUTO, LOC_BACKWARD );
+         rc = ARMGet ( rc );
+         rc = ARMFind ( THUMB_BL, rc, MEM_AUTO, LOC_FORWARD );
+         rc = ARMGet ( rc );
+      }
+      break;
+
+      case 0x372: // REQUEST_PROFILE_GETPROFILENAME
+      {
+         rc = FuncFindByName ( "REQUEST_PROFILE_GETPROFILENAME" );
+      }
+      break;
+
+      case 0x1B4: // REQUEST_PROFILE_GETACTIVEPROFILE
+      {
+         rc = FuncFindByName ( "REQUEST_PROFILE_GETACTIVEPROFILE" );
+      }
+      break;
+
+      case 0x1B5: // Profile_SetActive
+      {
+			//00 B5 00 29 00 D0 10 30 01 1C 47 48 00 68 0E F0 E5 FD 3D E0
+			//00 B5 00 29 00 D0 10 30 01 1C 47 48 00 68 D0 F7 91 F8 3D E0
+      }
+      break;
+
+      case 0x1B7: // isKeylocked
+      {
+			//6F 48 10 B5 00 24 1B F7 51 FF 00 28 03 D0 00 6A 00 28 00 D0 01 24 20 1C 10 BD
+			//63 48 10 B5 00 24 CC F1 9D FD 00 28 03 D0 00 6A 00 28 00 D0 01 24 20 1C 10 BD
+      }
+      break;
+
+      case 0x1B8: // isMediaPlayerVideoBook
+      {
+
+      }
+      break;
+
+      case 0x1BC: // REQUEST_DATEFORMAT_GET
+      {
+         rc = FuncFindByName ( "REQUEST_DATEFORMAT_GET" );
+      }
+      break;
+
+      case 0x1BD: // REQUEST_TIMEFORMAT_GET
+      {
+         rc = FuncFindByName ( "REQUEST_TIMEFORMAT_GET" );
+      }
+      break;
+
+      case 0x1BE: // Date2ID
+      {
+//03 1C 00 88 0C 1C 6D 46 FA 21 89 00 8F F5 56 FE 30 31 29 70 18 88 64 21 8F F5 50 FE 08 1C 0A 21
+//03 1C 00 88 0C 1C 6D 46 FA 21 89 00 76 F0 0F FC 30 31 29 70 18 88 64 21 76 F0 09 FC 08 1C 0A 21
+      }
+      break;
+
+      case 0x1BF: // Time2ID
+      {
+         RRC ( "Date2ID" );
+         rc = FindPushLr ( rc - 4, LOC_BACKWARD );
+         rc = FindPushLr ( rc - 4, LOC_BACKWARD );
+      }
+      break;
+
+      case 0x1C2: // ROOT_APP
+      {
+
+      }
+      break;
+
+      case 0x1C5: // REQUEST_SYSTEM_SHUTDOWN
+      {
+         rc = FuncFindByName ( "REQUEST_SYSTEM_SHUTDOWN" );
+      }
+      break;
+
+      case 0x1C6: // REQUEST_SYSTEM_RESTART
+      {
+         rc = FuncFindByName ( "REQUEST_SYSTEM_RESTART" );
+      }
+      break;
+
+      case 0x1C8: // isRightNowBook
+      {
+
+      }
+      break;
+
+      case 0x1C9: // isVolumeControllerBook
+      {
+
+      }
+      break;
+
+      case 0x1CA: // CreateTabMenuBar
+      {
+//00 2E 21 D0 00 20 70 61 B0 61 F0 61 02 1C 01 1C 0F 48 23 1C 07 B4 0F 4A 1B 49 30 1C
+//03 B0 00 28 05 D0 00 20 68 64 A8 64 E8 64 28 65 06 E0 E4 23 32 1C 29 1C 00 20
+      }
+      break;
+
+      case 0x1CB: // TabMenuBar_SetTabCount
+      {
+
+      }
+      break;
+
+      case 0x1CC: // TabMenuBar_AssignGuiObj
+      {
+//70 B5 04 1C 0D 1C 10 1C FE F7 6C FF 06 1C 20 1C FE F7 68 FF 32 1C 29 1C FA F7 04 FC 70 BD
+//70 B5 04 1C 0D 1C 10 1C 3A F3 8A FB 06 1C 20 1C 3A F3 86 FB 32 1C 29 1C F6 F7 76 FB 70 BD
+      }
+      break;
+
+      case 0x1CD: // TabMenuBar_SetTabIcon
+      {
+         RRC ( "TabMenuBar_AssignGuiObj" );
+         rc = FindPushLr ( rc + 4, LOC_FORWARD );
+         rc = FindPushLr ( rc + 4, LOC_FORWARD );
+      }
+      break;
+
+      case 0x1CE: // GUI_Free
+      {
+//70 B5 04 1C 2B D0 20 69 40 1E 20 61 27 D1 20 1C 00 F0 38 F8 05 1C 20 1C 00 F0 3E F8 06 1C A0 68
+//30 B5 04 1C 12 D0 E0 88 40 1E E0 80 00 04 0D D1 E0 6B C5 78 20 1C 00 F0 0B F8 00 2D 06 D1
+      }
+      break;
+
+      case 0x1D0: // StringInput_GetStringAndLen
+      {
+//70 B5 04 1C 00 68 0D 1C 16 1C F9 F7 17 FE 28 60 20 68 F9 F7 FF FD 30 80 70 BD
+//70 B5 04 1C 40 6B 0D 1C 16 1C F8 F7 87 FD 28 60 60 6B F8 F7 6D FD 30 80 70 BD
+      }
+      break;
+
+      case 0x1D1: // GetAudioControlPtr
+      {
+
+      }
+      break;
+
+      case 0x1D2: // AudioControl_Vibrate
+      {
+//06 1C 00 20 00 90 B7 68 68 46 01 B4 40 20 31 5A 38 1C 3F 68 38 23 7F 69 59 22 B8 47
+//05 1C 00 20 00 90 AE 68 68 46 01 B4 40 20 29 5A 30 1C 36 68 30 23 76 69 59 22 B0 47
+      }
+      break;
+
+      case 0x1D4: // CreateNOfMany
+      {
+//70 B5 25 4D 04 1C 9A 23 2A 1C 2C 21 00 20 0A F0 85 FF 06 1C 0A D1 9A 21 28 1C 03 B4 05 23 01 22
+//70 B5 19 4E 04 1C 64 21 30 1C 03 B4 05 23 01 22 4C 21 00 20 C0 43 2B F0 FF FE 05 1C 02 B0
+      }
+      break;
+
+      case 0x1D5: // NOfMany_SetTexts
+      {
+
+      }
+      break;
+
+      case 0x1D6: // NOfMany_SetChecked
+      {
+
+      }
+      break;
+
+      case 0x1D7: // NOfMany_SetCursor
+      {
+
+      }
+      break;
+
+      case 0x1D8: // NOfMany_GetCheckedCount
+      {
+
+      }
+      break;
+
+      case 0x1D9: // NOfMany_GetChecked
+      {
+
+      }
+      break;
+
+      case 0x1DA: // NOfMany_SetonMessage
+      {
+
+      }
+      break;
+
+      case 0x200: // REQUEST_SETTING_SILENCE_SET
+      {
+         rc = FuncFindByName ( "REQUEST_SETTING_SILENCE_SET" );
+      }
+      break;
+
+      case 0x201: // REQUEST_SETTING_SILENCE_GET
+      {
+         rc = FuncFindByName ( "REQUEST_SETTING_SILENCE_GET" );
+      }
+      break;
+
+      case 0x219: // REQUEST_PHONEBOOK_ACCESSSTATUS_TOTAL_GET
+      {
+         rc = FuncFindByName ( "REQUEST_PHONEBOOK_ACCESSSTATUS_TOTAL_GET" );
+      }
+      break;
+
+      case 0x283: // REQUEST_IMAGEHANDLER_INTERNAL_REGISTER
+      {
+         rc = FuncFindByName ( "REQUEST_IMAGEHANDLER_INTERNAL_REGISTER" );
+      }
+      break;
+
+      case 0x30B: // REQUEST_UI_OAF_START_APPLICATION
+      {
+         rc = FuncFindByName ( "REQUEST_UI_OAF_START_APPLICATION" );
+      }
+      break;
+
+      case 0x34E: // REQUEST_SETTING_RINGVOLUME_SET
+      {
+         rc = FuncFindByName ( "REQUEST_SETTING_RINGVOLUME_SET" );
+      }
+      break;
+
+      case 0x34F: // REQUEST_SETTING_VIBRATOR_SET
+      {
+         rc = FuncFindByName ( "REQUEST_SETTING_VIBRATOR_SET" );
+      }
+      break;
+
+      case 0x350: // REQUEST_SETTING_RINGTYPESOUNDFILE_SET
+      {
+         rc = FuncFindByName ( "REQUEST_SETTING_RINGTYPESOUNDFILE_SET" );
+      }
+      break;
+
+      case 0x351: // REQUEST_SETTING_ANSWERINGMODE_SET
+      {
+         rc = FuncFindByName ( "REQUEST_SETTING_ANSWERINGMODE_SET" );
+      }
+      break;
+
+      case 0x352: // REQUEST_SETTING_INCREASINGRING_SET
+      {
+         rc = FuncFindByName ( "REQUEST_SETTING_INCREASINGRING_SET" );
+      }
+      break;
+
+      case 0x353: // REQUEST_SETTING_ALLOWEDCALLERS_SET
+      {
+         rc = FuncFindByName ( "REQUEST_SETTING_ALLOWEDCALLERS_SET" );
+      }
+      break;
+
+      case 0x367: // REQUEST_SETTING_ALLOWEDCALLERS_GET
+      {
+         rc = FuncFindByName ( "REQUEST_SETTING_ALLOWEDCALLERS_GET" );
+      }
+      break;
+
+      case 0x36F: // Request_EventChannel_Subscribe
+      {
+         rc = FuncFindByName ( "REQUEST_EVENTCHANNEL_SUBSCRIBE" );
+      }
+      break;
+
+      case 0x37C: // CANVAS_Get_GviGC
+      {
+         if ( DB201x ) 
+         {
+            PATT1 ( "\x00\x28\x06\xd0\x40\x68\x00\x28\x03\xd0\x80\x69\x08\x60\x00\x20\x70\x47\x00\x20\x08\x60" );
+            rc = SimpleFindPattern ( patt1, NULL, 22, LOC_UNIQUE );
+         }
+         else // db2020, db3150, db3210
+         {
+            PATT1 ( "\x00\x28\x05\xd0\x40\x68\x00\x28\x02\xd0\x02\x69\x00\x20\x01\xe0\x0d\x48\x00\x22\x0a\x60\x70\x47\x31\xb5\x0c\x1c\x00\x28" );
+            MASK1 ( "\xff\xff\x00\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\x00\xff\xff\xff\xff\xff\xff\xff\x00\xff\xff\xff\xff\xff" );
+            rc = SimpleFindPattern ( patt1, mask1, 30, LOC_UNIQUE );
+         }
+      }
+      break;
+
+      case 0x37D: // GVI_BitBlt
+      {
+         RRC ( "GVI_FillSolidRoundRect" );
+         rc = FindPushLr ( rc + 4, LOC_FORWARD );
+      }
+      break;
+
+      case 0x37E: // GVI_StretchBlt
+      {
+         RRC ( "GVI_BitBlt" );
+         rc = FindPushLr ( rc + 4, LOC_FORWARD );
+      }
+      break;
+
+      case 0x37F: // GVI_TransformBlt
+      {
+         RRC ( "GVI_StretchBlt" );
+         rc = FindPushLr ( rc + 4, LOC_FORWARD );
+      }
+      break;
+
+      case 0x380: // GVI_CreatePen
+      case 0x386: // GVI_DrawLines
+      {
+         RRC ( "GVI_DrawSolidLines" );
+         rc = ARMFind ( THUMB_BGE, rc, MEM_AUTO, LOC_FORWARD );
+         rc = ARMGet ( rc );
+
+         rc = ARMFind ( THUMB_BL, rc, MEM_AUTO, LOC_FORWARD );
+         f1 = ARMGet ( rc );
+
+         rc = ARMFind ( THUMB_BL, rc + 4, MEM_AUTO, LOC_FORWARD );
+         f2 = ARMGet ( rc );
+
+         AddSymbolEx ( 0x380, f1 );
+         AddSymbolEx ( 0x386, f2 );
+
+         rc = E_FAIL;
+      }
+      break;
+
+      case 0x381: // GVI_CreateDashedPen
+      {
+         RRC ( "GVI_CreatePen" );
+         rc = FindPushLr ( rc + 4, LOC_FORWARD );
+      }
+      break;
+
+      case 0x382: // GVI_CreateSolidBrush
+      {
+         RRC ( "GVI_DrawLine" );
+         rc = ARMFind ( THUMB_B, rc, MEM_AUTO, LOC_FORWARD );
+         rc = ARMGet ( rc - 8 ); // BGE/BCS
+         rc = ARMFind ( THUMB_BL, rc, MEM_AUTO, LOC_FORWARD );
+         rc = ARMGet ( rc );
+         rc = ARMFind ( THUMB_BL, rc, MEM_AUTO, LOC_FORWARD );
+         rc = ARMFind ( THUMB_BL, rc + 4, MEM_AUTO, LOC_FORWARD );
+         rc = ARMFind ( THUMB_BL, rc + 4, MEM_AUTO, LOC_FORWARD );
+         rc = ARMGet ( rc );
+      }
+      break;
+
+      case 0x383: // GVI_Delete_GVI_Object
+      {
+         RRC ( "CANVAS_Get_GviGC" );
+         rc = ARMFind ( THUMB_BL, rc, MEM_AUTO, LOC_BACKWARD );
+         rc = ARMFind ( THUMB_BL, rc - 4, MEM_AUTO, LOC_BACKWARD );
+         rc = ARMGet ( rc );
+      }
+      break;
+
+      case 0x384: // GVI_DrawEllipse
+      {
+         RRC ( "GVI_DrawRoundRect" );
+         rc = ARMFind ( THUMB_BNE, rc, MEM_AUTO, LOC_FORWARD );
+         rc = ARMGet ( rc );
+         rc = ARMFind ( THUMB_BL, rc, MEM_AUTO, LOC_FORWARD );
+         rc = ARMGet ( rc );
+      }
+      break;
+
+      case 0x385: // GVI_DrawLine
+      {
+         RRC ( "GVI_DrawSolidLines" );
+         rc = ARMFind ( THUMB_BEQ, rc, MEM_AUTO, LOC_BACKWARD );
+         rc = ARMFind ( THUMB_BL, rc, MEM_AUTO, LOC_FORWARD );
+         rc = ARMGet ( rc );
+      }
+      break;
+
+      case 0x387: // GVI_DrawPolyLine
+      {
+         RRC ( "GVI_DrawLines" );
+         rc = FindPushLr ( rc + 4, LOC_FORWARD );
+      }
+      break;
+
+      case 0x388: // GVI_DrawRectangle
+      {
+         RRC ( "GVI_FillSolidRectangle" );
+         rc = FindPushLr ( rc + 4, LOC_FORWARD );
+      }
+      break;
+
+      case 0x389: // GVI_DrawRoundRect
+      {
+         RRC ( "GVI_FillSolidEllipse" );
+         rc = FindPushLr ( rc + 4, LOC_FORWARD );
+      }
+      break;
+
+      case 0x38A: // GVI_DrawSolidLines
+      {
+         if ( DB201x ) 
+         {
+            PATT1 ( "\xf0\xb5\x81\xb0\x07\x1c\x0c\x1c\x15\x1c\x19\x1c\x00\x28\x06\x9b\x2c\xd0\x38\x68\x3e\x1c\x00\x06" );
+            MASK1 ( "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\x00\xff\xff\xff\xff\xff\xff\xff" );
+            rc = SimpleFindPattern ( patt1, mask1, 24, LOC_UNIQUE );
+         }
+         else // db2020, db3150, db3210
+         {
+            PATT1 ( "\xf2\xb5\x81\xb0\x07\x1c\x07\x98\x14\x1c\x1d\x1c\x02\x28\x1b\xda\x00\x2f\x03\xd0\xbb\x6a\x00\x93" );
+            MASK1 ( "\xff\xff\xf8\xff\xf8\xff\xf0\xff\xf8\xff\xf8\xff\xff\xff\x00\xff\xff\xf8\xff\xff\x00\xff\xf8\xf8" );
+            rc = SimpleFindPattern ( patt1, mask1, 24, LOC_UNIQUE );
+         }
+      }
+      break;
+
+      case 0x38B: // GVI_DrawSolidPolyLine
+      {
+         RRC ( "GVI_DrawSolidRectangle" );
+         rc = FindPushLr ( rc - 4, LOC_BACKWARD );
+         rc = FindPushLr ( rc - 4, LOC_BACKWARD );
+      }
+      break;
+
+      case 0x38C: // GVI_DrawSolidRectangle
+      {
+         RRC ( "GVI_DrawLines" );
+         rc = FindPushLr ( rc - 4, LOC_BACKWARD );
+         rc = FindPushLr ( rc - 4, LOC_BACKWARD );
+         rc = FindPushLr ( rc - 4, LOC_BACKWARD );
+         rc = FindPushLr ( rc - 4, LOC_BACKWARD );
+      }
+      break;
+
+      case 0x38D: // GVI_FillEllipse
+      {
+         if ( DB201x ) 
+         {
+            PATT1 ( "\x06\x1c\x1c\x1c\x2a\x1c\x9d\x42\x0b\x99\x00\xda\x22\x1c\xff\x23\x2e\x33\x9a\x42\x09\xdb\x28\x1c" );
+            rc = SimpleFindPattern ( patt1, NULL, 24, LOC_UNIQUE );
+         }
+         else // db2020, db3150, db3210
+         {
+            PATT1 ( "\x00\x2e\x3e\xd0\x00\x2f\x3c\xd0\x39\x1c\xb7\x42\x00\xda\x31\x1c\xff\x20\x42\x30\x81\x42\x08\xdb\x09\x99" );
+            MASK1 ( "\xff\xff\x00\xff\xff\xff\x00\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\x00\xff" );
+            rc = SimpleFindPattern ( patt1, mask1, 26, LOC_UNIQUE );
+         }
+         rc = FindPushLr ( rc, LOC_BACKWARD );
+      }
+      break;
+
+      case 0x38E: // GVI_FillPolygon
+      {
+         RRC ( "GVI_DrawLine" );
+         rc = FindPushLr ( rc - 4, LOC_BACKWARD );
+         rc = FindPushLr ( rc - 4, LOC_BACKWARD );
+         rc = FindPushLr ( rc - 4, LOC_BACKWARD );
+         rc = FindPushLr ( rc - 4, LOC_BACKWARD );
+      }
+      break;
+
+      case 0x38F: // GVI_FillRectangle
+      {
+         RRC ( "GVI_DrawPolyLine" );
+         rc = FindPushLr ( rc + 4, LOC_FORWARD );
+         rc = ARMFind ( THUMB_BEQ, rc, MEM_AUTO, LOC_FORWARD );
+         rc = FindPushLr ( rc, LOC_BACKWARD );
+      }
+      break;
+
+      case 0x390: // GVI_FillRectangles
+      {
+         RRC ( "GVI_FillRectangle" );
+         rc = FindPushLr ( rc + 4, LOC_FORWARD );
+      }
+      break;
+
+      case 0x391: // GVI_FillSolidEllipse
+      {
+         RRC ( "GVI_FillEllipse" );
+         rc = FindPushLr ( rc + 4, LOC_FORWARD );
+      }
+      break;
+
+      case 0x392: // GVI_FillSolidRectangle
+      {
+         RRC ( "GVI_FillRectangles" );
+         rc = FindPushLr ( rc + 4, LOC_FORWARD );
+      }
+      break;
+
+      case 0x393: // GVI_FillSolidRoundRect
+      {
+         RRC ( "GVI_DrawRoundRect" );
+         rc = FindPushLr ( rc + 4, LOC_FORWARD );
+         rc = FindPushLr ( rc + 4, LOC_FORWARD );
+      }
+      break;
+
+      case 0x394: // GVI_FillSolidTriangle
+      {
+         RRC ( "GVI_FillPolygon" );
+         rc = FindPushLr ( rc - 4, LOC_BACKWARD );
+      }
+      break;
+
+      case 0x395: // GC_CreateMemoryGC
+      {
+         RRC ( "GC_FreeGC" );
+         rc = FindPushLr ( rc - 4, LOC_BACKWARD );
+      }
+      break;
+
+      case 0x396: // GC_FreeGC
+      {
+         // db201x, db2020, db3150, db3210
+         PATT1 ( "\x00\x28\x07\xd0\x82\x6b\x11\x1c\x04\xd0\x01\x1c\xc0\x6b\x90\x47\x00\x28\x00\xd1\x6d\x1c" );
+
+         rc = SimpleFindPattern ( patt1, NULL, 22, LOC_UNIQUE );
+         rc = FindPushLr ( rc, LOC_BACKWARD );
+         rc = FindPushLr ( rc - 4, LOC_BACKWARD );
+      }
+      break;
+
+	   case 0x397: // REQUEST_ALARMCLOCKSTATUS_GET
+		{
+
+		}
+		break;
+
+	   case 0x398: // REQUEST_ALARMCLOCKTIME_GET
+		{
+
+		}
+		break;
+
+	   case 0x399: // REQUEST_ALARMDATEANDTIMESTATUS_GET
+		{
+
+		}
+		break;
+
+	   case 0x39A: // Settings_ShowNumber_Get
+		{
+
+		}
+		break;
+
+	   case 0x39B: // GVI_CreateBitmap
+		{
+
+		}
+		break;
+
+	   case 0x39C: // GVI_CreateMemoryGC
+		{
+
+		}
+		break;
+
+	   case 0x39D: // GVI_DeleteMemoryGC
+		{
+
+		}
+		break;
+
+	   case 0x39E: // StringInput_DispObject_SetLanguage
+		{
+
+		}
+		break;
+
+	   case 0x39F: // ListElement_InsertSorted
+		{
+
+		}
+		break;
+
+	   case 0x3A0: // ListMenu_SetItemIcon
+		{
+//F2 B5 07 1C 14 1C 68 46 05 8B 00 20 00 2F 0E D0 18 1C FF F7 CD FF 06 1C 38 1C
+//F2 B5 07 1C 14 1C 68 46 05 8B 00 20 00 2F 0E D0 18 1C FF F7 BF FF 06 1C 38 1C
+		}
+		break;
+
+	   case 0x3A1: // wstrnupr
+		{
+//70 B5 06 88 04 1C 0D 1C 05 E0 26 88 30 1C 64 F5 B7 FF 20 80 A4 1C
+//70 B5 06 88 04 1C 0D 1C 05 E0 26 88 30 1C 74 F5 C3 FA 20 80 A4 1C
+		}
+		break;
+
+	   case 0x3A2: // wstrnlwr
+		{
+//70 B5 06 88 04 1C 0D 1C 05 E0 26 88 30 1C 64 F5 B7 FF 20 80 A4 1C
+//70 B5 06 88 04 1C 0D 1C 05 E0 26 88 30 1C 74 F5 C3 FA 20 80 A4 1C
+		}
+		break;
+
+	   case 0x3A3: // ListMenu_SetItemTextScroll
+		{
+
+		}
+		break;
+
+	   case 0x3A4: // GuiObject_SetTitleTextColor
+		{
+
+		}
+		break;
+
+	   case 0x3A5: // GuiObject_SetListTextColor
+		{
+
+		}
+		break;
+
+	   case 0x3A6: // DISP_OBJ_SetTitleTextColor
+		{
+
+		}
+		break;
+
+	   case 0x3A7: // DISP_OBJ_SetListTextColor
+		{
+
+		}
+		break;
+
+	   case 0x3A8: // DISP_OBJ_SetHighlightImage
+		{
+
+		}
+		break;
+
+	   case 0x3A9: // DISP_OBJ_SetBackgroundImage
+		{
+
+		}
+		break;
+
+	   case 0x3AA: // DISP_OBJ_SetTitleImage
+		{
+
+		}
+		break;
+
+	   case 0x3AB: // TabMenuBar_SetTabTitle
+		{
+
+		}
+		break;
+
+   }
+
+*swi & SWI_ARM ) )
+      SET_ATD ( SWI_THUMB ); // default is thumb
+
+   return rem_tramp ( rc );
+}
+
+unsigned int locate ( const char *func ) 
+{
+   unsigned int rc = 0;
+   unsigned int swi = 0;
+
+   GetPlatform ();
+
+   // check if function was located before
+   rc = __symbols_get_address ( NULL, func );
+
+   if ( rc == E_FAIL ) 
+   {
+      swi = name2swi ( func );
+
+      switch ( swi & 0x3000 ) 
+      {
+         case 0x1000:
+            rc = locate_own_funcs ( &swi );
+            break;
+
+         default:
+            rc = locate_lib_funcs ( &swi );
+            break;
+      }
+
+      if ( rc != E_FAIL ) 
+         AddSymbol ( func, swi, rc );
+   }
+
+   return __symbols_get_address ( NULL, func );;
+}
+
+#endif /* SE_LOCATE_TRX */

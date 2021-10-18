@@ -1,0 +1,49 @@
+#include trix
+
+unsigned char *dump_file = "D:\\cygwin\\home\\g3gg0\\work\\andretti\\6230i\\6230idump\\6230i_NTM_dump.bin";
+
+int copy_area ( t_workspace *dst, unsigned int dst_start, t_workspace *src, unsigned int src_start, unsigned int length )
+{
+	unsigned char *src_ptr = NULL;
+	
+	src_ptr = __v_get_ptr ( src, src_start );
+	
+	if ( length == 0 )
+	{
+		if ( __v_get_size ( src ) > 0 )
+			length = __v_get_size ( src ) - src_start;
+		else
+			return E_FAIL;
+	}
+		
+	printf ( "Will copy 0x%X bytes from 0x%08X to 0x%08X\n", length, src_start, dst_start );
+	
+	MemCpyPut ( dst_start, src_ptr, length );
+	
+	return E_OK;
+}
+
+int main ()
+{
+	int mcu = 1;
+	t_workspace *ws = NULL;
+	
+	ws = WorkspaceStartup ( dump_file );
+	if ( !ws )
+	{
+		printf ( "Failed opening '%s'\n", dump_file );
+		return E_FAIL;
+	}
+	
+	if ( mcu )
+	{
+		copy_area ( GetWorkspace(), 0, ws, 0, 0x12C );
+		copy_area ( GetWorkspace(), 0x170, ws, 0x170, 0x8E61E4 );
+		copy_area ( GetWorkspace(), 0xA00000, ws, 0xA00000, 0x13F470 );
+	}
+	else
+	{
+		copy_area ( GetWorkspace(), 0x940000, ws, 0x940000, 0x13F470 );
+	}
+	return E_OK;
+}

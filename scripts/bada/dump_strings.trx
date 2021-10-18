@@ -1,0 +1,186 @@
+#plugin trix_fmtbada
+
+#include trix
+#include stdio
+#include trix_fmtbada
+#include "scripts/bada/bada_defs.trx"
+
+
+int isprint( int ch )
+{
+	if ( ch >= 'A' && ch<= 'Z' )
+		return 10;
+
+	if ( ch >= 'a' && ch<= 'z' )
+		return 10;
+
+	if ( ch >= '0' && ch<= '9' )
+		return 20;
+
+	switch ( ch )
+	{
+		case '_':
+		case '-':
+		case '?':
+			return 30;
+
+		case '!':
+		case '\"':
+		case '#':
+		case '$':
+		case '%':
+		case '&':
+		case ''':
+		case '(':
+		case ')':
+		case '*':
+		case '+':
+		case ',':
+		case '.':
+		case '/':
+		case ':':
+		case ';':
+		case '<':
+		case '=':
+		case '>':
+		case '@':
+		case '[':
+		case ']':
+			return 40;
+
+		case '\\':
+		case '^':
+		case '`':
+		case '{':
+		case '|':
+		case '}':
+		case '~':
+			return 50;
+	}
+
+	return 0;
+}
+
+char is_string_buff[1024];
+const char *is_ascii ( unsigned int ptr, unsigned int *length )
+{
+	unsigned int i = 0;
+	unsigned int j = 0;
+	unsigned int ok = 1;
+	unsigned int plen = 0;
+	unsigned int byte = 0;
+
+	while ( ok && ( byte = GetByte ( ptr + i ) ) )
+	{
+		if ( ok = isprint ( byte ) )
+		{
+			plen += ok;
+			if( byte < 0x20 )
+			{
+				is_string_buff[j] = '\\';
+				j++;
+				if( byte == 0x0A )
+					is_string_buff[j] = 'n';
+				else
+					is_string_buff[j] = 't';
+			}
+			else
+				is_string_buff[i] = byte;
+		}
+		i++;
+		j++;
+	}
+	is_string_buff[j] = 0;
+
+	*length = j;
+
+	if ( j < 4 )
+		return NULL;
+
+	if ( plen / j > 15 )
+		return NULL;
+
+	if ( i && ok  )
+		return (const char *)is_string_buff;
+
+	return NULL;
+}
+
+const char *is_unicode ( unsigned int ptr, unsigned int *length )
+{
+	unsigned int i = 0;
+	unsigned int j = 0;
+	unsigned int ok = 1;
+	unsigned int byte = 0;
+	unsigned int plen = 0;
+
+	while ( ok && ( byte = GetHalf ( ptr + i ) ) )
+	{
+		if ( ok = isprint ( byte ) )
+		{
+			plen += ok;
+			if( byte < 0x20 )
+			{
+				is_string_buff[j] = '\\';
+				j++;
+				if( byte == 0x0A )
+					is_string_buff[j] = 'n';
+				else
+					is_string_buff[j] = 't';
+			}
+			else
+				is_string_buff[j] = byte;
+		}
+		i += 2;
+		j++;
+	}
+	is_string_buff[j] = 0;
+
+	*length = j;
+
+	if ( j < 4 )
+		return NULL;
+
+	if ( plen / j > 15 )
+		return NULL;
+
+	if ( i && ok )
+		return (const char *)is_string_buff;
+
+	return NULL;
+}
+
+
+int main ( )
+{
+	t_memmap *m = trix_workspace->memmap;
+	char *str = NULL;
+	unsigned int pos = 0;
+	unsigned int len = 0;
+
+	BADA_INIT // init bada workspace
+
+	while ( m )
+	{
+		pos = m->start;
+
+		while ( pos <m->end )
+		{
+			str = is_unicode ( pos, &len );
+			if ( !str )
+				str = is_ascii ( pos, &len );
+
+			if ( str )
+			{
+				printf ( "0x%08X: '%s'\n", pos, str );
+				pos += len;
+			}
+			else pos++;
+		}
+
+		m = (t_memmap*)m->next;
+	}
+
+	say ( "\nDone!\n" );
+	return E_OK;
+}

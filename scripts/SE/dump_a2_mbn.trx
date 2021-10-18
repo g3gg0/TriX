@@ -1,0 +1,112 @@
+// load plugin
+#plugin trix_fate
+#plugin trix_fmtbabe
+
+// include headers
+#include trix
+#include trix_fate
+#include trix_fmtbabe
+#include "scripts/SE/se_babe_defs.trx"
+
+
+int file_save ( t_fat_info *info, char *filename_1, char *filename_2 )
+{
+	unsigned int blocksize = 1024*1024;
+	unsigned char *buffer = NULL;
+	unsigned int allocated = 0;
+	unsigned int pos = 0;
+	unsigned int read = 0;
+	int done = 0;
+	TFILE *file = NULL;
+	t_workspace *ws = NULL;
+
+	file = __fate_fopen (info, filename_1 );
+	if ( !file )
+	{
+		printf ("file open error\n" );
+		return E_FAIL;
+	}
+
+	allocated = blocksize;
+	buffer = malloc ( allocated );
+	if ( !buffer )
+	{
+		printf ( "malloc error\n" );
+		return E_FAIL;
+	}
+
+	while ( !done )
+	{
+		read = __fate_fread ( &buffer[pos], 1, allocated-pos, file );
+		if ( read )
+		{
+			pos += read;
+			allocated += read;
+			buffer = realloc ( buffer, allocated );
+			if ( !buffer )
+			{
+				printf ( "malloc error\n" );
+				return E_FAIL;
+			}
+		}
+		else
+			done = 1;
+	}
+
+	printf ( "read %i bytes, saving to '%s'\n", pos, filename_2 );
+
+	ws = WorkspaceCreateFileFromBuffer ( buffer, pos );
+
+	__file_write ( filename_2, ws->fileinfo );
+	__fate_fclose ( file );
+	__workspace_release ( ws );
+
+	return E_OK;
+}
+
+int dump_files ( t_fat_info *info, unsigned char *dest_dir )
+{
+	int index = 0;
+	char *file_name = NULL;
+	char *new_dest_name = NULL;
+	
+	do
+	{
+		file_name = __fate_get_name ( info, TYPE_FILE, index++ );
+		if ( file_name && strncmp ( file_name, "PHONE", 5 ) ) // dummy file
+		{
+			new_dest_name = malloc ( strlen ( dest_dir ) + strlen ( file_name ) + 2 );
+			sprintf ( new_dest_name, "%s\\%s", dest_dir, file_name );
+
+			printf ( "\nFILE: <%s> -> <%s>\n", file_name, new_dest_name );
+			file_save ( info, file_name, new_dest_name );
+		}
+
+		free ( new_dest_name );
+	} while ( file_name != NULL );
+
+}
+
+int main ()
+{
+	t_fat_info *info = NULL;
+	char *filename = NULL;
+	unsigned int fat_start_address = 0;
+
+
+   BABE_INIT // init babe workspace
+
+	fat_start_address = __v_get_start ( GetWorkspace() );
+	info = __fate_open ( GetWorkspace (), fat_start_address );
+
+	if ( !info )
+	{
+		printf ( "No FAT image found!\n" );
+		return E_FAIL;
+	}
+
+	UiDlgString ( "Enter destination directory", &filename );
+	dump_files ( info, filename );
+
+	return E_OK;
+}

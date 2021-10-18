@@ -1,0 +1,154 @@
+#title  "TriX File Checker"
+#author "g3gg0"
+
+#include trix
+#include stdio
+#include stdlib
+
+char *
+get_addresses ( )
+{
+	char *buf = malloc ( 512 );
+
+	sprintf ( buf, "CS:%08X,CC:%08X,CV:%08X%08X", GetWord ( 0x01000078 ), GetWord ( 0x01000074 ), GetWord ( 0x0100006C ), GetWord ( 0x01000070 ) );
+	return buf;
+}
+
+char *
+get_version ( )
+{
+	char *buf = malloc ( 512 );
+	char *tmp_buf = malloc ( 10 );
+	int type = 0;
+	int version = 0;
+	int tmp = 0;
+	int copyright = SimpleFindPattern (  "V x.xx\x0axx-", "\xff\xff\x00\xff\x00\x00\xff\x00\x00\xff", 9, 0 );
+
+	if ( copyright == E_FAIL )
+		copyright = SimpleFindPattern (  "V xx.xx     \x0axx-", "\xff\xff\x00\x00\xff\x00\x00\xff\xff\xff\xff\xff\xff\x00\x00\xff", 16, 0 );
+
+	if ( copyright == E_FAIL )
+		copyright = SimpleFindPattern (  "V xx.xx\x0axx-", "\xff\xff\x00\x00\xff\x00\x00\xff\x00\x00\xff", 10, 0 );
+
+	if ( copyright == E_FAIL )
+		copyright = SimpleFindPattern (  "V xx.xx", "\xff\xff\x00\x00\xff\x00\x00", 7, 0 );
+
+	if ( copyright == E_FAIL )
+		copyright = SimpleFindPattern (  "V x.xx", "\xff\xff\x00\xff\x00\x00", 6, 0 );
+
+	if ( copyright == E_FAIL )
+	{
+		sprintf ( buf, "ERR" );
+		free ( tmp_buf );
+		return buf;
+	}
+
+	sprintf ( buf, "" );
+
+	while ( GetByte (copyright) >= 0x20 && GetByte (copyright) <= 0x7F  )
+	{
+		sprintf ( tmp_buf, "%c", GetByte (copyright) );
+		if ( GetByte ( copyright ) != 0x20 )
+			strcat ( buf, tmp_buf );
+		copyright++;
+	}
+	copyright++;
+
+	while ( GetByte (copyright) != 0x0A )
+		copyright++;
+
+	copyright++;
+	strcat ( buf, "," );
+	while ( GetByte (copyright) >= 0x20 && GetByte (copyright) <= 0x7F  )
+	{
+		if ( GetByte ( copyright ) == 0x20 )
+			sprintf ( tmp_buf, "%c", '_' );
+		else
+			sprintf ( tmp_buf, "%c", GetByte (copyright) );
+		strcat ( buf, tmp_buf );
+		copyright++;
+	}
+
+	free ( tmp_buf );
+	return buf;
+}
+
+int
+dump_stages ( )
+{
+	unsigned int address = 0;
+	unsigned int i;
+	t_fileinfo *fi = NULL;
+	t_stage *s = NULL;
+	t_segment *segment = NULL;
+	int pos = 0;
+	int lines = 0;
+	int segments = 0;
+	t_workspace *ws = NULL;
+
+	fi = GetWorkspace()->fileinfo;
+	if ( !fi )
+		return 0;
+	s = fi->stages;
+	if ( !s )
+		return 0;
+
+	while ( s )
+	{
+		printf ( "\n" );
+		printf ( " [stage]: <%s>\n", s->parser );
+
+		segments = __segment_count ( s->segments );
+		pos = 0;
+		while ( pos < segments )
+		{
+			segment = __segment_find_by_num ( s->segments, pos );
+			if ( !segment )
+				return 0;
+			printf ( "   - [segment]  0x%08X-0x%08X  %s\n", segment->start, segment->end, segment->name );
+
+			pos++;
+		}	
+		LIST_NEXT(s);
+	}
+	printf ( "\n\n" );
+}
+
+
+int main()
+{
+	char *file = NULL;
+	char *tmp = NULL;
+
+	say ( "\n" );
+	say ( "Dumping Stages:\n" );	
+	dump_stages ();
+
+	/* check if 0x01000000 is the start address */
+	if ( Valid ( 0x01000000) && !Valid ( 0x00FFFFFF ) )
+	{	
+		/* if it is, its a valid DCT-4 flash */
+		say ( "\n" );
+		say ( "Seems to be a valid DCT-4 flash\n" );
+
+		/* retreive the version string */
+		tmp = get_version ();
+		printf ( "Version:    %s\n", tmp );
+		free ( tmp );
+
+		/* and dump FSIG addresses */
+		tmp = get_addresses ();
+		printf ( "Addresses:  %s\n", tmp );
+		free ( tmp );
+	}    
+	else
+	{
+		say ( "\n" );
+		say ( "[-- invalid flash file --]\n" );
+		say ( "|  This file does not have its start address at 0x01000000\n" );
+		say ( "|  which is usual for DCT-4 flashes.\n\n" );
+	}
+
+
+	return 0;
+}

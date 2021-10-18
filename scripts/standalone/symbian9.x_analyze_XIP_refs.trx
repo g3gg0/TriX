@@ -1,0 +1,211 @@
+#include trix
+
+/*
+ * This script goes through all specified symbian files and builds a XIP address map.
+ * Then it goes through all files again and dumps which other XIP files the file is calling.
+ *
+ * The resulting output will have C-function-like blocks that you view with your favourite
+ * C file editor and (hopefully) collapse for better viewing.
+ *
+ * g3gg0
+ */
+
+/* maximum number of expected XIP files */
+#define NUM_XIP_FILES 4000
+
+char *search_path = "D:/cygwin/home/g3gg0/Symbian/S3/bins/Z";
+char *search_ext = "*.*";
+
+
+
+/* this shouldn't need be modified */ 
+typedef struct s_xip_info
+{
+	char *name;
+	unsigned int start;
+	unsigned int end;
+} t_xip_info;
+
+// find all LDR PC, [pos+4]
+unsigned char rawData[4] = {
+	0x04, 0xF0, 0x1F, 0xE5
+};
+
+unsigned char mask[4] = {
+	0xFF, 0xFF, 0xFF, 0xFF
+};
+
+int search_path_length = 0;
+int xip_num = 0;
+int mode = 0;
+t_xip_info xip_addr[NUM_XIP_FILES];
+
+
+
+
+int change_endianess ()
+{
+	if ( trix_workspace->flags == FLAGS_ENDIANESS_LE )
+	{
+		trix_workspace->flags = FLAGS_ENDIANESS_BE;
+	}
+	else
+	{
+		trix_workspace->flags = FLAGS_ENDIANESS_LE;
+	}
+	
+	WorkspaceUpdateMemmap ( trix_workspace );
+}
+
+
+void parse_XIP ( char *file )
+{
+	/* its an EPOC file */
+	if ( GetWord ( 0x10 ) == 0x434F5045 )
+	{
+		return;
+	}
+	
+	if ( GetWord ( 0x10 ) != GetWord ( 0x14 ) ||  GetWord ( 0x1C ) != GetWord ( 0x20 ) )
+	{
+		return;
+	}
+	
+	xip_addr[xip_num].start = GetWord ( 0x10 );
+	xip_addr[xip_num].end = GetWord ( 0x10 ) + GetWord ( 0x1C );
+	xip_addr[xip_num].name = strdup(&file[search_path_length]);
+	xip_num++;
+}
+
+unsigned char *get_XIP_ref ( unsigned int address )
+{
+	int pos = 0;
+	
+	for(pos=0; pos<xip_num; pos++)
+	{
+		if ( address >= xip_addr[pos].start && address <= xip_addr[pos].end )
+		{
+			return xip_addr[pos].name;
+		}
+	}
+	return str("(unknown)");
+}
+
+void scan_XIP ( char *file )
+{
+	int first = 1;
+	unsigned int pos = 0;
+	unsigned int addr = 0;
+	
+	/* its an EPOC file */
+	if ( GetWord ( 0x10 ) == 0x434F5045 )
+	{
+		return;
+	}
+	
+	if ( GetWord ( 0x10 ) != GetWord ( 0x14 ) ||  GetWord ( 0x1C ) != GetWord ( 0x20 ) )
+	{
+		return;
+	}
+
+		
+	pos = MEM_AUTO;
+	do
+	{
+		pos = QuickFindPattern(rawData, mask, 4, pos, MEM_AUTO, LOC_FORWARD);
+		if ( pos != 0xFFFFFFFF )
+		{
+			addr = GetWord(pos+4);
+			
+			if (addr & 0xFF000000) == 0x80000000)
+			{
+				if ( first )
+					printf ( "%s {\r\n", &file[search_path_length]);
+				first = 0;
+				printf ( "    0x%08X -> (0x%08X %s)\r\n", GetWord ( 0x10 ) + pos - 0x78, addr, get_XIP_ref(addr) );
+			}
+			pos += 4;
+		}
+	} while ( pos != 0xFFFFFFFF );
+
+	if ( !first )
+		printf ( "}\r\n", file);
+}
+
+
+/* don't use parsed file, just the plain input file */
+void search_file ( char *file )
+{
+	unsigned int pos = 0;
+	unsigned int entry = 0;
+	
+	trix_workspace = WorkspaceStartup ( file );
+
+	if ( !trix_workspace )
+	{
+		printf ( "Failed to open %s\r\n", file );
+		return;
+	}
+	
+	SetWorkStage ( 0, 0 );
+
+	change_endianess ();
+	if(mode == 1)
+	{
+		parse_XIP ( file );
+	}
+	else
+	{
+		scan_XIP ( file );
+	}
+	
+	__workspace_release ( trix_workspace );
+	trix_workspace = NULL;
+}
+
+int search_dir ( char *dir )
+{
+	int pos = 0;
+	unsigned int entries = 0;
+	char *searchname[256];
+	char *filename[256];
+	t_fileinfo *file_infos = NULL;	
+
+	sprintf ( (char*)searchname, "%s/%s", dir, search_ext );
+	file_infos = __file_io_open_directory ( (char*)searchname, &entries );
+
+	for ( pos=0; pos < entries; pos++ )
+	{
+		if(file_infos[pos].options & FILE_DIRECTORY)
+		{
+			sprintf ( (char*)filename, "%s/%s", dir, file_infos[pos].filename );
+			search_dir ( (char*)filename );
+		}
+		else
+		{
+			sprintf ( (char*)filename, "%s/%s", dir, file_infos[pos].filename );
+			search_file ( (char*)filename );
+		}
+		free ( file_infos[pos].filename );
+	}	
+	free ( file_infos );
+}
+
+
+int main ( )
+{
+	search_path_length = strlen ( search_path );
+	
+	mode = 1;
+	printf ( "Parsing XIP files...\r\n" );
+	search_dir ( (char*)search_path );
+
+	mode = 2;
+	printf ( "Scanning XIP file references...\r\n" );
+	search_dir ( (char*)search_path );
+	
+	while(xip_num--)
+	{
+		free ( xip_addr[xip_num].name );
+	}
+}

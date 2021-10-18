@@ -1,0 +1,23 @@
+// load plugin
+#plugin trix_fmtbabe
+
+// include headers
+#include trix
+#include trix_fmtbabe
+#include "scripts/SE/se_babe_defs.trx"
+
+int pause ()
+{
+   char *buffer = NULL;
+   say ( "wait for enter key; you can dump via workspace so long... ;-)\n" );
+   UiDlgString ( "Just press enter if you're bored ;).", &buffer );
+   return E_OK;
+}
+
+int main ()
+{
+   BABE_INIT // init babe workspace
+
+   pause ();
+   return E_OK;
+}

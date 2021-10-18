@@ -1,0 +1,525 @@
+#include trix
+
+
+int decode_ap(unsigned int ap)
+{
+	switch(ap)
+	{
+		case 0:
+		case 1:
+			return str("__");
+		case 2:
+			return str("R_");
+		case 3:
+			return str("RW");
+	}
+	
+	return str("??");
+}
+
+int dump_second_table(unsigned int base_address, unsigned int vma_base_address, unsigned int vma_length, unsigned int table_index)
+{
+	static unsigned int last_vma_start = 0xFFFFFFFF;
+	static unsigned int last_vma_end = 0xFFFFFFFF;
+	static unsigned int last_phys_start = 0xFFFFFFFF;
+	static unsigned int last_phys_end = 0xFFFFFFFF;
+	static unsigned int last_flags = 0xFFFFFFFF;
+	static unsigned int last_type = 0xFFFFFFFF;
+	static unsigned int last_ap = 0xFFFFFFFF;
+
+	unsigned int address = base_address + table_index * 4;
+	unsigned int data = GetWord(address);
+	unsigned int vma_start_address = vma_base_address + (table_index*vma_length);
+	
+	unsigned int entry_type = data & 3;
+	unsigned int large_base = (data >> 16) << 16;
+	unsigned int small_base = (data >> 12) << 12;
+	unsigned int tiny_base = (data >> 10) << 12;
+	unsigned int ap = (data >> 4) & 0xFF;
+	unsigned int flags = (data >> 2) & 0x03;
+
+	unsigned int this_base = 0;
+	unsigned int phys_length = 0;
+		
+	unsigned int continued = 0;
+
+	
+	switch(entry_type)
+	{
+		/* translation fault */
+		case 0:
+			this_base = 0;
+			phys_length = vma_length;
+			
+			continued = 1;
+			
+			if(last_ap != ap)
+			{
+				continued = 0;
+			}
+			if(last_vma_end != vma_start_address)
+			{
+				continued = 0;
+			}
+			break;
+			
+		/* large page (64kB) */
+		case 1:	
+			this_base = large_base;
+			phys_length = 4096;
+			
+			/* large entries must appear 16 times. try to sum them up */
+			continued = 1;
+			
+			if(last_ap != ap)
+			{
+				continued = 0;
+			}
+			if(last_phys_start != large_base)
+			{
+				continued = 0;
+			}
+			break;
+			
+		/* small page (4kB) */
+		case 2:
+			this_base = small_base;
+			phys_length = 4096;
+			
+			continued = 1;
+			
+			if(last_ap != ap)
+			{
+				continued = 0;
+			}
+			if(last_vma_end != vma_start_address)
+			{
+				continued = 0;
+			}
+			if(last_phys_end != this_base)
+			{
+				continued = 0;
+			}
+			if(last_flags != flags)
+			{
+				continued = 0;
+			}
+			break;
+			
+		/* extended small page (4kB) */
+		case 3:
+			this_base = tiny_base;
+			phys_length = 1024;
+			continued = 0;
+			break;
+	}
+
+	
+	/* continue segments */
+	if(entry_type == last_type && continued)
+	{
+		last_vma_end = vma_start_address + phys_length;
+		last_phys_end = last_phys_end + phys_length;
+	}
+	else
+	{
+		/* dump last entries */
+		if(last_vma_start != 0xFFFFFFFF)
+		{
+			printf("  [0x%08X - 0x%08X]\r\n", last_vma_start, last_vma_end - 1);
+
+			switch(last_type)
+			{
+				case 0:
+					printf("     Type:     Fault\r\n");
+					break;
+				case 1:
+					printf("     Type:     Large\r\n");
+					break;
+				case 2:
+					printf("     Type:     Small\r\n");
+					break;
+				case 3:
+					printf("     Type:     Tiny\r\n");
+					break;
+			}
+			
+			switch(last_type)
+			{
+				case 0:
+					break;
+				case 1:
+				case 2:
+					printf("     Map to:   0x%08X - 0x%08X\r\n", last_phys_start, last_phys_end - 1 );
+					printf("     Flags:    %c%c\r\n", (last_flags&2)?'C':'_', (last_flags&1)?'B':'_');
+					if(last_ap != 0)
+					{
+						printf("     AP3:      %s\r\n", decode_ap((last_ap>>6) & 3));
+						printf("     AP2:      %s\r\n", decode_ap((last_ap>>4) & 3));
+						printf("     AP1:      %s\r\n", decode_ap((last_ap>>2) & 3));
+						printf("     AP0:      %s\r\n", decode_ap((last_ap>>0) & 3));
+					}
+					break;
+					
+				case 3:
+					printf("     Map to:   0x%08X - 0x%08X\r\n", last_phys_start, last_phys_end - 1 );
+					printf("     Flags:    %c%c\r\n", (last_flags&2)?'C':'_', (last_flags&1)?'B':'_');
+					if(((last_ap>>0) & 3) != 0)
+					{
+						printf("     AP:       %s\r\n", decode_ap((last_ap>>0) & 3));
+					}
+					break;
+			}
+			
+			printf("\n");
+			last_vma_start = 0xFFFFFFFF;
+		}
+		
+		last_phys_start = this_base;
+		last_phys_end = last_phys_start + phys_length;
+		last_type = entry_type;
+		last_vma_start = vma_start_address;
+		last_vma_end = vma_start_address + phys_length;
+		last_flags = flags;
+		last_ap = ap;
+	}
+	
+	return E_OK;	
+}
+
+
+int dump_coarse_table(unsigned int base_address, unsigned int vma_base)
+{
+	unsigned int pos = 0;	
+	unsigned int table_entries = 256;
+	unsigned int coarse_size = 1<<12;
+	
+	while(pos < table_entries)
+	{
+		if(!__v_valid(trix_workspace, base_address))
+		{
+			printf ( "   INVALID ADDRESS FOR COARSE TABLE: 0x%08X", base_address);
+			printf("\n");
+			return E_FAIL;
+		}
+		else
+		{
+			dump_second_table(base_address, vma_base, coarse_size, pos);
+			pos++;
+		}
+	}
+	
+	dump_second_table(base_address, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF);
+	printf("\n");
+	
+	return E_OK;
+}
+
+int dump_first_table(unsigned int base_address, unsigned int vma_base_address, unsigned int vma_length, unsigned int table_index)
+{
+	static unsigned int last_vma_start = 0xFFFFFFFF;
+	static unsigned int last_vma_end = 0xFFFFFFFF;
+	static unsigned int last_base = 0xFFFFFFFF;
+	static unsigned int last_phys_start = 0xFFFFFFFF;
+	static unsigned int last_phys_end = 0xFFFFFFFF;
+	static unsigned int last_flags = 0xFFFFFFFF;
+	static unsigned int last_xflags = 0xFFFFFFFF;
+	static unsigned int last_domain = 0xFFFFFFFF;
+	static unsigned int last_type = 0xFFFFFFFF;
+	static unsigned int last_tex = 0xFFFFFFFF;
+
+	unsigned int address = base_address + table_index * 4;
+	unsigned int vma_start_address = vma_base_address + (table_index*vma_length);
+	
+	unsigned int data = GetWord(address);
+	unsigned int entry_type = data & 3;
+	unsigned int coarse_base = (data >> 10) << 10;
+	unsigned int fine_base = (data >> 12) << 12;
+	unsigned int section_base = (data >> 20) << 20;
+	unsigned int domain = (data >> 5) & 0x0F;
+	unsigned int flags = (data >> 2) & 0x07;
+	
+	unsigned int tex = (data >> 12) & 0x07;
+	unsigned int xflags = (data >> 15) & 0x07;
+	unsigned int supersection_flag = (data >> 18) & 1;
+	unsigned int supersection_base = (data >> 24) << 24;
+	
+	unsigned int continued = 0;
+	
+	//printf(" 0x%08X -> 0x%08X\n", address, data);
+	
+	/* check the currently parsed entry */
+	switch(entry_type)
+	{
+		/* translation fault */
+		case 0:
+			if(last_vma_end == vma_start_address)
+			{
+				continued = 1;
+			}
+			break;
+			
+		/* coarse page table */
+		case 1:
+			continued = 0;
+			break;
+			
+		/* section/supersection */
+		case 2:
+			/* supersections refer to 16MB large pages, not to the usual VMA-size pages of 1MB */
+			if(supersection_flag)
+			{
+				vma_length = (1 << 24);
+			}
+			
+			if(last_phys_end == section_base && last_vma_end == vma_start_address && last_flags == flags && last_xflags == xflags && last_tex == tex)
+			{
+				continued = 1;
+			}
+			break;
+		
+		/* fine/reserved */
+		case 3:
+			continued = 0;
+			break;
+	}
+	
+	/* continue segments */
+	if(entry_type == last_type && continued)
+	{
+		last_vma_end = vma_start_address + vma_length;
+		last_phys_end = last_phys_end + vma_length;
+	}
+	else
+	{
+		/* dump last entries */
+		if(last_vma_start != 0xFFFFFFFF)
+		{
+			printf("[0x%08X - 0x%08X]  (entry: 0x%08X)\r\n", last_vma_start, last_vma_end - 1, address - 4);
+			
+			switch(last_type)
+			{
+				case 0:
+					printf("   Type:      Invalid\r\n");
+					break;
+					
+				case 1:
+					printf("   Type:      Coarse\r\n");
+					printf("   Table:     0x%08X\r\n", last_base );
+					printf("   Domain:    0x%04X\r\n", last_domain);
+					printf("   Flags:     0x%04X \r\n", last_flags);					
+					printf("\n");
+					
+					//dump_coarse_table(last_base,last_vma_start);
+					break;
+					
+				case 2:
+					if(supersection_flag)
+					{
+						printf("   Type:      Supersection (v6+)\r\n");
+					}
+					else
+					{
+						printf("   Type:      Section\r\n");
+					}
+					printf("   Map to:    0x%08X - 0x%08X\r\n", last_phys_start, last_phys_end - 1 );
+					printf("   Domain:    0x%04X\r\n", last_domain);
+                    
+                    char *tex_str = NULL;
+                    switch(last_tex)
+                    {
+                        case 0:
+                            tex_str = str("Strongly Ordered");
+                            break;
+                        case 1:
+                            tex_str = str("Normal");
+                            break;
+                        case 2:
+                            tex_str = str("Device");
+                            break;
+                        case 4:
+                            tex_str = str("Cached memory");
+                            break;
+                    }
+                    printf("   Tex:       0x%04X (%s)\r\n", last_tex, tex_str);
+					printf("   Flags:     0x%04X (%s, %s, %s)\r\n", last_flags, (last_flags&4)?"XN":"xn", (last_flags&2)?"C":"c", (last_flags&1)?"B":"b");
+					printf("   XFlags:    0x%04X (%s, %s, %s)\r\n", last_xflags, (last_xflags&4)?"NG":"ng", (last_xflags&2)?"S":"s", (last_xflags&1)?"APX":"apx");
+
+					break;
+				case 3:
+					printf("   Type:      Fine(v5) / Reserved(v6+)\r\n");
+					printf("   Table:     0x%08X\r\n", last_base );
+					printf("   Domain:    0x%04X\r\n", last_domain);
+					printf("   Flags:     0x%04X (%s, %s, %s)\r\n", last_flags, (last_flags&4)?"XN":"xn", (last_flags&2)?"C":"c", (last_flags&1)?"B":"b");
+					printf("   XFlags:    0x%04X (%s, %s, %s)\r\n", last_xflags, (last_xflags&4)?"NG":"ng", (last_xflags&2)?"S":"s", (last_xflags&1)?"APX":"apx");
+					break;
+				default:
+					printf("   Type:      Invalid\r\n");
+					break;
+					
+			}
+			
+			printf("\n");
+			last_vma_start = 0xFFFFFFFF;
+		}
+		
+		switch(entry_type)
+		{
+			case 0:
+				last_base = 0;
+				break;
+			case 1:
+				last_base = coarse_base;
+				break;
+			case 2:
+				last_phys_start = section_base;
+				last_phys_end = last_phys_start + vma_length;
+				break;
+			case 3:
+				last_base = fine_base;
+				break;
+		}		
+		
+		last_vma_start = vma_start_address;
+		last_vma_end = vma_start_address + vma_length;		
+		last_type = entry_type;
+		last_domain = domain;
+		last_flags = flags;
+		last_xflags = xflags;
+		last_tex = tex;
+	}
+	
+	return E_OK;
+}
+
+
+int dump_main_table(unsigned int base_address)
+{
+	unsigned int pos = 0;	
+	unsigned int first_table_entries = 4096;
+	unsigned int entry_size = 1<<20;
+	
+	
+	printf ( "[x] Dumping table at 0x%08X\n\n", base_address );
+	
+	while(pos < first_table_entries)
+	{
+		dump_first_table(base_address, 0, entry_size, pos);
+		pos++;
+	}
+	
+	dump_first_table(base_address, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF);
+	
+	return E_OK;
+}
+
+int rebase_segment ( unsigned int base )
+{
+	trix_workspace->fileinfo->stages->segments->start = base;
+    if(base + trix_workspace->fileinfo->stages->segments->length < base)
+    {
+        trix_workspace->fileinfo->stages->segments->end = 0xFFFFFFFF;
+    }
+    else
+    {
+        trix_workspace->fileinfo->stages->segments->end = base + trix_workspace->fileinfo->stages->segments->length;
+    }
+
+	WorkspaceUpdateMemmap ( trix_workspace );
+	
+	printf ( "[x] Rebased to 0x%08X\n", base );
+}
+
+
+int add_memory_segment ( unsigned int address, unsigned int length, unsigned int clear )
+{
+	unsigned int pos = 0;
+	unsigned char *name = malloc ( 32 );
+	
+	t_segment *seg = NULL;
+
+	sprintf ( name, "0x%08X", address );
+	seg = __segment_create ();
+	
+	seg->name = name;
+	seg->start = address;
+	seg->end = address + length;
+	seg->length = length;
+	seg->data = malloc ( length );
+
+	if ( clear == 1 )
+	{
+		while ( pos < length )
+			seg->data[pos++] = 0x00;
+	}
+	if ( clear == 2 )
+	{
+		while ( pos < length )
+			seg->data[pos++] = 0xFF;
+	}
+	
+	t_segment *last = __segment_get_last(trix_workspace->fileinfo->stages->segments);
+	last->next = seg;
+	seg->prev = last;
+	
+	WorkspaceUpdateMemmap ( trix_workspace );
+}
+
+
+int load_binary ( unsigned int address, unsigned char *file )
+{
+	t_workspace *ws = NULL;
+
+	printf ( "[x] Loading Binary data\n" );
+	printf ( "    file: %s\n", file );
+	printf ( "    to  : 0x%08X\n", address );
+	ws = WorkspaceStartup ( file );
+	if ( !ws )
+		return E_FAIL;
+	printf ( "    size: 0x%08X\n", __v_get_size ( ws ) );
+	printf ( "\n" );
+
+	add_memory_segment(address, __v_get_size ( ws ), 0);
+
+	MemCpyPut ( address, __v_get_ptr ( ws, 0 ), __v_get_size ( ws ) );
+	__workspace_release ( ws );
+
+	return E_OK;
+}
+
+
+void init_memory_segments ()
+{
+	trix_workspace->fileinfo = __file_io_create_empty ();
+}
+
+int main ( )
+{
+	unsigned int base = 0x50020000;
+
+	/* data is little endian */
+	trix_workspace->flags = FLAGS_ENDIANESS_LE;
+	WorkspaceUpdateMemmap ( trix_workspace );	
+
+	if(trix_workspace->fileinfo)
+	{
+		/* loaded file is from memory at base */
+		rebase_segment(base);
+		
+		/* dump all entries in the first level table */
+		dump_main_table(0x50358000);
+	}
+	else
+	{
+		/* nothing loaded, load these files */
+		init_memory_segments();
+		
+		load_binary(0x10000000, "C:/Users/g3gg0/Downloads/algo_ttb_1000000.bin");	
+		load_binary(0x30000000, "C:/Users/g3gg0/Downloads/algo_ttb_3000000.bin");
+		
+		/* dump all entries in the first level table */
+		dump_main_table(0x10000000);
+	}
+}
+
+

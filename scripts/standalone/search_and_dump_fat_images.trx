@@ -1,0 +1,242 @@
+
+#title "FatDumpScanner"
+#author "g3gg0"
+
+#include trix
+
+#plugin trix_fate
+#plugin trix_fmtCNT
+
+#include trix_fate
+
+/*
+ * This script searches for FAT images in a given subdirectory and
+ * extracts all of them into another subdir.
+ *
+ * For every extracted FAT image, it will create an own subdirectory.
+ *
+ * e.g. the files in image 'd:\data\fat_img.bin' will get extracted 
+ *      to 'c:\temp\fat_img.bin\<files>'
+ *
+ */
+
+
+char *search_path = "";
+char *dump_path = "";
+char *search_ext = "*.*";
+char dir_separator = '\\';
+
+t_locator search_patern[] = 
+{
+	{ "FAT Label", "VOLUMELABELFAT16", "\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 16, 0 },
+	{ NULL, NULL, NULL, 0, 0 }
+};
+
+int file_save ( t_fat_info *info, char *filename_1, char *filename_2 )
+{
+	unsigned int blocksize = 1024*1024;
+	unsigned char *buffer = NULL;
+	unsigned int allocated = 0;
+	unsigned int pos = 0;
+	unsigned int read = 0;
+	int done = 0;
+	TFILE *file = NULL;
+	t_workspace *ws = NULL;
+
+	file = __fate_fopen (info, filename_1 );
+	if ( !file )
+	{
+		printf ("file open error\n" );
+		return E_FAIL;
+	}
+
+	allocated = blocksize;
+	buffer = malloc ( allocated );
+	if ( !buffer )
+	{
+		printf ( "malloc error\n" );
+		return E_FAIL;
+	}
+
+	while ( !done )
+	{
+		read = __fate_fread ( &buffer[pos], 1, allocated-pos, file );
+		if ( read )
+		{
+			pos += read;
+			allocated += read;
+			buffer = realloc ( buffer, allocated );
+			if ( !buffer )
+			{
+				printf ( "malloc error\n" );
+				return E_FAIL;
+			}
+		}
+		else
+			done = 1;
+	}
+
+	ws = WorkspaceCreateFileFromBuffer ( buffer, pos );
+
+	__file_write ( filename_2, ws->fileinfo );
+	__fate_fclose ( file );
+	__workspace_release ( ws );
+
+	return E_OK;
+}
+
+
+int dump_files ( t_fat_info *info, unsigned char *dest_dir )
+{
+	int index = 0;
+	char *file_name = NULL;
+	char *new_dest_name = NULL;
+	
+	do
+	{
+		file_name = __fate_get_name ( info, TYPE_FILE, index++ );
+		if ( file_name )
+		{
+			new_dest_name = malloc ( strlen ( dest_dir ) + strlen ( file_name ) + 2 );
+			sprintf ( new_dest_name, "%s%c%s", dest_dir, dir_separator, file_name );
+			
+			file_save ( info, file_name, new_dest_name );
+			
+			free ( new_dest_name );
+		}
+	} while ( file_name != NULL );
+
+}
+
+
+int dump_all ( t_fat_info *info, unsigned char *dest_dir )
+{
+	int index = 0;
+	char *dir_name = NULL;
+	char *new_dest_dir = NULL;
+	
+	dump_files ( info, dest_dir );
+	do
+	{
+		dir_name = __fate_get_name ( info, TYPE_DIR, index++ );
+		if ( dir_name )
+		{
+			if ( strcmp ( dir_name, ".          " ) && strcmp ( dir_name, "..         " ) )
+			{
+				new_dest_dir = malloc ( strlen ( dest_dir ) + strlen ( dir_name ) + 2 );
+				sprintf ( new_dest_dir, "%s%c%s", dest_dir, dir_separator, dir_name );
+				
+				__file_io_create_directory(new_dest_dir);				
+				
+				__fate_cd ( info, dir_name );
+				dump_all ( info, new_dest_dir );
+				free ( new_dest_dir );
+				__fate_cd ( info, ".." );
+			}
+		}
+	} while ( dir_name != NULL );
+}
+
+int dump_image ( t_workspace *ws, char *destpath )
+{
+	t_fat_info *info = NULL;
+	
+	/* force LE for FAT */
+	ws->flags = FLAGS_ENDIANESS_LE;
+	
+	info = __fate_open ( ws, __v_get_start ( ws ) );
+	if ( !info )
+	{
+		return E_FAIL;
+	}
+
+	__file_io_create_directory ( destpath );
+	dump_all(info, destpath);
+}
+
+/* don't use parsed file, just the plain input file */
+void search_file ( char *filepath, char *filename  )
+{
+	unsigned int found = 0;
+	unsigned int pos = 0;
+	unsigned int entry = 0;
+	char *dumpname[512];
+	
+	trix_workspace = WorkspaceStartup ( filepath );
+
+	if ( !trix_workspace )
+	{
+		printf ( "Failed to open %s\r\n", filepath );
+		return;
+	}
+	
+	SetWorkStage ( 0, 0 );
+	
+	while(!found && search_patern[entry].func_name)
+	{		
+		pos = MEM_AUTO;
+		do 
+		{
+			pos = FindPattern(&search_patern[entry], pos, MEM_AUTO, LOC_FORWARD);
+			if ( pos != E_FAIL )
+			{
+				found = 1;
+			}
+		} while (!found && pos != E_FAIL );
+		entry++;
+	}
+	
+	/* work with last stage again */
+	SetWorkStage ( 0, GetStageCount(0) - 1 );
+	
+	if(found)
+	{
+		printf ( "Dumping FAT image: %s\r\n", filepath );
+		sprintf ( (char*)dumpname, "%s%c%s", dump_path, dir_separator, filename );
+		dump_image ( trix_workspace, (char*)dumpname );
+	}	
+	
+	__workspace_release ( trix_workspace );
+	trix_workspace = NULL;
+}
+
+int search_dir ( char *dir )
+{
+	int pos = 0;
+	unsigned int entries = 0;
+	char *searchname[512];
+	char *filepath[512];
+	t_fileinfo *file_infos = NULL;	
+
+	sprintf ( (char*)searchname, "%s/%s", dir, search_ext );
+	file_infos = __file_io_open_directory ( (char*)searchname, &entries );
+
+	for ( pos=0; pos < entries; pos++ )
+	{
+		if(file_infos[pos].options & FILE_DIRECTORY)
+		{
+			sprintf ( (char*)filepath, "%s/%s", dir, file_infos[pos].filename );
+			search_dir ( (char*)filepath );
+		}
+		else
+		{
+			sprintf ( (char*)filepath, "%s/%s", dir, file_infos[pos].filename );
+			search_file ( (char*)filepath, (char*)file_infos[pos].filename );
+		}
+		free ( file_infos[pos].filename );
+	}	
+	free ( file_infos );
+}
+
+int main ( )
+{
+	/* do not want FATe to spam too much */
+	__options_set_bool ( "plugins.FATe.fate_silent", 1 );
+	
+	UiDlgString ( "Enter search path", &search_path );
+	UiDlgString ( "Enter directory where to dump extracted FAT images", &dump_path );
+	
+	search_dir ( (char*)search_path );
+}
+
+

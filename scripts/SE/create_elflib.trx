@@ -1,0 +1,122 @@
+// load plugin
+#plugin trix_fmtbabe
+
+// include headers
+#include trix
+#include trix_fmtbabe
+#include "scripts/SE/se_babe_defs.trx"
+
+
+unsigned int build_library ( unsigned int start, unsigned int end )
+{
+   unsigned int i = 0;
+   unsigned int swi = 0;
+   unsigned int rc = 0;
+   char *name = NULL;
+   t_stage   *cs = NULL;
+   t_segment *ts = NULL;
+
+   printf ( "; %s\n\n", GetName () );
+   printf ( "+DEADBEEF ; hard to detect since it's hardcoded... :/\n",  );
+
+   for ( i = start; i <= end; i ++ )
+   {
+      name = swi2name ( i );
+      swi = name2swi ( name );
+      rc = locate ( name );
+
+      if ( rc == E_FAIL )
+         printf (";");
+
+      if ( strlen ( name ) )
+         printf ( "%04X: 00000000 %08X ; %X: %s\n", (swi & 0xFFF) << 2, SW ( rc ), swi & 0xFFFF, name );
+   }
+
+   return E_OK;
+}
+
+unsigned int check_library ()
+{
+   t_workspace *lws = NULL;
+   char *name = NULL;
+   char *tmp = NULL;
+   char *lib = NULL;
+   unsigned int pos = 0, swi = 0, line = 0, pos2 = 0;
+
+   UiDlgLoadFile ( &name, "Select Elf Library file", "VKP Patch (*.vkp)" );
+
+   if ( !name )
+      return E_FAIL;
+
+   lws = __workspace_startup ( name );
+
+	if ( !lws || __v_get_size ( lws ) == E_FAIL )
+		return E_FAIL;
+
+	lib = ( char * ) __mem_calloc ( __v_get_size ( lws ) + 2, 1, NULL, 0 );
+	if ( !lib )
+		return E_FAIL;
+
+	__v_memcpy_get ( lws, lib, __v_get_start ( lws ), __v_get_size ( lws ) );
+	lib[__v_get_size ( lws )] = 0;
+
+
+   line = 0;
+	while ( tmp = __util_get_line ( lib, line ) )
+	{
+      if ( tmp[0] && tmp[0] != '+' && tmp[0] != ';' )
+      {
+         sscanf ( tmp + 15, "%08X ;%X", &pos, &swi );
+         pos = SW ( pos );
+
+         name = swi2name ( swi );
+         printf ( "Checking %s... ", name );
+
+         pos2 = locate ( name );
+         if ( pos2 != E_FAIL && pos != pos2 ) // mismatch
+            printf ( "%04X: ElfLib [0x%08X] != locate[0x%08X]\n", swi, pos, pos2 );
+         else
+            printf ( "OK\n" );
+      }
+      line++;
+	}
+
+   __workspace_release ( ws );
+   return E_OK;
+}
+
+int main ()
+{
+   unsigned int cmd = E_OK;
+   unsigned int err = E_OK;
+   unsigned int start = SWI_LF_START;
+   unsigned int end = SWI_LF_END;
+   char *str = NULL;
+   char *menu[] = { "Build library", "Partial build", "Check library" };
+
+   BABE_INIT // init babe workspace
+
+   cmd = UiDlgMenu ( "Create ElfLib 0.90", menu, UI_OPT_QUIT );
+
+   if ( cmd == 3 )
+      check_library ();
+
+   else if ( cmd == 1 || cmd == 2 )
+   {
+      if ( cmd == 2 )
+      {
+			start = UiDlgInt ( "Enter first function", SWI_LF_START, SWI_LF_END );
+         if ( start < SWI_LF_START )
+            start = SWI_LF_START;
+
+			end = UiDlgInt ( "Enter last function", SWI_LF_START, SWI_LF_END );
+         if ( end > SWI_LF_END )
+            end = SWI_LF_END;
+      }
+
+      build_library ( start, end );
+   }
+
+   say ( "Done!" );
+   return E_OK;
+}

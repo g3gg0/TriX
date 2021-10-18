@@ -1,0 +1,427 @@
+#title "fsig extended patch"
+#author "krisha"
+
+#include trix
+#include stdio
+
+//#define BIG_ENDIAN 1
+
+//#define rol(v,bits) ((v << (bits % 32)) | (v >> (32 - bits % 32) ))
+
+
+unsigned int h0, h1, h2, h3, h4;
+unsigned int cur_blk;
+
+
+void sha1_init ()
+{
+
+#ifdef BIG_ENDIAN
+/*
+	h0 = 0x01234567;
+	h1 = 0x89ABCDEF;
+	h2 = 0xFEDCBA98;
+	h3 = 0x76543210;
+	h4 = 0xF0E1D2C3;
+*/
+#else
+	h0 = 0x67452301;
+	h1 = 0xEFCDAB89;
+	h2 = 0x98BADCFE;
+	h3 = 0x10325476;
+	h4 = 0xC3D2E1F0;
+#endif
+	
+	cur_blk = 0;
+}
+
+unsigned int rol ( unsigned int v, unsigned char bits )
+{
+	return (v << (bits % 32)) | (v >> (32 - bits % 32) );
+}
+
+void sha1_process_chunk ( unsigned int *digest )
+{
+	unsigned int w[80];
+	int i;
+	unsigned int a, b, c, d, e;
+	unsigned int k, f;
+	unsigned int temp;
+	
+	for ( i = 0; i < 16; i++ )
+		//w[i] = GetWord ( addr + i*4 );
+		w[i] = digest[i];
+		
+	for ( i = 16; i <= 79; i++ )
+		w[i] = rol ( w[i-3] ^ w[i-8] ^ w[i-14] ^ w[i-16], 1 );
+	
+	a = h0;
+	b = h1;
+	c = h2;
+	d = h3;
+	e = h4;
+	
+	for ( i = 0; i <= 79; i++ )
+	{
+		if ( i <= 19 )
+		{
+			f = ( b & c ) | ( ~b & d );
+#ifdef BIG_ENDIAN			
+			//k = 0x9979825A;
+#else
+			k = 0x5A827999;
+#endif
+		}
+		else if ( i <= 39 )
+		{
+			f = b ^ c ^ d;
+			//
+#ifdef BIG_ENDIAN				
+			//k = 0xA1EBD96E;
+#else
+			k = 0x6ED9EBA1;
+#endif
+		}
+		else if ( i <= 59 )
+		{
+			f = ( b & c ) | ( b & d ) | ( c & d );
+			//
+#ifdef BIG_ENDIAN				
+			//k = 0xDCBC1B8F;
+#else
+			k = 0x8F1BBCDC;
+#endif
+		}
+		else //if ( i <= 79 )
+		{
+			f = b ^ c ^ d;
+			//
+#ifdef BIG_ENDIAN				
+			//k = 0xD6C162CA;
+#else
+			k = 0xCA62C1D6;
+#endif
+		}
+		
+		temp = rol ( a, 5 ) + f + e + k + w[i];
+		e = d;
+		d = c;
+		c = rol ( b, 30 );
+		b = a;
+		a = temp;
+	}
+	
+	h0 += a;
+	h1 += b;
+	h2 += c;
+	h3 += d;
+	h4 += e;
+	
+}
+
+void sha1_preprocess ( unsigned char *data, unsigned int len )
+{
+	unsigned int bit_len = 8 * len;
+	//unsigned int bits_missing;
+	//int i;
+	
+	//SetByte ( addr + len, 0x80 );	//extend by bit '1'
+	data[len++] = 0x80;
+	/*
+	bit_len = len * 8 + 1;	// bits with extended bit
+	
+	//printf ( "bit_len: %d\n", bit_len );
+	
+	//todo negative
+	bits_missing = 448 - (bit_len % 512);	// last chunk should be 448 bits in length
+	
+	printf ( "bits_missing: %d\n", bits_missing );
+	
+	printf ( "should be 448: %d\n", bit_len + bits_missing );
+	
+	// todo check if byte aligned
+	
+	// fill missing bits with 0, 7 bits already set to zero with 0x80
+	for ( i = 0; i < (bits_missing - 7) / 8; i++ )
+		SetByte ( addr + len + 1 + i, 0x00 );
+		
+	printf ( "new length: %d\n", len + 1 + (bits_missing - 7) / 8 );
+	//printf ( "new length: %d\n", len + 1 + (bits_missing - 7) / 8 );
+	
+	SetWord ( addr + len + 1 + (bits_missing - 7) / 8, 0x00 );
+	SetWord ( addr + len + 1 + (bits_missing - 7) / 8 + 4, len * 8 );
+		
+	return len + 1 + (bits_missing - 7) / 8;*/
+		
+	// just fill 'till 448 is reached
+	while ( (len % (512/8)) != (448/8) )
+		data[len++] = 0;
+	
+	// limited by int
+	data[len++] = 0;
+	data[len++] = 0;
+	data[len++] = 0;
+	data[len++] = 0;
+	
+	data[len++] = (bit_len >> 24) & 0xFF;
+	data[len++] = (bit_len >> 16) & 0xFF;
+	data[len++] = (bit_len >> 8) & 0xFF;
+	data[len++] = bit_len & 0xFF;
+	
+	return;
+
+}
+
+void sha1_stream ( unsigned char *data, unsigned int chunks )
+{
+	unsigned int i = 0, j;
+	
+	unsigned int val[16];
+	
+	printf ( "SHA1: calcing hash...\n" );
+	
+	while ( i < chunks )
+	{
+		for ( j = 0; j < 16; j++ )
+		{
+			//val[j] = GetWord ( addr + i + j );
+			val[j] = (data[i*64 + j*4] << 24) | (data[i*64 + j*4 + 1] << 16) | (data[i*64 + j*4 + 2] << 8) | data[i*64 + j*4 + 3] ;
+			//printf ( "%08X ", val[j] );
+		}
+		//printf ( "processing chunk: %d\n", i ); todo: some percent again
+		sha1_process_chunk ( val );
+		
+		/*
+		if ( (chunks % 1000) == 0 )
+			printf ( "	chunk %d/%d done\n", i+1, chunks );*/
+	
+		i++;
+	}
+	
+}
+
+void sha1_calc ( unsigned int addr, unsigned int len, unsigned int dest )
+{
+	//unsigned char saved[128];
+	int chunks;
+	unsigned char *data_cpy = NULL;
+	
+	//printf ( "saving 128 bytes at end\n" );
+	//MemCpyGet ( saved, addr + len, 128 );
+	
+	printf ( "SHA1: copying data to mem\n" );
+	
+	// input is % 8 ('cause just bytes)
+	// minimum additional bits are 1 bit + 64 bit = 65 bit
+	// minimum additional to fit to 448 bits are 1bit + 64 bit + 7 bit (to fill gap to %8) = 72 bit
+	
+	// full chunks are ( len * 8 + 72 ) / 512
+	// last chunk fill is  ( len * 8 + 72 ) % 512
+	// missing bits to complete last chunk are: 512 - ( len * 8 + 72 ) % 512
+	
+	// so if last chunk fill = 0, no additional chunk is needed
+	
+	chunks = (len * 8 + 72 ) / 512;
+	if ( (len * 8 + 72 ) % 512 )
+		chunks++;
+	
+	data_cpy = (unsigned char*)calloc ( chunks * 64, 1 );
+	
+	if ( !data_cpy )
+	{
+		printf ( "SHA1: error allocating mem" );
+		return;
+	}
+	
+	printf ( "chunks: %d, len: %d, start: 0x%08X\n", chunks, len, addr );
+	
+	MemCpyGet ( data_cpy, addr, len );
+	
+	sha1_init();
+	sha1_preprocess ( data_cpy, len );
+	sha1_stream ( data_cpy, chunks );
+	
+	printf ( "SHA1: Hash: %08X%08X%08X%08X%08X\n", h0, h1, h2, h3, h4 );
+	
+	SetWord ( dest, h0 );
+	SetWord ( dest+4, h1 );
+	SetWord ( dest+8, h2 );
+	SetWord ( dest+12, h3 );
+	SetWord ( dest+16, h4 );
+	
+	free ( data_cpy );
+	
+	//printf ( "restoring 128 bytes at end\n" );
+	//MemCpyPut ( addr + len, saved, 128 );
+}
+
+unsigned int sha1_calc2 ( unsigned int addr, unsigned int len, unsigned int dest  )
+{
+	t_segment *cs = NULL;
+	char hash[20];
+	char *unpacked_hash = NULL;;
+
+	cs = __stage_get_current ( trix_workspace->fileinfo->stages )->segments;
+	cs = cs->next;
+
+	printf ( "SHA1: calcing hash...\n" );
+	__crypto_generate_sha1 ( cs->data + ( addr - cs->start ), len, hash );
+
+   unpacked_hash = __util_hexpack ( hash, 20 );
+   printf ( "SHA1: Hash: %s\n", unpacked_hash );
+
+	MemCpyPut ( dest, hash, 20 );
+
+	free ( unpacked_hash );
+	return E_OK;
+}
+
+int is_in_mcu_range ( unsigned int addr )
+{
+	if ( addr >= __v_get_start ( GetWorkspace () ) && addr <= __v_get_end ( GetWorkspace () ) )
+		return E_OK;
+
+	return E_FAIL;
+}
+
+void fsig_ext_recalc ( unsigned int ranges_ptr )
+{
+	unsigned int range_start;
+	unsigned int range_end;
+
+	//ranges_ptr += 28;
+
+	do
+	{
+		range_start = GetWord ( ranges_ptr );
+		range_end = GetWord ( ranges_ptr + 4 );
+
+		if ( range_start )
+		{
+			printf ( "\nrecalcing range 0x%08X to 0x%08X\n", range_start, range_end );
+			sha1_calc2 ( range_start, range_end + 1 - range_start, ranges_ptr + 8 );
+		}
+
+		ranges_ptr += 28;
+	}
+	while ( range_start != 0 );
+}
+
+int fsig_ext_find ()
+{
+	unsigned char pattern[8];
+	unsigned int fsig_start, fsig_end;
+	unsigned int start, end;
+
+	start = MEM_AUTO; //__v_get_start ( GetWorkspace() );
+	end = __v_get_end ( GetWorkspace() );
+
+	fsig_start = GetWord ( 0x100006C + 12 );
+	fsig_end = GetWord ( 0x100006C + 12 ) + GetWord ( 0x100006C + 8 ) * 8;
+
+	printf ( "fsig start: 0x%08X\n", fsig_start );
+	printf ( "fsig end: 0x%08X\n", fsig_end );
+
+	pattern[0] = fsig_end >> 24;
+	pattern[1] = fsig_end >> 16;
+	pattern[2] = fsig_end >> 8;
+	pattern[3] = fsig_end;
+
+	printf ( "searching for fsig extended checksum at fsig end\n" );
+
+	//TODO first range not working
+
+	do
+	{
+		start = QuickFindPattern ( pattern, NULL, 4, start, MEM_MAX, LOC_FORWARD );
+		if ( start == E_FAIL )
+		{
+			say ( "no fsig end addresses found\n" );
+			return E_FAIL;
+		}
+		else
+		{
+			printf ( "found fsig end address at 0x%08X\n", start );
+			if ( is_in_mcu_range ( GetWord ( start + 4 ) ) == E_OK &&
+				  is_in_mcu_range ( GetWord ( start + 4 + 24 ) ) == E_OK ) // expecting minimum 2 ranges
+				// on failures check also if end of 1st is beginning of second
+			{
+				printf ( "probably found fsig extended\n" );
+				return start;
+			}
+		}
+		start += 4;
+	} while ( start < end );
+
+	say ( "no fsig end addresses found\n" );
+	return E_FAIL;
+}
+
+int intro ()
+{
+	say ( "   ___                                       __      \n" );
+	say ( " /'___\\       __                            /\\ \\__   \n" );
+	say ( "/\\ \\__/  ____/\\_\\     __          __   __  _\\ \\ ,_\\  \n" );
+	say ( "\\ \\ ,__\\/',__\\/\\ \\  /'_ `\\      /'__`\\/\\ \\/'\\\\ \\ \\/  \n" );
+	say ( " \\ \\ \\_/\\__, `\\ \\ \\/\\ \\L\\ \\    /\\  __/\\/>  </ \\ \\ \\_ \n" );
+	say ( "  \\ \\_\\\\/\\____/\\ \\_\\ \\____ \\   \\ \\____\\/\\_/\\_\\ \\ \\__\\\n" );
+	say ( "   \\/_/ \\/___/  \\/_/\\/___L\\ \\   \\/____/\\//\\/_/  \\/__/\n" );
+	say ( "                      /\\____/                        \n" );
+	say ( "                      \\_/__/     by krisha           \n" );
+	say ( "\n" );
+	say ( "this script will do the following:\n" );
+	say ( "1. search for extended fsig addresses at fsig end\n" );
+	say ( "2. recalculate the checksums for ext fsig addresses\n" );
+	say ( "\n" );
+	say ( "please note:\n" );
+	say ( "the research was a very hard and time intensive job.\n" );
+	say ( "probably no one except the device developer just knew\n" );
+	say ( "that this checksum is existing, but if you modify the\n" );
+	say ( "firmware, you're device won't work!\n" );
+	say ( "the continuing hours i spent on researching the\n" );
+	say ( "checksum calculation. next step was too create this\n" );
+	say ( "script including a completly written from the scratch\n" );
+	say ( "checksum calculation (even it already exists, but not\n" );
+	say ( "as TriX script :-)).\n" );
+	say ( "\n" );
+	say ( "so i have a please... understand it as license:\n" );
+	say ( "i release this script free to everybody with the hope it\n" );
+	say ( "might be usefull for someone. i don't care if you use\n" );
+	say ( "it for personal purposes, but in the case you're going\n" );
+	say ( "to make small or big money with the help of this script\n" );
+	say ( "or just want to honour my work donate a fair amount to\n" );
+	say ( "my paypal account. Don't be ashamed if it's also small\n" );
+	say ( "money - the goodwill is counting and gives me a smile\n" );
+	say ( "on my face!\n" );
+	say ( "\n" );
+	say ( "my paypal address is krisha -@t- chrisi.de\n" );
+	say ( "thanks!\n" );
+	say ( "\n" );
+	say ( "i discountenance:\n" );
+	say ( "- replacing/removing this text and than redistributing it\n" );
+	say ( "- selling this script. this is a thievish behaviour, hm\n" );
+	say ( "  and only people with a ruffled ego do this :-P\n" );
+	say ( "\n" );
+	say ( "now sit back, watch and enjoy ;-)\n" );
+
+	say ( "\n" );
+	say ( "\n" );
+
+	return E_OK;
+}
+
+int main ()
+{
+	int fsig_ext_addr;
+
+	if ( intro() != E_OK )
+		return E_FAIL;
+
+	fsig_ext_addr = fsig_ext_find ();
+	if ( fsig_ext_addr == E_FAIL )
+		return E_FAIL;
+
+	fsig_ext_recalc ( fsig_ext_addr );
+
+	return E_OK;
+}

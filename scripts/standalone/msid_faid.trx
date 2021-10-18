@@ -1,0 +1,293 @@
+#plugin trix_nokiacrypt
+
+#include trix
+#include trix_nokiacrypt
+
+/*
+6230i netmon:
+ [x] Get MSID
+  [i] successfully executed!
+  [i] Crypted  MSID:  841AC07D616CDB742B25D2E06E
+  [i] Plain    MSID:    17CABAE900E9FA03A8000000
+  [i] Crypted  FAID:    C41A88DB9C393D0E8E3C9FDD
+  [i] Plain    FAID:    0000DA60FFFF259F00000000
+
+  Flash contains:
+   23 41 65 CD 17 69 EC 9D 5F 52 59 C9 01
+
+  Flash FAID:
+   4123CD6569179DEC525FC959 
+
+  [i] Plain    FAID:    6609DA625BA1000020E636B0
+                        6609 DA62 5BA1 0000 20E6 36B0
+
+[x] Dumping 0x100 bytes from 0x0C305300: (CBUSC)
+---------------------------------------------------------------
+15 4A 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00 00 00 41 23 CD 65 69 17
+9D EC 52 5F C9 59 00 20 5B A1 00 01 00 04 00 00
+00 00 00 00 00 00 00 01 00 00 00 01 00 00 00 00
+89 C0 28 00 D0 13 22 00 00 00 00 00 00 00 00 00
+4C 7F AE 61 35 06 1E F0 40 25 00 00 00 00 00 00
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+---------------------------------------------------------------
+
+   
+ 6230i normal:  
+---------------
+ [x] Get MSID
+  [i] successfully executed!
+  [i] Crypted  MSID:  8468B0270D21A4093E29A9F76B
+  [i] Plain    MSID:    17CABAE90092D03AA8000000
+  [i] Crypted  FAID:    7CADFF4D9493995FAC252A5A
+  [i] Plain    FAID:    0000DA60FFFF259F00000000
+
+  Flasher says:
+   Algorithm Ok, MSID: 846ADD3F85ACCCED12CF98AC7E
+   Decoded MSID: 71C3BAE9-0092D03A-A8000000
+   Encoded FAID: 206AE86F-B7E48E59-70444CBE
+  
+  Flash contains:
+   6A 20 6F E8 E4 B7 59 8E 44 70 BE 4C 00
+   
+  Flash FAID:
+   206AE86FB7E48E5970444CBE
+   
+  encrypted FAID that contains the same data as the netmon phone:
+	  [i] Crypted  FAID:    1775794BC3D23196C97CD797
+	  [i] Flash    FAID:    75174B79D2C396317CC997D7  
+
+  permdata backup:
+  
+	[x] Dumping 0x100 bytes from 0x00000100:
+	---------------------------------------------------------------
+	00000000: 7E AD 1B B6 00 F0 37 70 8B 04 B7 CA 37 00 00 00 ~.....7p....7...
+	00000010: 23 20 20 10 77 00 0E 01 F0 29 01 FF FF FF FF FF #...w....)......
+	00000020: FF FF FF FF F8 1F 23 A5 4B 61 65 50 6A 20 6F E8 ......#.KaePj.o.
+	00000030: E4 B7 59 8E 44 70 BE 4C 00 00 82 51 86 89 AC 9B ..Y.Dp.L...Q....
+	00000040: F9 9C 4D 09 1B B0 7C 53 AF 6F 4E 75 15 C9 79 0D ..M...|S.oNu..y.
+	00000050: ED 59 C4 D2 A0 8D 73 74 D7 64 2F 48 5A 72 35 4E .Y....st.d/HZr5N
+	00000060: 02 0D FF FF FF FF FF FF FF FF FF FF FF FF FF FF ................
+	00000070: 6C 88 00 00 00 02 00 00 FC FF B3 00 00 00 04 00 l...............
+	00000080: F0 1E 06 35 61 AE 7F 4C 00 02 00 00 00 02 20 00 ...5aL........
+	00000090: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................
+	000000A0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................
+	000000B0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................
+	000000C0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................
+	000000D0: 00 00 00 00 00 00 00 00 FF FF FF FF FF FF FF FF ................
+	000000E0: 00 02 00 00 00 02 00 00 FC FF B3 00 DC 47 30 0A .............G0.
+	000000F0: DD 47 30 0A F1 DA BC B0 06 6E 11 0E 8B 1A 8E 00 .G0......n......
+	---------------------------------------------------------------
+
+after flashing with patched FIA
+
+	[x] Dumping 0x100 bytes from 0x00000100:
+	---------------------------------------------------------------
+	00000000: 7E AD 1B B6 00 F0 37 70 8B 04 B7 CA 37 00 00 00 ~.....7p....7...
+	00000010: 23 20 20 10 77 00 0E 01 F0 29 01 FF FF FF FF FF #...w....)......
+	00000020: FF FF FF FF F8 1F 23 A5 4B 61 65 50 00 00 00 00 ......#.KaeP....
+	00000030: 00 00 00 00 00 00 00 00 00 00 82 51 86 89 AC 9B ...........Q....
+	00000040: F9 9C 4D 09 1B B0 7C 53 AF 6F 4E 75 15 C9 79 0D ..M...|S.oNu..y.
+	00000050: ED 59 C4 D2 A0 8D 73 74 D7 64 2F 48 5A 72 35 4E .Y....st.d/HZr5N
+	00000060: 02 0D FF FF FF FF FF FF FF FF FF FF FF FF FF FF ................
+	00000070: 6C 88 00 00 00 02 00 00 FC FF B3 00 00 00 04 00 l...............
+	00000080: F0 1E 06 35 61 AE 7F 4C 00 02 00 00 00 02 20 00 ...5aL........
+	00000090: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................
+	000000A0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................
+	000000B0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................
+	000000C0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................
+	000000D0: 00 00 00 00 00 00 00 00 FF FF FF FF FF FF FF FF ................
+	000000E0: 00 02 00 00 00 02 00 00 FC FF B3 00 DC 47 30 0A .............G0.
+	000000F0: DD 47 30 0A F1 DA BC B0 06 6E 11 0E 8B 1A 8E 00 .G0......n......
+	---------------------------------------------------------------
+
+	[x] Dumping 0x100 bytes from 0x0C305300: (CBUSC)
+	---------------------------------------------------------------
+	15 4A 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+	00 00 00 00 00 00 00 00 00 00 17 75 79 4B C3 D2
+	31 96 C9 7C D7 97 00 20 5B A1 00 01 00 04 00 00
+	00 00 00 00 00 00 00 01 00 00 00 01 00 00 00 00
+	89 C0 28 00 D0 13 22 00 00 00 00 00 00 00 00 00
+	4C 7F AE 61 35 06 1E F0 40 25 00 00 00 00 00 00
+	00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+	00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+	00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+	00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+	00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+	00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+	00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+	00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+	00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+	00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+	---------------------------------------------------------------
+  
+*/
+
+
+// MSID
+unsigned char *msid_data = "8468B0270D21A4093E29A9F76B";
+int force_id = 0xA9;
+
+// FAID to decode
+unsigned char *faid_data = "4123CD6569179DEC525FC959";
+
+// source FAID to encode
+unsigned char *faid_raw = "6609DA625BA1000020E636B0";
+
+
+int encrypt ( )
+{
+	unsigned char *faid;
+	unsigned char *msid;
+	int length = 0;
+	int pos = 0;
+
+	printf ( "[x] Generating FAID\n" );
+	
+	faid = __util_hexunpack ( faid_raw, &length);
+	if ( length != 12 )
+	{
+		printf ( "[E] Invalid FAID length %i\n", length );
+		return E_FAIL;
+	}
+		
+	msid = __util_hexunpack ( msid_data, &length);
+	if ( length != 13 )
+	{
+		printf ( "[E] Invalid MSID length %i\n", length );
+		return E_FAIL;
+	}
+	
+	printf ( "  [i] Crypted  MSID:    " );
+	for ( pos=1; pos < 13; pos++ )
+		printf ( "%02X", msid[pos] );		
+	printf ( "\n" );
+
+	__nokiacrypt_decode_msid ( msid );
+	if ( force_id >= 0 )
+		msid[9] = force_id;
+		
+	printf ( "  [i] Plain    MSID:    " );
+	for ( pos=1; pos < 13; pos++ )
+		printf ( "%02X", msid[pos] );		
+	printf ( "\n" );
+
+	printf ( "  [i] Plain    FAID:    " );
+	for ( pos=0; pos < 12; pos++ )
+		printf ( "%02X", faid[pos] );
+	printf ( "\n\n" );
+	
+	__nokiacrypt_encode_faid ( faid, msid );
+
+	printf ( "  [i] Crypted  FAID:    " );
+	for ( pos=0; pos < 12; pos++ )
+		printf ( "%02X", faid[pos] );
+	printf ( "\n\n" );
+	
+	
+	printf ( "  [i] Flash    FAID:    " );
+	for ( pos=0; pos < 12; pos++ )
+		printf ( "%02X", faid[pos^1] );
+	printf ( "\n\n" );
+
+	return E_OK;
+}
+
+
+int decrypt ( )
+{
+	unsigned char *faid;
+	unsigned char *msid;
+	int length = 0;
+	int pos = 0;
+
+	printf ( "[x] Checking FAID\n" );
+	
+	faid = __util_hexunpack ( faid_data, &length);
+	if ( length != 12 )
+	{
+		printf ( "[E] Invalid FAID length %i\n", length );
+		return E_FAIL;
+	}
+		
+	msid = __util_hexunpack ( msid_data, &length);
+	if ( length != 13 )
+	{
+		printf ( "[E] Invalid MSID length %i\n", length );
+		return E_FAIL;
+	}
+	
+	printf ( "  [i] Crypted  MSID:    " );
+	for ( pos=1; pos < 13; pos++ )
+		printf ( "%02X", msid[pos] );		
+	printf ( "\n" );
+
+	
+	__nokiacrypt_decode_msid ( msid );
+	if ( force_id >= 0 )
+		msid[9] = force_id;
+		/*
+	msid[5] = 0x00;
+	msid[6] = 0x00;
+	msid[7] = 0x00;
+	msid[8] = 0x00;
+*/
+		
+	printf ( "  [i] Plain    MSID:    " );
+	for ( pos=1; pos < 13; pos++ )
+		printf ( "%02X", msid[pos] );		
+	printf ( "\n" );
+
+	printf ( "  [i] Crypted  FAID:    " );
+	for ( pos=0; pos < 12; pos++ )
+		printf ( "%02X", faid[pos] );
+	printf ( "\n\n" );
+	
+	__nokiacrypt_decode_faid ( faid, msid );
+
+	printf ( "  [i] Plain    FAID:    " );
+	for ( pos=0; pos < 12; pos++ )
+		printf ( "%02X", faid[pos] );
+	printf ( "\n\n" );
+
+/*	
+	for ( pos=0; pos < 4; pos++ )
+	{
+		if ( (faid[pos] ^ faid[pos+4]) != 0xFF )
+		{
+			printf ( "[E] Invalid FAID (pos %i)\n", pos );
+			return E_FAIL;
+		}
+		if ( faid[pos+8] != 0x00 )
+		{
+			printf ( "[E] Invalid FAID (pos %i)\n", pos );
+			return E_FAIL;
+		}
+	}
+	*/
+	printf ( "[x] Valid FAID\n" );
+
+	return E_OK;
+}
+
+int main ()
+{
+	encrypt ();
+/*
+	force_id = 0;
+	
+	while ( crypt() != E_OK && force_id < 0xFF)
+		force_id++;
+	
+	return E_OK;
+*/
+}

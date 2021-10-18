@@ -1,0 +1,106 @@
+#include trix
+
+/*
+	Loads an EIJA NAND dump (with spare) and builds a FAT image from it.
+	Still not working correctly, although it should be correct... 
+	no idea why e.g. sector 0 is overwritten with zeros.
+	
+	Also its strange that the FAT table is not changed when adding a file. (camera photo)
+	Maybe its because of an intelligent file system driver which does not
+	count on the FAT table in case of small files? (has to be checked!)
+
+	The last block in the EIJA NAND image contains GBBM002 blocks which contain the 
+	number of SSR200 blocks in the flash. (BlockCount)
+	Each SSR200 block has a block number and contains sectors which LSN%BlockCount
+	has this block number.
+	
+	SSR200 Format:
+	 53 53 52 32 30 30 00 00 5B 02 00 00 12 00 00 00 
+	 00 00 00 00 66 00 00 00 20 00 00 00 FF FF FF FF
+	 
+	 unsigned char header[4];
+	 unsigned int last_block_number;   // in which flash block this SSR block was before
+	 unsigned int last_block_rewrites; // how many rewrites the last flash block of this SSR had
+	 unsigned int zeroed;
+	 unsigned int block_rewrites;      // how often this flash block got rewritten
+	 unsigned int remainder;           // in this SSR block are all sectors whose (LSN%BlockCount) have this remainder
+	
+	Spare Format:
+	 CD 00 00 FE FF FF 00 00 00 55 01 FF FF FF FF FF
+	 [  LSN ] FE FF FF [CHKSUM] ?? ?? FF FF FF FF FF
+	                    CHKSUM is 00 00 00 for totally zeroed blocks
+	          FE = used?
+	    LSN = Sector number for normal sectors
+			 for SSR sectors its the rewrite count for that block (same as in SSR header)
+*/
+
+int change_endianess ()
+{
+	if ( trix_workspace->flags == FLAGS_ENDIANESS_LE )
+	{
+		trix_workspace->flags = FLAGS_ENDIANESS_BE;
+		printf ( "Switched to: Big Endian\n" );
+	}
+	else
+	{
+		trix_workspace->flags = FLAGS_ENDIANESS_LE;
+		printf ( "Switched to: Little Endian\n" );
+	}
+	
+	WorkspaceUpdateMemmap ( trix_workspace );
+}
+int main ( )
+{
+	int pos = 0;
+	int blocknum = 0;
+	unsigned char *fat_image = NULL;
+	unsigned int fat_image_size = 0x10000 * 0x200;
+	unsigned char *dumpfile = "fat_image.bin";
+	t_workspace *ws = NULL;
+	
+	change_endianess();
+	
+	fat_image = malloc ( fat_image_size );
+	if ( !fat_image )
+		return E_FAIL;
+
+	while ( pos < GetSize () )
+	{
+		int sector = 0;
+		
+		if ( GetWord (pos) == 0x32525353 )
+		{
+			printf ( "\n" );
+			printf ( "Block 0x%04X, remainder 0x%04X at 0x%08X ", blocknum, GetWord ( pos + 0x18 ), pos );
+			printf ( "(0x%04X 0x%04X 0x%04X 0x%04X 0x%04X)\n", GetWord ( pos + 0x08 ), GetWord ( pos + 0x0C ), GetWord ( pos + 0x10 ), GetWord ( pos + 0x14 ), GetWord ( pos + 0x18 ) );
+			//          unknown  wearing zeroed
+			blocknum++;
+			sector++;
+		}
+		
+		while ( sector < 8 )
+		{
+			unsigned int lsn = GetHalf ( pos + 0x1000 + sector * 0x10 );
+			
+			if ( lsn == 0xFFFF )
+			{
+				printf ( "   LSN ------\n" );
+			}
+			else
+			{
+				printf ( "   LSN 0x%04X\n", lsn );
+				MemCpyGet ( &fat_image[lsn*0x200], pos + sector * 0x200, 0x200 );
+			}
+			sector++;
+		}
+		
+		pos += 0x1080;
+	}
+	
+	ws = WorkspaceCreateFileFromBuffer ( fat_image, fat_image_size );
+	__file_write ( dumpfile , ws->fileinfo );
+	__workspace_release ( ws ); // this will also free the fat_image buffer
+	
+	return E_OK;
+}
+

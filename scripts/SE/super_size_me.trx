@@ -1,0 +1,38 @@
+// load plugin
+#plugin trix_fmtbabe
+
+// include headers
+#include trix
+#include trix_fmtbabe
+#include "scripts/SE/se_babe_defs.trx"
+
+int main ()
+{
+   t_segment *cs = NULL;
+   char *extra = NULL;
+   unsigned int length = 0;
+   unsigned int max = 0;
+   unsigned int start = 0;
+
+   BABE_INIT // init babe workspace
+
+   max = 0x3330000 - GetSize();
+
+   length = UiDlgInt ( "How many bytes you want to add?\nPress enter to get maximal number of available bytes", 0, max );
+   if ( length == E_FAIL )
+      length = max;
+
+   cs = __stage_get_current ( ws->fileinfo->stages )->segments;
+   cs = __segment_find_by_name ( cs, "DATA", -1 );
+
+   cs->length += length;
+   cs->end += length;
+   cs->data = __mem_reallocate ( cs->data, cs->length, NULL, 0 );
+   __stage_set_modified ( __stage_get_current ( ws->fileinfo->stages ) );
+
+   if ( length )
+      printf ( "Added %s extra space at 0x%08X.\nDone!\n", PrintBytes ( length ), ( cs->end - length + 15 ) & ~ 15 );
+   else
+      printf ( "Added no extra space.\nDone!\n" );
+   return E_OK;
+}

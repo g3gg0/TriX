@@ -1,0 +1,1198 @@
+#title "DisARM VKP patch"
+#author "ndt"
+
+#plugin trix_disarm
+#plugin trix_fmtbabe
+
+#include trix
+#include stdio
+#include trix_disarm
+#include trix_fmtbabe
+#include "scripts/SE/se_babe_defs.trx"
+
+
+typedef struct s_jmp_table
+{
+   unsigned int start;
+   unsigned int end;
+   unsigned int size;
+   unsigned int count;
+   unsigned int pc;
+} t_jmp_table;
+
+typedef struct s_mod_area
+{
+   unsigned int start;
+   unsigned int end;
+} t_mod_area;
+
+char **lines = NULL;
+char **hdr_lines = NULL;
+t_mod_area *mod_area = NULL;
+unsigned int library[SWI_LF_COUNT];
+t_jmp_table jmpt = { 0, 0, 0, 0, 0};
+
+unsigned int lines_count = 0;
+unsigned int hdr_lines_count = 0;
+unsigned int mod_area_count = 0;
+unsigned int loc_count = 0;
+unsigned int off_count = 0;
+unsigned int jmp_count = 0;
+unsigned int gnu_style = 1; // 1 - gnu, 0 - fasmarm
+
+char * strncpy(char *dst, char *src, unsigned int n)
+{
+  char *end = dst + n;
+  char *s = dst;
+
+   while ( s < end )
+   {
+      *s = *src;
+      s++;
+      src++;
+   }
+   dst[n] = 0;
+   return dst;
+}
+
+int isprint( int ch )
+{
+   if ( ch < 0x0A || ( ch > 0x0B && ch < 0x20 ) || ch > 0x7F )
+      return 0;
+   else
+      return 1;
+}
+
+char int2str_buff[16];
+const char *int2str ( unsigned int val )
+{
+   sprintf ( int2str_buff, "%08X", val );
+   return (const char *)int2str_buff;
+}
+
+char is_string_buff[1024];
+const char *is_ascii ( unsigned int ptr )
+{
+   unsigned int i = 0;
+   unsigned int j = 0;
+   unsigned int ok = 1;
+   unsigned int byte = 0;
+
+   while ( ok && ( byte = GetByte ( ptr + i ) ) )
+   {
+      if ( ok = isprint ( byte ) )
+      {
+         if( byte < 0x20 )
+         {
+            is_string_buff[j] = '\\';
+            j++;
+            if( byte == 0x0A )
+               is_string_buff[j] = 'n';
+            else
+               is_string_buff[j] = 't';
+         }
+         else
+            is_string_buff[i] = byte;
+      }
+      i++;
+      j++;
+   }
+   is_string_buff[j] = 0;
+
+   if ( i && ok )
+      return (const char *)is_string_buff;
+
+   return NULL;
+}
+
+const char *is_unicode ( unsigned int ptr )
+{
+   unsigned int i = 0;
+   unsigned int j = 0;
+   unsigned int ok = 1;
+   unsigned int byte = 0;
+
+   while ( ok && ( byte = GetHalf ( ptr + i ) ) )
+   {
+      if ( ok = isprint ( byte ) )
+      {
+         if( byte < 0x20 )
+         {
+            is_string_buff[j] = '\\';
+            j++;
+            if( byte == 0x0A )
+               is_string_buff[j] = 'n';
+            else
+               is_string_buff[j] = 't';
+         }
+         else
+            is_string_buff[j] = byte;
+      }
+      i += 2;
+      j++;
+   }
+   is_string_buff[j] = 0;
+
+   if ( i && ok )
+      return (const char *)is_string_buff;
+
+   return NULL;
+}
+
+#define SYM_NONE        0x00000000
+#define SYM_ADR         0x00000001
+#define SYM_JMP         0x00000002
+#define SYM_LDR         0x00000004
+#define SYM_LOC         0x00000008
+#define SYM_SUB         0x00000010
+#define SYM_START       0x00000020
+#define SYM_ASCII       0x00000040
+#define SYM_UNICODE     0x00000080
+#define SYM_OUTCALL     0x00000100
+#define SYM_ALIGN       0x00000200
+#define SYM_ALIGN_AFTER 0x00000400
+
+unsigned int prepare_symbol ( char *line, unsigned int o, unsigned int type )
+{
+	char dst[16];
+	char tmp[256];
+	unsigned int loc = 0;
+
+   strncpy ( dst, line + o, 8 );
+   loc = __symbols_get_address ( NULL, dst );
+
+   if ( type & SYM_LOC )
+   {
+      if ( loc == E_FAIL )
+         loc = loc_count++;
+
+      strncpy ( tmp, line, 25 );
+      sprintf ( line, "%s%d", tmp, loc );
+      __fmt_babe_symbol_add ( dst, type, loc );
+   }
+   else if ( type & SYM_JMP )
+   {
+      if ( loc == E_FAIL )
+         loc = jmp_count++;
+
+      strncpy ( tmp, line, 29 );
+      if ( loc )
+         sprintf ( line, "%s%d", tmp, loc );
+      else
+         sprintf ( line, "%s", tmp );
+
+      __fmt_babe_symbol_add ( dst, type, loc );
+   }
+
+   return loc;
+}
+
+unsigned int add_line ( char *line )
+{
+   lines = ( char ** ) __mem_reallocate ( lines, ( lines_count + 1 ) * 4, NULL, 0 );
+   lines[lines_count] = __mem_strduplicate ( line, NULL, 0 );
+   lines_count++;
+
+   return E_OK;
+}
+
+unsigned int add_hdr_line ( char *hdr_line )
+{
+   hdr_lines = ( char ** ) __mem_reallocate ( hdr_lines, ( hdr_lines_count + 1 ) * 4, NULL, 0 );
+   hdr_lines[hdr_lines_count] = __mem_strduplicate ( hdr_line, NULL, 0 );
+   hdr_lines_count++;
+
+   return E_OK;
+}
+
+
+unsigned int lowercase_regs ( char *line )
+{
+   unsigned int i = 25;
+
+   if ( !strncmp ( line + 19, "bl ", 3 ) )
+      return E_OK;
+
+   while ( line[i] && ( line[i] != '@' ) && ( line[i] != ';' ) && ( line[i] != '_' ) )
+   {
+      switch ( line[i] )
+      {
+         case 'R':
+            line[i] = 'r';
+            break;
+         case 'S': // sp
+            line[i] = 's';
+            line[i + 1] = 'p';
+            break;
+         case 'L': // lr
+            line[i] = 'l';
+            line[i + 1] = 'r';
+            break;
+         case 'P': // pc
+            line[i] = 'p';
+            line[i + 1] = 'c';
+            break;
+      }
+      i++;
+   }
+
+   return E_OK;
+}
+
+unsigned int clean_digits ( char *line )
+{
+   unsigned int val = 0;
+   unsigned int pos = 0;
+   char tmp[256];
+
+   strncpy ( tmp, line, strlen ( line ) );
+
+   while ( line[pos] && line[pos] != '#' )
+      pos++;
+
+   if ( line[pos] != '#' )
+      return E_OK;
+
+   pos++;
+
+   val = Str2Int ( line + pos );
+
+   if ( val == 0 && line[pos + 4] == ']' )
+   {
+      line[pos - 3] = ']';
+      line[pos - 2] = 0;
+   }
+   else if ( val < 0x10  )
+   {
+      strncpy ( tmp, line, pos );
+      sprintf ( line, "%s%d%s", tmp, val, line + pos + 4 );
+   }
+   
+   if ( !gnu_style )
+   {
+      pos = 0;
+      while ( line[pos] && line[pos] != '#' )
+         pos++;
+
+      if ( line[pos] != '#' )
+         return E_OK;
+
+      while ( line[pos] )
+      {
+         line[pos] = line[pos + 1];
+         pos++;
+      }
+   }
+}
+
+unsigned int print_hdr ()
+{
+   unsigned int i = 0;
+   char *line = NULL;
+
+   if ( gnu_style )
+      printf ( "\n.include \"gas_macros.s\"\n\n" );
+   else
+      printf ( "\ninclude \"x.inc\"\n\n" );
+
+   while ( i < hdr_lines_count )
+   {
+      line = hdr_lines[i];
+      line[8] = 0;
+
+      if ( gnu_style )
+         printf ( ".equ %s, 0x%s\n", line + 9, line );
+      else
+         printf ( "%s equ 0x%s\n", line + 9, line );
+
+      __mem_release ( line, NULL, 0 );
+      i++;
+   }
+
+   __mem_release ( hdr_lines, NULL, 0 );
+   hdr_lines_count = 0;
+
+   return E_OK;
+}
+
+unsigned int print_code ()
+{
+   unsigned int i = 0;
+   unsigned int j = 0;
+   t_symbols *ts = NULL;
+   unsigned int pos = 0;
+   unsigned int align = 1;
+   char *line = NULL;
+   char *str = NULL;
+   char tmp[256];
+
+   while ( i < lines_count )
+   {
+      line = lines[i];
+      clean_digits ( line );
+      lowercase_regs ( line );
+      strncpy ( tmp, line, 8 );
+      sscanf ( tmp, "%X", &pos );
+      ts = __symbols_get ( NULL, tmp );
+
+      if ( ts )
+      {
+         if ( ( ts->type & SYM_ALIGN ) && align )
+         {
+            if ( gnu_style )
+               printf ( "\n.align 4\n" );
+            else
+               printf ( "\nalign 4\n" );
+         }
+         if ( ts->type & SYM_START )
+         {
+            align = 1;
+            if ( gnu_style )
+            {
+               printf ( "\n\n%c-------------------------------------------------\n\n.code 16\n\n", 0x3B + gnu_style * 5 );
+               printf ( ".global sub_%08X\nsub_%08X:\n\n%s\n", pos, pos, line + 19 );
+            }
+            else
+            {
+               printf ( "\n\n;-------------------------------------------------\n\ncode 16\n\n" );
+               printf ( "org sub_%08X\n\n%s\n", pos, line + 19 );
+            }
+            
+         }
+         if ( ts->type & SYM_SUB )
+         {
+            align = 1;
+            if ( gnu_style )
+               printf ( "\n\n.global sub_%08X\nsub_%08X:\n\n%s\n", pos, pos, line + 19 );
+            else
+               printf ( "\n\nsub_%08X:\n\n%s\n", pos, line + 19 );
+         }
+         if ( ts->type & SYM_LOC )
+         {
+            align = 1;
+            printf ( "\nloc_%d:\n%s\n", __symbols_get_address ( NULL, tmp), line + 19 );
+         }
+         if ( ts->type & SYM_LDR )
+         {
+            align = 0;
+            j = 0;
+            while ( ( ts->data[j] != '\t' ) && ( tmp[j] = ts->data[j] ) )
+               j++;
+            tmp[j] = 0;
+            if ( ( ts->data[1] != 'v' ) ) // _val_...
+            {
+               if ( gnu_style )
+                  printf ( "\n%s:\n.long  %s\n", tmp, ts->data + 1 );
+               else
+                  printf ( "\n%s:\ndw    %s\n", tmp, ts->data + 1 );
+            }
+            else
+            {
+               if ( gnu_style )
+                  printf ( "\n%s:\n.long  0x%s\n", tmp, ts->data + 5 );
+               else
+                  printf ( "\n%s:\ndw    0x%s\n", tmp, ts->data + 5 );
+            }
+         }
+         if ( ts->type & SYM_ASCII || ts->type & SYM_UNICODE )
+         {
+            align = 1;
+            printf ( "\n%s\n", ts->data );
+         }
+         if ( ts->type & SYM_JMP )
+         {
+            align = 1;
+            if ( jmp_count != 1 )
+               printf ( "\njmp_table_%d:\n", __symbols_get_address ( NULL, tmp) );
+            else
+               printf ( "\njmp_table:\n" );
+            printf ( "%s\n", line + 19 );
+         }
+         if ( ( ts->type & SYM_ALIGN_AFTER ) && ( i + 1 < lines_count ) )
+         {
+            align = 0;
+            if ( gnu_style )
+               printf ( "\n.align 4\n" );
+            else
+               printf ( "\nalign 4\n" );
+         }
+      }
+      else
+         printf ( "%s\n", line + 19 );
+
+      __mem_release ( line, NULL, 0 );
+      i++;
+   }
+
+   __mem_release ( lines, NULL, 0 );
+   lines_count = 0;
+
+   return E_OK;
+}
+
+unsigned int add_prefix ( char *line, char *pfx, unsigned int pos )
+{
+   char tmp[32];
+
+   strncpy ( tmp, line + pos, 8 );
+   strncpy ( line + pos, pfx, strlen( pfx ) );
+   strncpy ( line + pos + strlen( pfx ), tmp, 8 );
+
+   return E_OK;
+}
+
+unsigned int is_jump_table ( unsigned int pos )
+{
+   char tmp[256];
+   unsigned int size = 0;
+   unsigned int total_size = 0;
+   unsigned int cmp = 0;
+   unsigned int i = 0;
+   unsigned int ok = 0;
+   
+   jmpt.start = 0;
+   jmpt.end = 0;
+   jmpt.size = 0;
+   jmpt.count = 0;
+   jmpt.pc = 0;
+
+   while ( i < 10 && !ok )
+   {
+      __disarm_address ( ws, (char*)&tmp, pos - i, 1 );
+
+      if ( !strncmp ( tmp + 19, "cmp ", 4 ) && !ok )
+         ok = 1;;
+
+      i += 2;
+   }
+
+   if ( !ok )
+      return E_FAIL;
+
+   jmpt.count = ( GetHalf ( pos - i + 2 ) & 0xff ) + 1;
+
+   i = 0;
+   while ( i < 10 )
+   {
+      __disarm_address ( ws, (char*)&tmp, pos + i, 1 );
+
+      if ( !strncmp ( tmp + 19, "adr ", 4 ) && !ok )
+         ok++;
+      else if ( !strncmp ( tmp + 19, "ldr", 3 ) && ok == 1 )
+      {
+         switch ( tmp[22] )
+         {
+            case ' ': // ldr
+               size = 4;
+               break;
+            case 'h': // ldrh
+               size = 2;
+               break;
+            case 'b': // ldrb
+               size = 1;
+               break;
+         }
+         ok++;
+      }
+      else if ( !strncmp ( tmp + 19, "add  \tPC", 8 ) && ok == 2 )
+      {
+         i = 10;
+         ok++;
+      }
+
+      i += 2;
+   }
+   
+   if ( ok != 3 )
+      return E_FAIL;
+
+   sscanf ( tmp, "%08X", &jmpt.pc );
+   jmpt.pc += 4;
+
+   __disarm_address ( ws, (char*)&tmp, pos, 1 );
+   sscanf ( tmp + 29, "%08X", &jmpt.start );
+   jmpt.size = size;
+
+   if ( size == 4 )
+      jmpt.end = jmpt.start + ALIGN4 ( jmpt.count * jmpt.size );
+   else
+      jmpt.end = jmpt.start + ALIGN2 ( jmpt.count * jmpt.size );
+
+   return E_OK;
+}
+
+unsigned int check_bl ( unsigned int pos, char *line )
+{
+   unsigned int i = 0;
+   unsigned int dest = 0;
+   unsigned int rm_dest = 0;
+   char tmp[256];
+
+   if ( pos == E_FAIL || !line )
+      return E_FAIL;
+
+   dest = ARMGet ( pos );
+   rm_dest = rem_tramp ( dest );
+
+   // check functions from lib
+   while ( i < SWI_LF_COUNT )
+   {
+      if ( dest == ( library[i] & ~1 ) )
+      {
+         sprintf ( tmp, "%s", swi2name ( i + SWI_LF_START ) );
+         strncpy ( line + 25, tmp , strlen ( tmp ) );
+         __symbols_add ( NULL, int2str ( dest ), SYM_SUB, line + 25 );
+         return E_OK;
+      }
+      else if ( rm_dest == ( library[i] & ~1 ) )
+      {
+         sprintf ( tmp, "%s_%08X", swi2name ( i + SWI_LF_START ), dest );
+         strncpy ( line + 25, tmp , strlen ( tmp ) );
+         __symbols_add ( NULL, int2str ( dest ), SYM_SUB, line + 25 );
+         return E_OK;
+      }
+      i++;
+   }
+
+   sprintf ( tmp, "sub_%08X", dest );
+   strncpy ( line + 25, tmp , strlen ( tmp ) );
+   __symbols_add ( NULL, int2str ( dest ), SYM_SUB, line + 25 );
+
+   return E_OK;
+}
+
+unsigned int check_adr ( unsigned int pos, char *line )
+{
+   char *str = NULL;
+   char tmp[1024];
+
+   // check for unicode string
+   str = is_unicode ( pos );
+   if ( str )
+   {
+      line[29] = 0;
+      sprintf ( line, "%sstr_%08X", line, pos );
+      if ( gnu_style )
+         sprintf ( tmp, "str_%08X:\n.unicode \"%s\"", pos, str );
+      else
+         sprintf ( tmp, "str_%08X:\ndu    \"%s\",0", pos, str );
+      __symbols_add ( NULL, int2str ( pos ), SYM_ADR | SYM_UNICODE | SYM_ALIGN_AFTER, tmp );
+      return E_OK;
+   }
+
+   // ascii ?
+   str = is_ascii ( pos );
+   if ( str )
+   {
+      line[29] = 0;
+      sprintf ( line, "%sstr_%08X", line, pos );
+      if ( gnu_style )
+         sprintf ( tmp, "str_%08X:\n.asciz \"%s\"", pos, str );
+      else
+         sprintf ( tmp, "str_%08X:\ndb    \"%s\",0", pos, str );
+      __symbols_add ( NULL, int2str ( pos ), SYM_ADR | SYM_ASCII | SYM_ALIGN_AFTER, tmp );
+      return E_OK;
+   }
+
+   add_prefix ( line, "off_", 29 );
+   return E_FAIL;
+}
+
+unsigned int check_ldr ( unsigned int pos, char *line )
+{
+   unsigned int ptr = 0;
+   unsigned int rm_ptr = 0;
+   unsigned int i = 0;
+   unsigned int j = 0;
+   unsigned int bl = 0;
+   unsigned int blx = 0;
+   unsigned int ok = 0;
+   unsigned int byte = 0;
+   char *str = NULL;
+   char tmp[256];
+
+   strncpy ( line + 29, int2str ( pos ), 8 );
+   ptr = GetWord ( pos );
+   rm_ptr = rem_tramp ( ptr & ~1 );
+
+   // check functions from lib
+   while ( i < SWI_LF_COUNT )
+   {
+      if ( ( ptr & ~1 ) == ( library[i] & ~1 ) )
+      {
+         sprintf ( tmp, "_%s", swi2name ( i + SWI_LF_START ) );
+         strncpy ( line + 29, tmp , strlen ( tmp ) );
+         __symbols_add ( NULL, int2str ( pos ), SYM_LDR | SYM_ALIGN, line + 29 );
+         __symbols_add ( NULL, int2str ( ptr & ~1 ), SYM_SUB, tmp + 1 );
+         return E_OK;
+      }
+      else if ( rm_ptr == ( library[i] & ~1 ) )
+      {
+         sprintf ( tmp, "_%s_%08X", swi2name ( i + SWI_LF_START ), ptr & ~1 );
+         strncpy ( line + 29, tmp , strlen ( tmp ) );
+         __symbols_add ( NULL, int2str ( pos ), SYM_LDR | SYM_ALIGN, line + 29 );
+         __symbols_add ( NULL, int2str ( rm_ptr ), SYM_SUB, tmp + 1 );
+         return E_OK;
+      }
+      i++;
+   }
+
+   // check other functions
+   i = ptr & ~1;
+
+   if ( !( i & 3 ) ) // word aligned address
+   {
+      if ( FindPushLr ( i, LOC_FORWARD ) - i <= 4 )
+      {
+         sprintf ( tmp, "_sub_%08X", i );
+         strncpy ( line + 29, tmp , strlen ( tmp ) );
+         __symbols_add ( NULL, int2str ( pos ), SYM_LDR | SYM_ALIGN, line + 29 );
+         __symbols_add ( NULL, int2str ( i ), SYM_SUB, tmp + 1 );
+         return E_OK;
+      }
+
+      bl = ARMFind ( THUMB_BL, i, MEM_AUTO, LOC_FORWARD );
+      blx = ARMFind ( THUMB_BLX, i, MEM_AUTO, LOC_FORWARD );
+
+      j = i;
+      while ( j < bl && j < blx && j <= i + 0x200 )
+      {
+         if ( GetHalf ( j ) == 0x4770 )
+         {
+            sprintf ( tmp, "_sub_%08X", i );
+            strncpy ( line + 29, tmp , strlen ( tmp ) );
+            __symbols_add ( NULL, int2str ( pos ), SYM_LDR | SYM_ALIGN, line + 29 );
+            __symbols_add ( NULL, int2str ( i ), SYM_SUB, tmp + 1 );
+            return E_OK;
+         }
+         j += 2;
+      }
+   }
+
+   // check for unicode string
+   str = is_unicode ( ptr );
+   if ( str )
+   {
+      line[29] = 0;
+      sprintf ( line, "%s_str_%08X\t%c \"%s\"", line, ptr, 0x3B + gnu_style * 5, str );
+      if ( gnu_style )
+         sprintf ( tmp, "str_%08X:\n.unicode \"%s\"", ptr, str );
+      else
+         sprintf ( tmp, "str_%08X:\ndu    \"%s\",0", ptr, str );
+      __symbols_add ( NULL, int2str ( pos ), SYM_LDR | SYM_ALIGN, line + 29 );
+      __symbols_add ( NULL, int2str ( ptr ), SYM_UNICODE | SYM_ALIGN_AFTER, tmp );
+      line[42] = 0;
+      return E_OK;
+   }
+
+   // ascii ?
+   str = is_ascii ( ptr );
+   if ( str )
+   {
+      line[29] = 0;
+      sprintf ( line, "%s_str_%08X\t%c \"%s\"", line, ptr, 0x3B + gnu_style * 5, str );
+      if ( gnu_style )
+         sprintf ( tmp, "str_%08X:\n.asciz \"%s\"", ptr, str );
+      else
+         sprintf ( tmp, "str_%08X:\ndb    \"%s\",0", ptr, str );
+      __symbols_add ( NULL, int2str ( pos ), SYM_LDR | SYM_ALIGN, line + 29 );
+      __symbols_add ( NULL, int2str ( ptr ), SYM_ASCII | SYM_ALIGN_AFTER, tmp );
+      line[42] = 0;
+      return E_OK;
+   }
+
+   line[29] = 0;
+   sprintf ( line, "%s_val_%X", line, ptr );
+   __symbols_add ( NULL, int2str ( pos ), SYM_LDR | SYM_ALIGN, line + 29 );
+   return E_FAIL;
+}
+
+unsigned int check_dest ( unsigned int from )
+{
+   unsigned int pos = 0;
+   unsigned int dest = 0;
+   t_symbols *ts = NULL;
+   char tmp[256];
+
+   dest = ARMGet ( from );
+   dest = GetWord ( from );
+   if ( dest == E_FAIL )
+      return E_OK;
+
+   while ( pos < mod_area_count )
+   {
+      if ( ( dest >= mod_area[pos].start ) && ( dest < mod_area[pos].end ) )
+         return E_OK;
+      pos++;
+   }
+
+   return E_FAIL;
+}
+
+unsigned int get_opcode ( unsigned int pos )
+{
+   unsigned int ret = 2;
+	unsigned int add = 0;
+	unsigned int loc = 0;
+	unsigned int ldr = 0;
+	unsigned int adr = 0;
+	unsigned int i   = 0;
+	t_symbols *ts    = NULL;
+	char tmp[32768];
+	char otmp[1024];
+	char off[16];
+
+   sprintf ( off, "%08X", pos );
+   ts = __symbols_get ( NULL, off );
+   if ( ts && ( ts->type & SYM_LDR ) )
+   {
+      sprintf ( off, "%08X", pos );
+      add_line ( off );
+      return 4;
+   }
+
+   sprintf ( off, "%08X", pos + 2 );
+   ts = __symbols_get ( NULL, off );
+   if ( ts && ( ts->type & SYM_LDR && ( GetHalf ( pos ) == 0 || GetHalf ( pos ) == 0x46C0 || GetHalf ( pos ) == 0xFFFF ) ) )
+      return ret;
+
+   sprintf ( off, "%08X", pos );
+   ts = __symbols_get ( NULL, off );
+   if ( ts && ts->type & SYM_ASCII )
+   {
+      if ( gnu_style )
+         ret = ALIGN2 ( ( strlen ( ts->data ) - 23 ) );
+      else
+         ret = ALIGN2 ( ( strlen ( ts->data ) - 24 ) );
+
+      sprintf ( tmp, "%08X", pos, ts->data );
+      add_line ( tmp );
+      return ret;
+   }
+   else if ( ts && ts->type & SYM_UNICODE  )
+   {
+      if ( gnu_style )
+         ret = ( strlen ( ts->data ) - 25 ) * 2;
+      else
+         ret = ( strlen ( ts->data ) - 24 ) * 2;
+
+      sprintf ( tmp, "%08X", pos, ts->data );
+      add_line ( tmp );
+      return ret;
+   }
+
+   if ( ( pos == jmpt.pc - 2 ) && ( pos & 3 ) )
+      pos += 2;
+
+   if ( ( pos == jmpt.start ) || ( pos == jmpt.pc - 2 ) )
+   {
+      switch ( jmpt.size )
+      {
+         case 1:
+            if ( gnu_style )
+               sprintf ( off, ".byte  " );
+            else
+               sprintf ( off, "dw    " );
+            break;
+         case 2:
+            if ( gnu_style )
+               sprintf ( off, ".word  " );
+            else
+               sprintf ( off, "dh    " );
+            break;
+         case 4:
+            if ( gnu_style )
+               sprintf ( off, ".long  " );
+            else
+               sprintf ( off, "db    " );
+            break;
+      }
+
+      sprintf ( tmp, "%08X           ", pos );
+      while ( pos < jmpt.end && i < jmpt.count )
+      {
+         switch ( jmpt.size )
+         {
+            case 1:
+               add = GetByte ( pos );
+               break;
+            case 2:
+               add = GetHalf ( pos );
+               break;
+            case 4:
+               add = GetWord ( pos );
+               break;
+         }
+         loc = prepare_symbol ( int2str ( jmpt.pc + add ), 0, SYM_LOC );
+
+         if ( jmp_count != 1 )
+            sprintf ( tmp, "%s%sloc_%d - jmp_table_%d\n", tmp, off, loc, jmp_count - 1 );
+         else
+            sprintf ( tmp, "%s%sloc_%d - jmp_table\n", tmp, off, loc );
+
+         i++;
+         pos += jmpt.size;
+      }
+      add_line ( tmp );
+
+      ret += jmpt.end - jmpt.start;
+      jmpt.start = 0;
+      jmpt.size = 0;
+      jmpt.end = 0;
+
+      return ret;
+   }
+
+	__disarm_address ( ws, (char*)&tmp, pos, 1 );
+
+   if ( tmp[19] == '@' )
+      return ret;
+
+   if ( tmp[19] == 'b' &&
+        tmp[20] != 'x' && // bx
+        tmp[20] != 'k' && // bkpt
+        tmp[20] != 'i' && // bic
+        strncmp ( tmp + 19, "blx ", 4 ) )
+   {
+      if ( !strncmp ( tmp + 19, "bl ", 3 ) )
+      {
+         check_bl ( pos, tmp );
+         ret = 4;
+      }
+      else
+      {
+         prepare_symbol ( tmp, 25, SYM_LOC );
+         add_prefix ( tmp, "loc_", 25 );
+      }
+
+      if ( check_dest ( pos ) == E_FAIL )
+      {
+         sprintf ( otmp, "%08X %s", ARMGet ( pos ), tmp + 25 );
+         add_hdr_line ( otmp );
+      }
+   }
+
+   else if ( !strncmp ( tmp + 19, "cst ", 4 ) )
+   {
+      __disarm_address ( ws, (char*)&tmp, pos + 2, 1 );
+      tmp[21] = 'l';
+   }
+
+   else if ( !strncmp ( tmp + 19, "PUSH ", 5 ) )
+   {
+      tmp[19] = 'p';
+      tmp[20] = 'u';
+      tmp[21] = 's';
+      tmp[22] = 'h';
+   }
+
+   else if ( !strncmp ( tmp + 19, "POP ", 4 ) )
+   {
+      tmp[19] = 'p';
+      tmp[20] = 'o';
+      tmp[21] = 'p';
+   }
+
+   else if ( !strncmp ( tmp + 19, "adr ", 4 ) )
+   {
+      adr = ARMGet ( pos );
+      strncpy ( tmp + 29, int2str ( adr ), 8 );
+
+      if ( is_jump_table ( pos ) == E_OK )
+      {
+         prepare_symbol ( tmp, 29, SYM_JMP | SYM_ALIGN | SYM_ALIGN_AFTER );
+         if ( jmp_count != 1 )
+            add_prefix ( tmp, "jmp_table_", 29 );
+         else
+            add_prefix ( tmp, "jmp_table", 29 );
+      }
+      else
+         check_adr ( adr, tmp );
+
+      if ( check_dest ( pos ) == E_FAIL )
+      {
+         sprintf ( otmp, "%08X %s", ARMGet ( pos ), tmp + 29 );
+         add_hdr_line ( otmp );
+      }
+   }
+
+   else if ( !strncmp ( tmp + 19, "ldr ", 4 ) && tmp[29] != '[' )
+   {
+      ldr = ARMGet ( pos );
+      if ( check_ldr ( ldr, tmp ) == E_OK )
+      {
+         if ( check_dest ( pos ) == E_FAIL )
+         {
+            sprintf ( otmp, "%08X %s", GetWord ( ARMGet ( pos ) ), tmp + 30 );
+            add_hdr_line ( otmp );
+         }
+      }
+   }
+
+   add_line ( tmp );
+
+	return ret;
+}
+
+unsigned int parse_code ( unsigned int pos, unsigned int end )
+{
+   char tmp[1024];
+
+   jmpt.start = 0;
+   jmpt.size = 0;
+   jmpt.end = 0;
+   jmpt.count = 0;
+   jmpt.pc = 0;
+
+   sprintf ( tmp, "%08X sub_%08X", pos, pos );
+   __symbols_add ( NULL, int2str ( pos ), SYM_START, tmp + 9);
+
+   add_hdr_line ( tmp );
+
+   while ( pos < end )
+      pos += get_opcode ( pos );
+
+   return E_OK;
+}
+
+unsigned int parse_library ( char *name )
+{
+   unsigned int pos = 0, swi = 0, line = 0, ok = 0;
+   char *tmp = NULL;
+   char *lib = NULL;
+   t_workspace *lws = NULL;
+
+
+   if ( !name )
+      return E_FAIL;
+
+   lws = __workspace_startup ( name );
+
+	if ( !lws || __v_get_size ( lws ) == E_FAIL )
+		return E_FAIL;
+
+	lib = ( char * ) __mem_calloc ( __v_get_size ( lws ) + 2, 1, NULL, 0 );
+	if ( !lib )
+		return E_FAIL;
+
+	__v_memcpy_get ( lws, lib, __v_get_start ( lws ), __v_get_size ( lws ) );
+	lib[__v_get_size ( lws )] = 0;
+
+   while ( line < SWI_LF_COUNT )
+   {
+      library[line] = E_FAIL;
+      line++;
+   }
+
+   line = 0;
+	while ( tmp = __util_get_line ( lib, line ) )
+	{
+      if ( tmp[0] && tmp[0] != '+' && tmp[0] != ';' )
+      {
+         sscanf ( tmp + 15, "%08X ;%X", &pos, &swi );
+         pos = SW ( pos );
+         if ( pos != E_FAIL )
+            ok++;
+         library[ ( swi &0x3FFF ) - SWI_LF_START] = pos;
+      }
+      line++;
+	}
+
+   printf ( "\nLoaded %d from %d functions to workspace.\n\n", ok, SWI_LF_COUNT );
+
+   return E_OK;
+}
+
+unsigned int parse_vkp_patch ( char *name )
+{
+   unsigned int start = 0, end = 0, pos = 0, tot_len = 0, leno = 0, lenm = 0, base = 0, line = 0;
+   char *tmp = NULL;
+   char orig[256];
+   char mod[256];
+   char *po = NULL;
+   char *pm = NULL;
+   char *patch = NULL;
+   t_workspace *pws = NULL;
+
+
+   if ( !name )
+      return E_FAIL;
+
+   pws = __workspace_startup ( name );
+
+	if ( !pws || __v_get_size ( pws ) == E_FAIL )
+		return E_FAIL;
+
+	patch = ( char * ) __mem_calloc ( __v_get_size ( pws ) + 2, 1, NULL, 0 );
+	if ( !patch )
+		return E_FAIL;
+
+	__v_memcpy_get ( pws, patch, __v_get_start ( pws ), __v_get_size ( pws ) );
+	patch[__v_get_size ( pws )] = 0;
+
+   loc_count = 0;
+   off_count = 0;
+   jmp_count = 0;
+
+   if ( mod_area )
+   {
+      free ( mod_area );
+      mod_area_count = 0;
+   }
+   mod_area = ( t_mod_area *) __mem_calloc ( 1, sizeof ( t_mod_area ), NULL, 0 );
+
+   printf ( "\n\n%c-------------------------------------------------\n", 0x3B + gnu_style * 5 );
+   printf ( "%c------------------ BEGIN CODE -------------------\n", 0x3B + gnu_style * 5 );
+   printf ( "%c-------------------------------------------------\n", 0x3B + gnu_style * 5 );
+
+	while ( tmp = __util_get_line ( patch, line ) )
+	{
+      if ( tmp[0] && tmp[0] != '+' && tmp[0] != ';' )
+      {
+         sscanf ( tmp, "%X: %s %s", &pos, orig, mod );
+
+         if ( strcmp ( orig, mod ) )
+         {
+            pos += base;
+
+            po = __util_hexunpack ( orig, &leno );
+            pm  = __util_hexunpack ( mod,  &lenm );
+
+            if ( leno != lenm )
+               fail (E_FAIL, "Error reading a file!\n");
+
+            MemCpyPut ( pos, pm, lenm );
+
+            if ( start + tot_len != pos ) // new area
+            {
+               if ( tot_len )
+               {
+                  mod_area = ( t_mod_area * ) __mem_reallocate ( mod_area, ( mod_area_count + 1 ) * sizeof ( t_mod_area ), NULL, 0 );
+                  mod_area[mod_area_count].start = start;
+                  mod_area[mod_area_count].end = start + tot_len;
+                  mod_area_count++;
+                  tot_len = 0;
+               }
+
+               tot_len += lenm;
+               start = pos;
+            }
+            else
+               tot_len += lenm;
+         }
+      }
+      else if ( tmp[0] == '+' )
+         sscanf ( tmp, "+%08X", &base );
+
+      line++;
+   }
+
+   if ( start + tot_len != pos ) // new area
+   {
+      if ( tot_len )
+      {
+         mod_area = ( t_mod_area * ) __mem_reallocate ( mod_area, ( mod_area_count + 1 ) * sizeof ( t_mod_area ), NULL, 0 );
+         mod_area[mod_area_count].start = start;
+         mod_area[mod_area_count].end = start + tot_len;
+         mod_area_count++;
+         tot_len = 0;
+      }
+   }
+
+   lines_count = 0;
+   lines = ( char ** ) __mem_calloc ( 1, 4, NULL, 0 );
+
+   hdr_lines_count = 0;
+   hdr_lines = ( char ** ) __mem_calloc ( 1, 4, NULL, 0 );
+
+   pos = 0;
+   while ( pos < mod_area_count )
+   {
+      start = mod_area[pos].start;
+      end = mod_area[pos].end;
+      parse_code ( start, end );
+      pos++;
+   }
+
+   print_hdr ();
+   print_code ();
+
+   if ( mod_area )
+   {
+      free ( mod_area );
+      mod_area_count = 0;
+   }
+
+   printf ( "\n\n%c-------------------------------------------------\n", 0x3B + gnu_style * 5 );
+   printf ( "%c-------------------- END CODE -------------------\n", 0x3B + gnu_style * 5 );
+   printf ( "%c-------------------------------------------------\n\n", 0x3B + gnu_style * 5 );
+
+   return E_OK;
+}
+
+int main ()
+{
+   int command = 0;
+	char *patch_name = NULL;
+	char *lib_name = NULL;
+   char *menu[] = { "Load library file", "Load patch", "Switch output format ( GNU / FASMARM )" };
+
+
+   BABE_INIT // init babe workspace
+
+	while ( 1 )
+	{
+      command = UiDlgMenu ( "DisARM VKP patch 0.80", menu, UI_OPT_QUIT );
+
+      switch ( command )
+      {
+         case E_FAIL:
+            break;
+         case 0:
+            say ( "Done!\n" );
+            return E_OK;
+            break;
+
+         case 1:
+            UiDlgString ( "Enter library filename", &lib_name );
+            if ( lib_name == NULL )
+            {
+               say ( "error getting filename\n" );
+               return E_FAIL;
+            }
+            if ( parse_library ( lib_name ) == E_FAIL )
+            {
+               say ( "error reading library\n" );
+               return E_FAIL;
+            }
+            break;
+
+         case 2:
+            UiDlgString ( "Enter patch filename", &patch_name );
+            if ( patch_name == NULL )
+            {
+               say ( "error getting filename\n" );
+               return E_FAIL;
+            }
+            if ( parse_vkp_patch ( patch_name ) == E_FAIL )
+            {
+               say ( "error reading patch\n" );
+               return E_FAIL;
+            }
+            say ( "\nDone!\n" );
+            break;
+
+         case 3:
+            gnu_style = ( gnu_style + 1 ) & 1;
+            if ( gnu_style )
+               say ( "Selected GNU Assembler output format\n" );
+            else
+               say ( "Selected FASMARM output format\n" );
+            break;
+      }
+	}
+
+   say ( "Done!\n" );
+	return E_OK;
+
+}

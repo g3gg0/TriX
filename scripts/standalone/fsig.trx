@@ -1,0 +1,345 @@
+#title "fsig patch"
+#author "krisha"
+
+#include trix
+#include stdio
+
+void fsig_compile ()
+{
+	say ( "compiling fsig c and asm files\n" );
+	__arm_run_makefile ( "scripts/standalone/fsig" );
+}
+
+int fsig_insert_functions ()
+{
+	object *arm_func = NULL;
+	int bytes = 0;
+	int freespace = 0;
+	
+	say ( "injecting compiled functions\n" );
+	
+	arm_func = __arm_create_object ( "scripts/standalone/fsig", "fsig.o" );
+	if ( !arm_func )
+	{
+		say ( "  error reading fsig.o\n" );
+		return E_FAIL;
+	}
+	
+	if ( SymbolGetInt ( "freespace" ) == E_FAIL )
+	{
+		say ( "  could not find symbol freespace!\n" );
+		return E_FAIL;
+	}
+	
+	freespace = SymbolGetInt ( "freespace" );
+	//todo
+	freespace = 0x01AAFC00;
+	
+	//printf ( "freespace: 0x%08X\n", freespace );
+	
+	//char *buffer = NULL;
+	//UiDlgString ( "press enter to continue.", &buffer );
+	
+	//printf ( "ws->memmap->end: 0x%08X\n", GetWorkspace()-> );
+	//printf ( "ws->memmap->end: 0x%08X\n", __segment_get_last() );
+	
+	
+	t_segment *last_seg = __segment_get_last ( __stage_get_last ( GetWorkspace()->memmap->stage )->segments );
+	/*
+	printf ( "end: 0x%08X\n", last_seg->end );
+	__segment_dump ( last_seg );
+	
+	say ( "reallocating segment data - increasing by 100\n" );
+	last_seg->data = realloc ( last_seg->data, last_seg->length + 100 );
+	last_seg->length += 100;
+	last_seg->end += 100;
+	*/
+	
+	
+	//__segment_dump ( last_seg );
+	//__workspace_update_memmap ( GetWorkspace() );
+	
+	
+	/*
+	printf ( "setword: %d\n", SetWord ( freespace, 0x12345678 ) );
+	printf ( "setword: %d\n", SetWord ( freespace+4, 0x87654321 ) );
+	
+	printf ( "read: %08X\n", GetWord ( freespace ) );
+	printf ( "read: %08X\n", GetWord ( freespace + 4) );
+	
+	char *buffer = NULL;
+	UiDlgString ( "press enter to continue.", &buffer );
+	
+	return -1;
+	*/
+	
+	//__util_dump_object ( arm_func );
+	//__symbols_dump ( last_seg );
+	
+	/* TODO
+	bytes = NokiaCreateFunc ( arm_func, freespace );
+	if ( bytes == E_FAIL )
+	{
+		say ( "  patching failed (fsig.o)\n" );
+		return E_FAIL;
+	}
+	printf ( "  patched bytes (fsig.o): %d @ 0x%08X\n", bytes, freespace );
+	__util_free_object ( arm_func );
+	arm_func = NULL;
+	
+	freespace += bytes;
+	*/
+	
+	//say ( "injecting fsig_asm.s functions\n" );
+	
+	arm_func = __arm_create_object ( "scripts/standalone/fsig", "fsig_asm.o" );
+	if ( !arm_func )
+	{
+		say ( "  error reading fsig_asm.o\n" );
+		return -1;
+	}
+	
+	bytes = NokiaCreateFunc ( arm_func, freespace );
+	if ( bytes == E_FAIL )
+	{
+		say ( "  patching failed (fsig_asm.o)\n" );
+		return -1;
+	}
+	printf ( "  patched bytes (fsig_asm.o): %d @ 0x%08X\n", bytes, freespace );
+	__util_free_object ( arm_func );
+	arm_func = NULL;
+	
+	freespace += bytes;
+	return E_OK;
+
+}
+
+int fsig_diff_flash ()
+{
+
+	unsigned int ofs;
+	unsigned int start, fsig_start;
+	unsigned int end, fsig_end;
+	unsigned int tenth, next_tenth;
+	unsigned int diffs = 0;
+	unsigned int modified_patch;
+	
+	say ( "finding differences in fsig area\n" );
+	
+	modified_patch = SymbolGetInt ( "modified" );
+	modified_patch = SymbolGetInt ( "modification" );
+	if ( modified_patch == E_FAIL )
+	{
+		say ( "  modified area of patched functions not found\n" );
+		return E_FAIL;
+	}
+	
+	t_workspace *org_file = WorkspaceStartup ( GetWorkspace()->fileinfo->filename );
+
+	if ( !org_file )
+	{
+		say ( "  could not open original file again\n" );
+		return E_FAIL;
+	}
+	
+	start = __v_get_start ( org_file );
+	end = __v_get_end ( org_file );
+	
+	printf ( "  original flash start: 0x%08X\n", start );
+	printf ( "  original flash end: 0x%08X\n", end );
+	
+	fsig_start = GetWord ( 0x100006C + 12 );
+	fsig_end = GetWord ( 0x100006C + 12 ) + GetWord ( 0x100006C + 8 ) * 8;
+	
+	printf ( "  fsig start: 0x%08X\n", fsig_start );
+	printf ( "  fsig checksum: 0x%08X%08X\n", GetWord ( 0x100006C ), GetWord ( 0x100006C + 4 ) );
+	printf ( "  fsig size: 0x%08X\n", GetWord ( 0x100006C + 8 )*8 );
+	printf ( "  fsig end: 0x%08X\n", fsig_end );
+	
+	
+	
+	tenth = ( fsig_end - fsig_start ) / 10;
+	next_tenth = (fsig_start + tenth);
+	
+	
+	for ( ofs = fsig_start; ofs <= fsig_end; ofs += 4 )
+	{
+		if ( Valid ( ofs ) && ( __v_get_w ( org_file, ofs ) != GetWord ( ofs ) ) )
+		{
+			printf ( "  diff @0x%08X: 0x%08X -> 0x%08X\n", ofs, __v_get_w ( org_file, ofs ), GetWord ( ofs ) );
+			printf ( "  writing diff to modified area\n" );
+			SetWord ( modified_patch, ofs );
+			SetWord ( modified_patch + 4, __v_get_w ( org_file, ofs ) );
+			modified_patch += 8;
+			diffs++;
+			if ( diffs == 400/8 )
+			{
+				say ( "  maximum of allowed modifications reached - increase all sizes and continue!\n" );
+				return E_FAIL;
+			}
+		}
+		if ( ofs > next_tenth )
+		{
+			printf ( "  %d0%% compared\n", (next_tenth - fsig_start) / tenth );
+			next_tenth += tenth;
+		}
+	}
+	
+	//satisfy user by 100% :)
+	if ( (next_tenth - fsig_start) / tenth == 10 )
+		printf ( "  100%% compared\n" );
+	
+	say ( "  finding differences done (found: %d equals 0x%X bytes)\n", diffs, diffs*8 );
+		
+	return E_OK;
+}
+
+int fsig_modify_pointer ()
+{
+	unsigned int start, end;
+	unsigned int ofs;
+	unsigned int romtable;
+	int ret = E_FAIL;
+	
+	unsigned char pattern[8];
+	unsigned char mask[4];
+	
+	unsigned char patched;
+	
+	//seer has a bug with 0x00 at beginning of strings - it uses a random addr with 0x00 at the beginning!!
+	pattern[0] = 0x00;
+	pattern[1] = 0x84;
+	pattern[2] = 0x00;
+	pattern[3] = 0x01;
+	/*pattern[4] = 0x09;
+	pattern[5] = 0x00;
+	pattern[6] = 0x00;
+	pattern[7] = 0x3A;*/
+	
+	say ( "modifying rom pointers\n" );
+	
+	romtable = SymbolGetInt ( "rom_table" );
+	
+	if ( romtable == E_FAIL )
+	{
+		say ( "  symbol rom_table not found\n" );
+		return E_FAIL;
+	}
+	
+	start = MEM_AUTO; //__v_get_start ( GetWorkspace() );
+	end = __v_get_end ( GetWorkspace() );
+	
+	do
+	{
+		start = QuickFindPattern ( pattern,
+			"\xFF\xFF\xFF\xE1",
+			4, start, MEM_MAX, 0 );
+		if ( start == E_FAIL )
+		{
+			say ( "  no more rom calls\n" );
+			return ret;
+		}
+		//printf ( "check @0x%08X: 0x%08X\n", start, GetWord ( start ) );
+		
+		patched = 0;
+		
+		for ( ofs = start - 0x10; ofs <= start + 40 && !patched; ofs += 4 )
+		{
+		// on some phones 2630/1208/RM305 0x900003A is directly after rom addr
+		// on other phones 3100 this is not there
+		// both types have a 0x1000080 some words after the rom call
+			if ( GetWord ( ofs ) == 0x900003A || GetWord ( ofs ) == 0x1000080 )
+			{
+				ret = E_OK;
+				printf ( "  patching @0x%08X: 0x%08X -> 0x%08X\n", start, GetWord ( start ), romtable + GetWord ( start ) - 0x840000 );
+				
+				SetWord ( start, romtable + GetWord ( start ) - 0x840000 );
+				patched = 1;
+				//TODO 
+				return E_OK;
+				
+			}
+		}
+		
+		start += 4;
+	} while ( start < end );
+	
+	say ( "  no more rom calls\n" );
+	return ret;
+	
+
+}
+
+int fsig_increase_flashfile ( unsigned int additional_size )
+{
+	unsigned int freespace;
+	char buf[11];
+	
+	say ( "increasing flashfile size\n" );
+	printf ( "  flash start: 0x%08X\n", __v_get_start ( GetWorkspace () ) );
+	printf ( "  flash end: 0x%08X\n", __v_get_end ( GetWorkspace () ) );
+	
+	freespace = __v_get_end ( GetWorkspace() );
+	if ( freespace == -1 || freespace < 0x1000000 )
+	{
+		say ( "  could not find flash end, or file not supported!\n" );
+		return E_FAIL;
+	}
+	
+	say ( "  increasing flash file size by 0x%08X bytes\n", additional_size );
+	MemCpyPut ( freespace, NULL, additional_size );
+	
+	sprintf ( buf, "0x%08X", freespace );
+	SymbolAdd ( "freespace", SYM_PTR, buf );
+	
+	return E_OK;
+
+}
+
+int main ()
+{
+
+	
+
+//	return fsig_diff_flash ();
+
+	//return fsig_modify_pointer ();
+	
+	fsig_compile ();
+	
+	//say ( "increasing flash space\n" );
+	
+	if ( fsig_increase_flashfile ( 0x10000 ) == E_FAIL )	//todo 0x1000
+	{
+		say ( "function fsig_increase_flashfile failed\n" );
+		return E_FAIL;
+	}
+		
+	
+	//__util_dump_object ( arm_func );
+	//__symbols_dump ( last_seg );
+	
+	if ( fsig_insert_functions () == E_FAIL )
+	{
+		say ( "function fsig_insert_functions failed\n" );
+		return E_FAIL;
+	}
+	
+	if ( fsig_modify_pointer () == E_FAIL )
+	{
+		say ( "function fsig_modify_pointer failed\n" );
+		return E_FAIL;
+	}
+	
+	
+	if ( fsig_diff_flash () == E_FAIL )
+	{
+		say ( "function fsig_diff_flash failed\n" );
+		return E_FAIL;
+	}
+	
+	say ( "everything done fine!" );
+	
+	//armada_inject_file ( "test.arm" );
+	return 0;
+}

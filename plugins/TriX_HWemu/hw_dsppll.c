@@ -1,0 +1,79 @@
+#ifndef __TRIX_HW_DSPPLL_C__
+#define __TRIX_HW_DSPPLL_C__
+
+
+
+#include "defines.h"
+#include "seer.h"
+#include "segment.h"
+#include "stage.h"
+#include "file_io.h"
+#include "file.h"
+#include "workspace.h"
+#include "util.h"
+#include "options.h"
+
+#include "mem.h"
+
+
+#include "trixplug.h"
+
+#include "hwemu.h"
+
+// include all the TriXPluG function/init stuff
+TRIXPLUG_STUBS
+#include "trixplug_wrapper.h"
+
+struct trix_functions *ft;
+
+
+
+
+unsigned int hwemu_dsppll_handle ( t_workspace *ws, unsigned int address, unsigned char type, unsigned int value )
+{
+	int okay = 0;
+	int read = 1;
+	int write = 0;
+	unsigned int data = 0;
+	unsigned char *sect = "DSPPLL";
+	unsigned char *desc = "";
+	unsigned int offset = address - DSPPLL_BASE;
+
+	if ( type & MODE_WRITE )
+	{
+		read = 0;
+		write = 1;
+	}
+
+	switch ( offset )
+	{
+		default:
+			desc = "PLL State";
+			if ( read )
+			{
+				// PLL locked flag
+				okay = 1;
+				data = v_get_h ( ws, address ) | 1;
+			}
+			break;
+	}
+
+	if ( type & MODE_WRITE )
+	{
+		if ( !okay )
+			hwemu_default_handle ( ws, address, type, value );
+		if ( verbosity & HWEMU_VERB_DSPPLL )
+			printf ( "strh ( 0x%08X, 0x%04X ); // (%s+0x%04X %s)\n", address, value, sect, offset, desc );
+	}
+	else
+	{
+		if ( !okay )
+			data = hwemu_default_handle ( ws, address, type, value );
+		if ( verbosity & HWEMU_VERB_DSPPLL )
+			printf ( "ldrh ( 0x%08X ); // -> 0x%04X (%s+0x%04X %s)\n", address, data, sect, offset, desc );
+	}
+
+	return data;
+}
+
+#endif

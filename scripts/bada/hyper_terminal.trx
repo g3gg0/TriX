@@ -1,0 +1,40 @@
+#plugin trix_term
+
+#include trix
+#include stdio
+#include stdlib
+#include trix_term
+
+int main ( )
+{
+	char sbuf[10240];
+	char rbuf[10240];
+	char *cmd = NULL;
+	unsigned int i, len;
+
+	__term_open ( 5 );
+	__term_set_control ( 115200, 8, 1, 0, 0 );
+
+	while ( 1 )
+	{
+		UiDlgString ( "Enter command you want to send...", &cmd );
+		len = strlen ( cmd );
+		if ( len == 0 )
+		{
+			__term_close ( );
+
+			say ( "Done!" );
+			return E_OK;
+		}
+
+
+		sprintf ( sbuf, "%s\r\n", cmd );
+
+		__term_send ( sbuf, len + 2 );
+
+		memset ( rbuf, 0, 500 );
+		__term_receive ( rbuf, 500 );
+
+		printf ( "%s\n", rbuf );
+	}
+}

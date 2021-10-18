@@ -1,0 +1,247 @@
+#title "Reference searcher"
+#author "krisha, g3gg0, ndt"
+
+// load plugin
+#plugin trix_fmtbabe
+
+// include headers
+#include trix
+#include stdio
+#include trix_fmtbabe
+#include "scripts/SE/se_babe_defs.trx"
+
+
+unsigned int search_word ( unsigned int destination )
+{
+	unsigned int found = 0;
+	unsigned int offset = MEM_AUTO;
+	char pattern[4];
+
+	if ( ws->flags == FLAGS_ENDIANESS_LE )
+      destination = SW ( destination );
+		
+	pattern[0] = ( destination >> 24 ) & 0xFF;
+	pattern[1] = ( destination >> 16 ) & 0xFF;
+	pattern[2] = ( destination >> 8 ) & 0xFF;
+	pattern[3] = destination & 0xFF;
+
+	offset = 0x10000000;
+	do
+	{
+		offset = QuickFindPattern(pattern, NULL, 4, offset+1, MEM_AUTO, LOC_FORWARD );
+		if ( Valid ( offset ) )
+			printf ( "   [i] 0x%08X: DW 0x%08X\n", offset, GetWord ( offset ) );
+			
+		found++;
+	} while ( Valid ( offset ) && found < 20 );
+	
+	
+	return E_OK;
+}
+
+unsigned int search_bl ( unsigned int destination )
+{
+	unsigned int found = 0;
+	unsigned int total = 0;
+	unsigned int offset = MEM_AUTO;
+
+	while ( offset != E_FAIL )
+	{
+		offset = ARMFind ( THUMB_BL, offset, MEM_AUTO, LOC_FORWARD );
+		if ( offset != E_FAIL )
+		{
+			if ( ARMGet ( offset ) == destination )
+			{
+				//printf ( "   [i] 0x%08X: BL 0x%08X\n", offset, ARMGet ( offset ) );
+				printf ( "MakeCode ( 0x%08X );\n", offset );
+				printf ( "AddCodeXref ( 0x%08X, 0x%08X, fl_CN );\n", offset, ARMGet ( offset ) );
+				found++;
+			}
+			
+			total++;
+			offset++;
+		}
+	}
+	
+	if ( !found )
+		printf ( "   [i] none found\n" );
+		
+	printf ( "   [i] %i BLs scanned\n", total );
+
+	return E_OK;
+}
+
+unsigned int dump_address ( unsigned int destination )
+{
+   printf ( "[x] searching for BL's\n" );
+   search_bl ( destination );
+	
+   printf ( "\n\n[x] searching for address references\n" );
+   search_word ( destination );
+	
+   printf ( "\n\n[x] searching for thumb address references\n" );
+   search_word ( destination | 1 );
+
+   return E_OK;
+}
+
+unsigned int dump_debug_printf ( int function, unsigned int start, unsigned int end )
+{
+	int pos[16];
+	unsigned int i = 0;
+	int scanback = 500;
+	unsigned int registers[32];
+	unsigned char reg = 0;
+	int relative = 0;
+	int offset = 0;
+	unsigned char *buffer = NULL;
+
+	unsigned char byte_1 = 0;
+	unsigned char byte_2 = 0;
+	buffer = malloc ( 8192 );
+
+
+	if ( function == E_FAIL )
+	{
+		say ( "Error finding debug_printf () function\n" );
+		return E_OK;
+	}
+
+	offset = MEM_AUTO;
+   int aaa = 0;
+	while ( offset != E_FAIL && aaa < 20 )
+	{
+      aaa++;
+		offset = ARMFindSrcOfDest ( THUMB_BL, function, offset, MEM_AUTO, LOC_FORWARD );
+		if ( offset != E_FAIL )
+		{
+			for ( reg = 0; reg < 8; reg++ )
+			{
+				pos[reg] = 1;
+				registers[reg] = 0xFFFFFFFF;
+
+				while ( pos[reg] <= scanback && registers[reg] == 0xFFFFFFFF )
+				{
+					byte_1 = GetHalf ( offset - pos[reg]*2 ) >> 8;
+					byte_2 = GetHalf ( offset - pos[reg]*2 ) & 0xFF;
+					
+					if ( byte_1 == 0xB5 )
+						pos[reg] = scanback;
+
+					if ( byte_1 == (0x20|reg) )
+						registers[reg] = byte_2;
+						
+					if ( byte_1 == (0x48|reg) )
+					{
+						relative = byte_2;
+						registers[reg] = GetWord ( ((offset - pos[reg]*2)&0xFFFFFFFC)+4+4*relative );
+					}
+					
+					if ( byte_1 == (0xA0|reg) )
+					{
+						relative = byte_2;
+						registers[reg] = ((offset - pos[reg]*2)&0xFFFFFFFC)+4+4*relative;
+					}
+					pos[reg]++;
+				}
+			}
+
+			for ( reg = 0; reg < 8; reg++ )
+			{
+				
+				while ( pos[reg] )
+				{
+					byte_1 = GetHalf ( offset - pos[reg]*2 ) >> 8;
+					byte_2 = GetHalf ( offset - pos[reg]*2 ) & 0xFF;
+					
+					if ( byte_1 == 0x1C && (byte_2 & 0x07) == reg )
+					{
+						relative = (byte_2>>3) & 0x07;
+						if ( pos[reg] < pos[relative] )
+							registers[reg] = registers[relative];
+					}
+					
+					if ( byte_1 == (0x30|reg) )
+						registers[reg] += byte_2;
+						
+					if ( byte_1 == (0x38|reg) )
+						registers[reg] -= byte_2;
+						
+					pos[reg]--;
+				}
+			}
+
+			printf ( "0x%08X: debug_printf ( \"", offset, );
+
+			if ( Valid ( registers[0] ) )
+         {
+            i = 0;
+            while ( GetByte ( registers[0] + i ) )
+            {
+               if ( GetByte ( registers[0] + i ) == 0x0A )
+                  printf ( "\\n" );
+               else if ( GetByte ( registers[0] + i ) == 0x0B )
+                  printf ( "\\t" );
+               else
+                  printf ( "%c", GetByte ( registers[0] + i ) );
+               i++;
+            }
+            printf ( "\", ... );\n" );
+         }
+         else
+            printf ( "\", ... ); // TODO\n" );
+
+			offset += 2;
+		}
+	}
+
+	free ( buffer );
+	return E_OK;
+}
+
+
+int main ()
+{
+	unsigned int destination = 0;
+	unsigned int debug_printf = 0;
+	unsigned int err = 0;
+
+	int done = 0;
+	int command = 0;
+	unsigned int fw_start = 0;
+	unsigned int fw_end = 0;
+	char *menu[] = { "Search for references", "Dump debug_printf () strings" };
+
+
+   BABE_INIT // init babe workspace
+
+   fw_start = GetStart ();
+   fw_end   = GetEnd ();
+
+	while ( !done )
+	{
+		command = UiDlgMenu ( "Menu", menu, UI_OPT_QUIT );
+
+		if ( !command )
+			return E_OK;
+
+		switch ( command )
+		{
+			case E_FAIL:
+				break;
+			case 0:
+				return E_OK;
+
+			case 1:
+				destination = UiDlgInt ( "Which destination address should the branch/offset go to?", fw_start, fw_end );
+				dump_address ( destination );
+				break;
+				
+			case 2:
+				dump_debug_printf ( locate ( "debug_printf" ) & ~1, fw_start, fw_end );
+				break;
+		}
+	}
+
+	return E_OK;
+}

@@ -1,0 +1,15 @@
+// load plugin
+#plugin trix_fmtbada
+
+// include headers
+#include trix
+#include trix_fmtbada
+#include "scripts/bada/bada_defs.trx"
+
+int main ( )
+{
+	BADA_INIT // init bada workspace
+
+	pause ( );
+	return E_OK;
+}

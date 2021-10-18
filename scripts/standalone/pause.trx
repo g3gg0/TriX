@@ -1,0 +1,9 @@
+#title "wait for enter"
+#include trix
+
+int main ( )
+{
+	char *buffer = NULL;
+	say ( "wait for enter key; you can dump via workspace so long... ;-)\n" );
+	UiDlgString ( "Just press enter if you're bored ;).", &buffer );
+}

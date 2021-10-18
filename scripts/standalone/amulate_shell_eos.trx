@@ -1,0 +1,1134 @@
+#title "Emulator shell"
+#author "g3gg0"
+#plugin "trix_armulate"
+#plugin "trix_disarm"
+
+/* this plugin does nothing at all for now. maybe it will get improved later */
+#plugin "trix_hwemueos"
+
+#include trix
+#include stdio
+#include trix_armulate
+#include trix_disarm
+#include trix_hwemueos
+
+unsigned int reg_box = E_FAIL;
+unsigned int asm_box = E_FAIL;
+
+unsigned int malloc_address = 0;
+
+unsigned int breakpoints[] = { 0x0000C104, 0x0000BE64, 0x0000BA34, 0x0000C0A4, 0xFFFFFFFF };
+t_fileinfo *memory_fi = NULL;
+t_segment *current_mem_seg = NULL;
+
+unsigned int trace_reg_num = 0;
+unsigned int trace_reg_value = 0;
+unsigned int trace_reg_changed = 0;
+
+
+int init_armulate ()
+{
+    char *val = NULL;
+    int value = 0;
+    int err = 0;
+
+    UiDlgString ( "Which start address? In hexadecimal form, please.", &val );
+    if ( !val )
+        return E_FAIL;
+
+    err = 0;
+    value = __util_hex_get ( val, &err );
+    if ( err )
+        return E_FAIL;
+
+    __armulate_setup ( trix_workspace, value );
+    __hwemueos_reset();
+}
+
+int change_reg ()
+{
+    char *val = NULL;
+    int reg = 0;
+    int value = 0;
+    int err = 0;
+
+    reg = UiDlgInt ( "Which register to change? (0-15)", 0, 15 );
+    if ( reg == E_FAIL )
+        return E_FAIL;
+
+    UiDlgString ( "Which value? In hexadecimal form, please.", &val );
+    if ( !val )
+        return E_FAIL;
+
+    err = 0;
+    value = __util_hex_get ( val, &err );
+    if ( err )
+        return E_FAIL;
+
+    __armulate_set_reg ( reg, value );
+}
+
+int change_pc ()
+{
+    char *val = NULL;
+    int value = 0;
+    int err = 0;
+
+    UiDlgString ( "Which value? In hexadecimal form, please.", &val );
+    if ( !val )
+        return E_FAIL;
+
+    err = 0;
+    value = __util_hex_get ( val, &err );
+    if ( err )
+        return E_FAIL;
+
+    __armulate_set_pc ( value );
+}
+
+int dump_regs ()
+{
+    int i = 0;
+    unsigned char buffer[64];
+    unsigned char msg[1024];
+
+    strcpy ( msg, "" );
+
+    for (i=0; i<4; i++ )
+    {
+        sprintf ( buffer, "R%i:  0x%08X  ", i, __armulate_get_reg ( i ) );
+        strcat ( msg, buffer );
+    }
+
+    strcat ( msg, "\n" );
+
+    for (i=4; i<8; i++ )
+    {
+        sprintf ( buffer, "R%i:  0x%08X  ", i, __armulate_get_reg ( i ) );
+        strcat ( msg, buffer );
+    }
+
+    strcat ( msg, "\n" );
+
+    if ( !__armulate_is_thumb() )
+    {
+        for (i=8; i<10; i++ )
+        {
+            sprintf ( buffer, "R%i:  0x%08X  ", i, __armulate_get_reg ( i ) );
+            strcat ( msg, buffer );
+        }
+        for (i=10; i<12; i++ )
+        {
+            sprintf ( buffer, "R%i: 0x%08X  ", i, __armulate_get_reg ( i ) );
+            strcat ( msg, buffer );
+        }
+
+        strcat ( msg, "\n" );
+        sprintf ( buffer, "R%i: 0x%08X  ", 12, __armulate_get_reg ( 12 ) );
+        strcat ( msg, buffer );
+    }
+
+    sprintf ( buffer, "SP:  0x%08X  ", __armulate_get_reg ( 13 ) );
+    strcat ( msg, buffer );
+    sprintf ( buffer, "LR:  0x%08X  ", __armulate_get_reg ( 14 ) );
+    strcat ( msg, buffer );
+    sprintf ( buffer, "PC:  0x%08X  ", __armulate_get_pc () );
+    strcat ( msg, buffer );
+
+    strcat ( msg, "\n" );
+    sprintf ( buffer, "CPSR 0x%08X  ", __armulate_get_cpsr ( ) );
+    strcat ( msg, buffer );
+
+    UiBoxClear ( reg_box );
+    UiBoxMsg ( reg_box, msg );
+
+    return E_OK;
+
+}
+
+
+int exec_next ()
+{
+    char buffer[256];
+    int state = 0;
+
+    state = __armulate_exec_next ();
+
+    __disarm_address ( trix_workspace, (char*)buffer, __armulate_get_pc (), __armulate_is_thumb () );
+    printf ( buffer );
+    if ( state != ARMULATE_EXECUTED )
+        printf ( "\t[%s]", __armulate_reason (state)  );
+    printf ( "\n" );
+
+}
+
+void own_memset ( unsigned int addr, unsigned int val, unsigned int length )
+{
+    int pos = 0;
+
+    if ( length > 1000 )
+    {
+        printf ( "!!!!!!!!!!!!!! len: %08X\r\n", addr, val, length );
+        length = 0;
+    }
+
+    while ( pos < length )
+    {
+        SetByte ( addr + pos, val );
+        pos++;
+    }
+
+}
+
+void own_memcpy ( unsigned int dst, unsigned int src, unsigned int length )
+{
+    int pos = 0;
+
+    if ( length > 1000 )
+    {
+        printf ( "!!!!!!!!!!!!!! len: %08X\r\n", dst, src, length );
+        length = 0;
+    }
+
+    while ( pos < length )
+    {
+        SetByte ( dst + pos, GetByte ( src + pos ) );
+        pos++;
+    }
+}
+
+unsigned int own_malloc ( unsigned int length )
+{
+    unsigned int ret = malloc_address;
+
+    malloc_address += length;
+
+    return ret;
+}
+
+int step_until ( unsigned int address )
+{
+    char buffer[256];
+    int state = 0;
+    int cont = 1;
+    unsigned int regs[13];
+    int pos = 0;
+
+    while (cont && __armulate_get_pc () != address )
+    {
+        for(pos = 0; pos < 13; pos++)
+        {
+            regs[pos] = __armulate_get_reg (pos);
+        }
+
+        state = __armulate_exec_step ( );
+
+        __disarm_address ( trix_workspace, (char*)buffer, __armulate_get_pc (), __armulate_is_thumb () );
+        int reg = __armulate_get_reg ( trace_reg_num );
+
+        for(pos = 0; pos < 13; pos++)
+        {
+            if(trace_reg_changed == 0 && regs[pos] != __armulate_get_reg (pos))
+            {
+                trace_reg_num = pos;
+                trace_reg_value = __armulate_get_reg (pos);
+                trace_reg_changed = 1;
+            }
+        }
+
+        if ( state != ARMULATE_EXECUTED )
+        {
+            // int r0 = __armulate_get_reg ( 0 );
+            // int r1 = __armulate_get_reg ( 1 );
+            // int r2 = __armulate_get_reg ( 2 );
+            // int lr = __armulate_get_reg ( 14 );
+
+            switch ( __armulate_get_pc () )
+            {
+//                case 0xFF06E398: // DryosDebugMsg
+//                    DryosDebugMsg_r0 = r0;
+//                    DryosDebugMsg_r1 = r1;
+//                    DryosDebugMsg_r2 = r2;
+//                    __armulate_set_pc ( lr );
+//                    break;
+//
+                default:
+                    cont = 0;
+                    printf ( buffer );
+                    printf ( "\t[%s]", __armulate_reason (state)  );
+            }
+        }
+    }
+
+    printf ( "\n" );
+}
+
+int exec_until ( unsigned int address )
+{
+    char buffer[256];
+    int state = 0;
+    int cont = 1;
+
+    while ( cont )
+    {
+        state = __armulate_run_until ( address );
+
+        __disarm_address ( trix_workspace, (char*)buffer, __armulate_get_pc (), __armulate_is_thumb () );
+
+        if ( state != ARMULATE_EXECUTED )
+        {
+            int r0 = __armulate_get_reg ( 0 );
+            int r1 = __armulate_get_reg ( 1 );
+            int r2 = __armulate_get_reg ( 2 );
+            int lr = __armulate_get_reg ( 14 );
+
+            switch ( __armulate_get_pc () )
+            {
+//                case 0x0000C104: // memset
+//                    printf ( "memset ( 0x%08X, 0x%08X, 0x%08X ) from %08X\r\n", r0, r1, r2, lr - 4 );
+//                    own_memset ( r0, r1, r2 );
+//                    __armulate_set_pc ( lr );
+//                    printf ( " (ok)\r\n" );
+//                    break;
+//                case 0x0000BE64: // memcpy
+//                    printf ( "memcpy ( 0x%08X, 0x%08X, 0x%08X ) from %08X\r\n", r0, r1, r2, lr - 4 );
+//                    own_memcpy ( r0, r1, r2 );
+//                    __armulate_set_pc ( lr );
+//                    printf ( " (ok)\r\n" );
+//                    break;
+//                case 0x0000BA34: // malloc
+//                    printf ( "malloc ( 0x%08X ) from %08X\r\n", r0, lr - 4 );
+//                    r0 = own_malloc ( r0 );
+//                    __armulate_set_reg ( 0, r0 );
+//                    __armulate_set_pc ( lr );
+//                    printf ( " (ok)\r\n" );
+//                    break;
+//                case 0x0000C0A4: // free
+//                    printf ( "free from %08X\r\n", lr - 4 );
+//                    __armulate_set_pc ( lr );
+//                    printf ( " (ok)\r\n" );
+//                    break;
+
+                default:
+                    cont = 0;
+                    printf ( buffer );
+                    printf ( "\t[%s]", __armulate_reason (state)  );
+            }
+        }
+    }
+
+    printf ( "\n" );
+}
+
+
+int exec_until_dlg ()
+{
+    char *val = NULL;
+    int value = 0;
+    int err = 0;
+
+    UiDlgString ( "Until which address? In hexadecimal form, please.", &val );
+    if ( !val )
+        return E_FAIL;
+
+    err = 0;
+    value = __util_hex_get ( val, &err );
+    if ( err )
+        return E_FAIL;
+
+    exec_until ( value );
+}
+
+int exec_step ()
+{
+    char buffer[256];
+    int state = 0;
+
+    state = __armulate_exec_step ();
+
+
+    __disarm_address ( trix_workspace, (char*)buffer, __armulate_get_pc (), __armulate_is_thumb () );
+    printf ( buffer );
+    if ( state != ARMULATE_EXECUTED )
+        printf ( "\t[%s]", __armulate_reason (state)  );
+    printf ( "\n" );
+
+}
+
+int print_opcode ()
+{
+    char buffer[256];
+
+    __disarm_address ( trix_workspace, (char*)buffer, __armulate_get_pc (), __armulate_is_thumb () );
+
+    printf ( buffer );
+    printf ( "\n" );
+}
+
+int print_opcodes ()
+{
+    char buffer[128];
+    char msg[2048];
+    int opcode_size = 4;
+    int pos = 0;
+    int lines_before = 4;
+    int lines_after = 4;
+
+    if ( __armulate_is_thumb() )
+        opcode_size = 2;
+
+    strcpy ( msg, "" );
+
+    for ( pos = 0; pos < lines_after+lines_before+1; pos++ )
+    {
+        __disarm_address ( trix_workspace, (char*)buffer, __armulate_get_pc () + (pos-lines_before)*opcode_size, __armulate_is_thumb () );
+        if ( pos == lines_before )
+            strcat ( msg, "-> " );
+        else
+            strcat ( msg, "   " );
+        strcat ( msg, buffer );
+        strcat ( msg, "\n" );
+    }
+    UiBoxClear ( asm_box );
+    UiBoxMsg ( asm_box, msg );
+}
+
+int dump_memmap ( )
+{
+    t_memmap *m = trix_workspace->memmap;
+
+    while ( m )
+    {
+        printf ( "----------------------\n" );
+        printf ( "Start : 0x%08X\n", m->start );
+        printf ( "End   : 0x%08X\n", m->end );
+        printf ( "Length: 0x%08X\n", m->length );
+        m = (t_memmap*)m->next;
+    }
+
+}
+
+int dump_memory ()
+{
+    char *addr = NULL;
+    unsigned int address = 0;
+    unsigned int length = 0;
+    int err = 0;
+
+    UiDlgString ( "Which address? In hexadecimal form, please.", &addr );
+    if ( !addr )
+        return E_FAIL;
+
+    err = 0;
+    address = __util_hex_get ( addr, &err );
+    if ( err )
+        return E_FAIL;
+
+    length = UiDlgInt ( "How many bytes? (0-0xFFFFFF)", 0, 0xFFFFFF );
+    if ( length == E_FAIL )
+        return E_FAIL;
+
+    DrawBytes ( address, 16, length );
+}
+
+int add_memory_segment ( unsigned char *name, unsigned int address, unsigned int length, unsigned int hw_register, unsigned int clear, unsigned int sparse_or_shared )
+{
+    unsigned int pos = 0;
+    t_fileinfo *ptr = trix_workspace->fileinfo;
+    t_segment *next_mem_seg = NULL;
+
+    while ( ptr && ptr->next )
+    {
+        ptr = ptr->next;
+    }
+
+    if(!ptr)
+    {
+        printf("Failed adding 0x%08X bytes '%s'\r\n", length, name);
+        return E_FAIL;
+    }
+
+    memory_fi = ptr;
+    current_mem_seg = memory_fi->stages->segments;
+    while ( current_mem_seg->next )
+    {
+        current_mem_seg = current_mem_seg->next;
+    }
+
+    next_mem_seg = __segment_create ();
+    next_mem_seg->prev = current_mem_seg;
+    current_mem_seg->next = next_mem_seg;
+
+    /* switch to newly created one */
+    current_mem_seg = current_mem_seg->next;
+
+    current_mem_seg->flags |= FLAGS_FREE_NAME;
+    current_mem_seg->name = strdup(name);
+    current_mem_seg->start = address;
+    current_mem_seg->end = address + length;
+    current_mem_seg->length = length;
+
+    if(!sparse_or_shared)
+    {
+        current_mem_seg->data = malloc ( length );
+
+        if(current_mem_seg->data == NULL)
+        {
+            printf("Failed allocating 0x%08X bytes '%s'\r\n", length, name);
+            return E_FAIL;
+        }
+
+        if ( clear == 1 )
+        {
+            while ( pos < length )
+                current_mem_seg->data[pos++] = 0x00;
+        }
+        if ( clear == 2 )
+        {
+            while ( pos < length )
+                current_mem_seg->data[pos++] = 0xFF;
+        }
+    }
+    else if(sparse_or_shared == 1)
+    {
+        current_mem_seg->flags |= FLAGS_SPARSE;
+    }
+    else
+    {
+        /* this is a shadow copy, do not free it upon exit */
+        current_mem_seg->flags |= FLAGS_SHADOW;
+        current_mem_seg->data = sparse_or_shared;
+    }
+
+    WorkspaceUpdateMemmap ( trix_workspace );
+
+    if(hw_register)
+    {
+        __hwemueos_register ( trix_workspace, address );
+    }
+}
+
+int add_segment ()
+{
+    char buffer[256];
+    int state = 0;
+    char *val = NULL;
+    int base = 0;
+    int length = 0;
+    int err = 0;
+
+    UiDlgString ( "Base address? In hexadecimal form, please.", &val );
+    if ( !val )
+    {
+        printf ( "Invalid address\n" );
+        return E_FAIL;
+    }
+
+    err = 0;
+    base = __util_hex_get ( val, &err );
+    if ( err )
+    {
+        printf ( "Invalid address\n" );
+        return E_FAIL;
+    }
+
+    UiDlgString ( "Length? In hexadecimal form, please.", &val );
+    if ( !val )
+    {
+        printf ( "Invalid address\n" );
+        return E_FAIL;
+    }
+
+    err = 0;
+    length = __util_hex_get ( val, &err );
+    if ( err )
+    {
+        printf ( "Invalid address\n" );
+        return E_FAIL;
+    }
+}
+
+int rebase_segment ( unsigned int base )
+{
+    if((base + trix_workspace->fileinfo->stages->segments->length + 1) < base)
+    {
+        trix_workspace->fileinfo->stages->segments->length = 0xFFFFFFFE - base;
+        printf ( "    size: 0x%08X (restricted)\n", trix_workspace->fileinfo->stages->segments->length );
+    }
+    else
+    {
+        printf ( "size: 0x%08X\n", trix_workspace->fileinfo->stages->segments->length );
+    }
+    trix_workspace->fileinfo->stages->segments->start = base;
+    trix_workspace->fileinfo->stages->segments->end = base + trix_workspace->fileinfo->stages->segments->length;
+
+    WorkspaceUpdateMemmap ( trix_workspace );
+    printf ( "Rebased to 0x%08X\n", base );
+}
+
+int rebase_code ()
+{
+    char buffer[256];
+    int state = 0;
+    char *val = NULL;
+    int value = 0;
+    int err = 0;
+
+    UiDlgString ( "New base address? In hexadecimal form, please.", &val );
+    if ( !val )
+    {
+        printf ( "Invalid address\n" );
+        return E_FAIL;
+    }
+
+    err = 0;
+    value = __util_hex_get ( val, &err );
+    if ( err )
+    {
+        printf ( "Invalid address\n" );
+        return E_FAIL;
+    }
+
+    rebase_segment ( value );
+}
+
+int change_endianess ()
+{
+    if ( trix_workspace->flags == FLAGS_ENDIANESS_LE )
+    {
+        trix_workspace->flags = FLAGS_ENDIANESS_BE;
+        printf ( "Switched to: Big Endian\n" );
+    }
+    else
+    {
+        trix_workspace->flags = FLAGS_ENDIANESS_LE;
+        printf ( "Switched to: Little Endian\n" );
+    }
+
+    WorkspaceUpdateMemmap ( trix_workspace );
+}
+
+int
+LoadBinary ( unsigned int address, unsigned char *file )
+{
+    t_workspace *ws = NULL;
+    unsigned int size = 0;
+
+    printf ( "\n" );
+    printf ( "[x] Uploading Binary data\n" );
+    printf ( "    file: %s\n", file );
+    printf ( "    to  : 0x%08X\n", address );
+    ws = WorkspaceStartup ( file );
+    if ( !ws )
+        return E_FAIL;
+    size = __v_get_size ( ws );
+    printf ( "    size: 0x%08X\n", size );
+    printf ( "\n" );
+
+    if((address + size) < address)
+    {
+        size = 0xFFFFFFFF - address;
+    }
+
+//    __util_dump_bytes ( __v_get_ptr ( ws, 0 ), 0x10, __v_get_size ( ws ) );
+    MemCpyPut ( address, __v_get_ptr ( ws, 0 ), size );
+    __workspace_release ( ws );
+
+    return E_OK;
+}
+
+int dump_engio(unsigned int addr)
+{
+    if(addr == 0 || !__v_valid(GetWorkspace(), addr))
+    {
+        return 0;
+    }
+
+    while(GetWord(addr) != 0xFFFFFFFF)
+    {
+        unsigned int pos = GetWord(addr);
+        unsigned int data = GetWord(addr+4);
+
+        if((pos & 0xFFF00000) != 0xC0F00000)
+        {
+            printf("      (failed)\r\n");
+            return 0;
+        }
+        printf("      [0x%08X] <- [0x%08X] (%11lu | %5lu, %5lu)\r\n", pos, data, data, (data>>16), (data&0xFFFF));
+        addr += 8;
+    }
+    return 0;
+}
+
+
+int engio_dump ()
+{
+    char buffer[256];
+    int state = 0;
+    char *val = NULL;
+    int value = 0;
+    int err = 0;
+
+    while(err == 0)
+    {
+        UiDlgString ( "Address of engio register list? In hexadecimal form, please.", &val );
+        if ( !val )
+        {
+            printf ( "Invalid address\n" );
+            return E_FAIL;
+        }
+
+        err = 0;
+        value = __util_hex_get ( val, &err );
+        if ( err )
+        {
+            printf ( "Invalid address\n" );
+            return E_FAIL;
+        }
+
+        dump_engio ( value );
+        printf("\r\n");
+    }
+}
+
+
+int dump_pathinfo(unsigned int addr)
+{
+    if(addr == 0)
+    {
+        printf("  (unused)\r\n");
+        return 0;
+    }
+
+    if(!__v_valid(GetWorkspace(), addr) || addr < 0xFF010000)
+    {
+        printf("  (invalid)\r\n");
+        return 0;
+    }
+    addr += 8;
+
+    /* offset 0x08 */
+    if(GetWord(addr) != 0)
+    {
+        printf("  Set*Path: 0x%08X -> 0x%08X\r\n", addr, GetWord(addr));
+        dump_engio(GetWord(addr));
+    }
+    addr += 4;
+
+    /* offset 0x0C */
+    if(GetWord(addr) != 0)
+    {
+        printf("  Start*Path: 0x%08X -> 0x%08X\r\n", addr, GetWord(addr));
+        dump_engio(GetWord(addr));
+    }
+    addr += 4;
+
+    /* offset 0x10 */
+    if(GetWord(addr) != 0)
+    {
+        printf("  Start*YuvPass: 0x%08X -> 0x%08X\r\n", addr, GetWord(addr));
+        dump_engio(GetWord(addr));
+    }
+    addr += 4;
+
+    /* offset 0x14 */
+    if(GetWord(addr) != 0)
+    {
+        printf("  Stop*Path: 0x%08X -> 0x%08X\r\n", addr, GetWord(addr));
+        dump_engio(GetWord(addr));
+    }
+    addr += 4;
+    return 0;
+}
+
+int prepro_dump_func (unsigned int mode, unsigned int yuv_init, unsigned int addr, unsigned int base_address)
+{
+    unsigned int dummy_lr = 0x00000000;
+
+    //printf("Emulating at 0x%08X\r\n", addr);
+
+    /* prepro path */
+    SetWord(base_address + 0x08, 0x00000000);
+    /* vram path */
+    SetWord(base_address + 0x10, 0x00000000);
+    /* yuv path */
+    SetWord(base_address + 0x18, 0x00000000);
+    /* quark path */
+    SetWord(base_address + 0x20, 0x00000000);
+    /* Fencing path */
+    SetWord(base_address + 0x28, 0x00000000);
+
+    /* call Yuv_SelectPath */
+    if(yuv_init != 0)
+    {
+        __armulate_set_reg ( 13, 0x1000 );
+        __armulate_set_reg ( 14, 0x00000000 );
+        __armulate_set_pc ( yuv_init );
+
+        step_until ( 0x00000000 );
+    }
+
+    /* select output mode and FPS */
+    __armulate_set_reg ( 0, mode );
+    __armulate_set_reg ( 1, 0 );
+
+    /* set stack and return address */
+    __armulate_set_reg ( 13, 0x1000 );
+    __armulate_set_reg ( 14, dummy_lr );
+    __armulate_set_pc ( addr );
+
+    step_until ( dummy_lr );
+
+    printf("PreProcessing path:\r\n");
+    dump_pathinfo(GetWord(base_address + 0x08));
+    printf("VRAM path:\r\n");
+    dump_pathinfo(GetWord(base_address + 0x10));
+    printf("YUV path:\r\n");
+    dump_pathinfo(GetWord(base_address + 0x18));
+    printf("Quark path:\r\n");
+    dump_pathinfo(GetWord(base_address + 0x20));
+    printf("Fencing path:\r\n");
+    dump_pathinfo(GetWord(base_address + 0x28));
+}
+
+unsigned int prepro_dump_baseinfo (unsigned int addr)
+{
+    unsigned int dummy_lr = 0xFF06E398; /* DryosDebugMsg */
+
+    trace_reg_changed = 0;
+    trace_reg_value = 0;
+
+    __armulate_set_reg ( 0, 0 );
+    __armulate_set_reg ( 1, 0 );
+    __armulate_set_reg ( 2, 0 );
+    __armulate_set_reg ( 3, 0 );
+    __armulate_set_reg ( 4, 0 );
+    __armulate_set_reg ( 5, 0 );
+    __armulate_set_reg ( 6, 0 );
+    __armulate_set_reg ( 7, 0 );
+    __armulate_set_reg ( 8, 0 );
+    __armulate_set_reg ( 9, 0 );
+    __armulate_set_reg ( 10, 0 );
+    __armulate_set_reg ( 11, 0 );
+    __armulate_set_reg ( 12, 0 );
+    __armulate_set_reg ( 13, 0x1000 );
+    __armulate_set_reg ( 14, dummy_lr );
+    __armulate_set_pc ( addr );
+
+    step_until ( dummy_lr );
+
+    if(__armulate_get_reg(2) != 0)
+    {
+        printf("  Name: %s\r\n", __v_get_str(GetWorkspace(), __armulate_get_reg(2)) );
+    }
+    else
+    {
+        printf("  Name: (unknown)\r\n");
+    }
+
+    printf("  Base: 0x%08X\r\n", trace_reg_value );
+
+    return trace_reg_value;
+}
+
+int prepro_dump ()
+{
+    char *val = NULL;
+    int value = 0;
+    int err = 0;
+    unsigned int prepro_struct = 0xFF65657C;
+    unsigned int prepro_struct_size = 0xF4;
+    unsigned char *modenames[] = { "LCD", "VIDEO(NTSC)", "VIDEO(PAL)", "HDMI(1080i FULL)", "HDMI(1080i INFO)", "HDMI(720p FULL)", "HDMI(720p INFO)", "HDMI(480)", "HDMI(576)" };
+    unsigned int mode = 0;
+
+    __armulate_setup ( trix_workspace, 0 );
+
+    /* make sure that DryosDebugMsg returns instantly */
+    SetWord(0x00002E04, 0);
+
+
+    // UiDlgString ( "Which entry (0-18)? In hexadecimal form, please.", &val );
+    // if ( !val )
+        // return E_FAIL;
+
+    // err = 0;
+    // value = __util_hex_get ( val, &err );
+    // if ( err )
+        // return E_FAIL;
+
+
+    for(value = 0; value < 19; value++)
+    {
+        unsigned int struct_pos = prepro_struct + 0xF4 * value;
+        unsigned int base_address = 0;
+        unsigned int entry_address_1 = 0;
+        unsigned int entry_address_2 = 0;
+        unsigned int entry_address_3 = 0;
+        unsigned int entry_address_4 = 0;
+
+        entry_address_1 = GetWord(struct_pos + 0x7C);
+        entry_address_2 = GetWord(struct_pos + 0x94);
+        entry_address_3 = GetWord(struct_pos + 0x28);
+        entry_address_4 = GetWord(struct_pos + 0x4C);
+
+        printf("[entry #%i, 0x%08X (0x%08X 0x%08X 0x%08X 0x%08X) mode: %s]\r\n", value, struct_pos, entry_address_1, entry_address_2, entry_address_3, entry_address_4, modenames[mode]);
+
+        /* try Quark_GetParam to get base address */
+        base_address = prepro_dump_baseinfo(entry_address_1);
+        if(base_address == 0)
+        {
+            /* try Fencing_GetParam to get base address */
+            base_address = prepro_dump_baseinfo(entry_address_2);
+        }
+
+        if(base_address == 0)
+        {
+            printf("  skipping, detection failed\r\n");
+        }
+        else
+        {
+            prepro_dump_func(mode, entry_address_4, entry_address_3, base_address);
+        }
+        printf("-------------------------------------------------------------------\r\n\r\n");
+    }
+}
+
+int dry_shell ()
+{
+    int done = 0;
+    char buffer[256];
+    int state = 0;
+    char *val = NULL;
+    int base = 0;
+    int length = 0;
+    int err = 0;
+    unsigned int dummy_lr = 0x30002000;
+
+    while ( !done )
+    {
+        UiDlgString ( "Command? (extask, ...)", &val );
+        if ( !val || strlen(val) == 0 )
+        {
+            return E_FAIL;
+        }
+
+        if(!strncmp(val,"extask", 6))
+        {
+            if(strlen(val) > 7)
+            {
+                MemCpyPut(0x30000008, val + 7, strlen(val) - 6);
+                __armulate_set_reg ( 0, 2 );
+                __armulate_set_reg ( 1, 0x30000000 );
+                SetWord(0x30000004, 0x30000008);
+            }
+            else
+            {
+                __armulate_set_reg ( 0, 1 );
+            }
+            __armulate_set_reg ( 13, 0x30001000 );
+            __armulate_set_reg ( 14, dummy_lr );
+            __armulate_set_pc ( 0xFF015ADC );
+
+
+            __armulate_run_until ( dummy_lr );
+        }
+    }
+}
+
+int main ( )
+{
+    int repaint = 1;
+    int done = 0;
+    int command = 0;
+    char *menu[] = { "Initialize/Reset Emu", "Change Registers", "Change PC", "Rebase Code", "Toggle Endianess", "Execute Next instruction", "Step into instruction", "Execute until", "Dump Memory Map", "Dump Memory", "Add Segment", "PrePro Dump", "PC trace", "Call trace", "Engio Dump", "GDB stub", "DryOS Shell Cmd (600D)" };
+
+    unsigned char* firmware_ptr = NULL;
+    unsigned int firmware_size = 0;
+    unsigned int firmware_load_address = 0xF8000000;
+    unsigned int firmware_start_address = 0xF80C0000;
+
+    /* causes the ROM content to mirror properly, as in cameras - must be updated for camera model */
+    __options_set_int("plugins.HWemu_for_Canon_EOS.rom0_size",0x00800000);
+    
+    /* allow us to allocate a bit more than default */
+    __options_set_int("core.util.max_heap", 2000);
+
+    /* make armulate not time out that fast */
+    __options_set_int("plugins.ARMulate.timeout_breakpoint",500000);
+    
+    /* disable flash state machine, so we can upload data */
+    __options_set_bool("plugins.HWemu_for_Canon_EOS.flash_state_machine",0);
+
+    /* set this to 0x2000 if you run BOOTROM code - if you run main firmware or updaters, set to 0x0000
+     * its the alternate vector register so the ARM core will use 0xFFFF0000 as interrupt vectors
+     */
+    __options_set_int("plugins.ARMulate.cp15.control_reg",0x0000);
+
+
+    if ( !trix_workspace || !trix_workspace->fileinfo || !trix_workspace->fileinfo->stages || !trix_workspace->fileinfo->stages->segments )
+    {
+        trix_workspace = __workspace_create_file();
+
+        add_memory_segment ( "ROM0", 0xF8000000, 0x07FFFFFC, 1, 0, 0 );
+        add_memory_segment ( "ROM1", 0xF0000000, 0x08000000, 1, 0, 0 );
+        //LoadBinary ( 0xF8000000, "D:\\Users\\g3gg0\\Documents\\EOS Firmware\\ML_BASE\\0xF8000000-0xF9000000.bin" );
+        //LoadBinary ( 0xFBFF0000, "D:\\Users\\g3gg0\\Documents\\EOS Firmware\\7D\\v1.2.3\\7D_123_boot.0xffff0000.bin" );
+        //LoadBinary ( 0xF8100000, "D:\\Users\\g3gg0\\Documents\\EOS Firmware\\7D\\v1.2.3\\7D_123_master_0xff810000.bin" );
+    }
+    else
+    {
+        /* get pointer to "unmapped" data loaded via TriX UI */
+        firmware_ptr =  __v_get_ptr ( trix_workspace, 0 );
+        firmware_size = __v_get_size ( trix_workspace );
+
+        /* hide the segment of that file in memory */
+        trix_workspace->fileinfo->stages->segments->flags |= FLAGS_HIDE_IN_MEM;
+        __workspace_update_memmap(trix_workspace);
+
+        /* and add our own firmware memories */
+        add_memory_segment ( "ROM0", 0xF8000000, 0x07FFFFFE, 1, 0, 0 );
+        add_memory_segment ( "ROM1", 0xF0000000, 0x08000000, 1, 0, 0 );
+    }
+
+    /* separate TCM RAM */
+    add_memory_segment ( "TCM_CODE", 0x00000000, 0x00001000, 0, 0, 0 );
+    add_memory_segment ( "TCM_DATA", 0x40000000, 0x00001000, 0, 0, 0 );
+
+    /* now the large RAM that is shared */
+    add_memory_segment ( "RAM", 0x00001000, 0x0FFFF000, 0, 0, 0 );
+
+    /* uncached RAM shares memory with "RAM" section */
+    add_memory_segment ( "DMA_RAM", 0x40001000, 0x0FFFF000, 0, 0, __v_get_ptr(trix_workspace, 0x00001000) );
+
+    /* IO MEM - it is sparse (no real memory) */
+    add_memory_segment ( "IOMEM", 0xc0000000, 0x10000000, 1, 0, 1 );
+
+    /* finally copy firmware to right position */
+    if(firmware_ptr)
+    {
+        printf ( "\n" );
+        printf ( "[x] Copying binary data\n" );
+        printf ( "    to  : 0x%08X\n", firmware_load_address );
+        printf ( "    size: 0x%08X\n", firmware_size );
+
+        if((firmware_load_address + firmware_size) < firmware_load_address)
+        {
+            firmware_size = 0xFFFFFFFE - firmware_load_address;
+            printf ( "    size: 0x%08X (restricted to end before 0xFFFFFFFF)\n", firmware_size );
+        }
+        printf ( "\n" );
+
+        MemCpyPut ( firmware_load_address, firmware_ptr, firmware_size );
+    }
+
+    /* enable logging on 7D
+    SetWord(0xFF0776E4, 0xE1A00000);
+    SetWord(0xFF077790, 0xE1A00000);
+    SetWord(0xFF0777A4, 0xE1A00000);
+    */
+    
+    /* now enable flash state machine - no writes to flash are possible anymore */
+    __options_set_bool("plugins.HWemu_for_Canon_EOS.flash_state_machine", 1);
+    
+    /* continue with setup */
+    change_endianess();
+    __hwemueos_initdialog();
+    __armulate_set_exec_callback(__hwemueos_get_exec_callback());
+    __armulate_setup ( trix_workspace, firmware_start_address );
+    __armulate_set_reg ( 13, 0x00001000 );
+    __hwemueos_reset();
+
+
+    reg_box = UiBoxCreate ( "Registers" );
+    asm_box = UiBoxCreate ( "Disassembly" );
+    UiBoxSize ( reg_box, 500, 80 );
+    UiBoxSize ( asm_box, 600, 190 );
+
+
+    while ( !done )
+    {
+        dump_regs ();
+        print_opcodes ();
+
+        command = UiDlgMenu ( "ARMulate Shell", menu, UI_OPT_QUIT | (repaint?0:UI_OPT_NOREPAINT) );
+        if ( command == 0 )
+            return E_OK;
+        repaint = 0;
+
+        switch ( command )
+        {
+            case E_FAIL:
+                repaint = 1;
+                break;
+            case 0:
+                return E_OK;
+                break;
+            case 1:
+                __armulate_setup ( trix_workspace, firmware_start_address );
+                __hwemueos_reset();
+                __armulate_set_reg ( 13, 0x00001000 );
+                break;
+            case 2:
+                dump_regs ();
+                change_reg ();
+                break;
+            case 3:
+                change_pc ();
+                break;
+            case 4:
+                rebase_code ();
+                break;
+            case 5:
+                change_endianess ();
+                break;
+            case 6:
+                exec_next ();
+                break;
+            case 7:
+                exec_step ();
+                break;
+            case 8:
+                exec_until_dlg ();
+                break;
+            case 9:
+                dump_memmap ();
+                repaint = 1;
+                break;
+            case 10:
+                dump_memory ();
+                repaint = 1;
+                break;
+            case 11:
+                add_segment ();
+                repaint = 1;
+                break;
+            case 12:
+                prepro_dump ();
+                repaint = 1;
+                break;
+            case 13:
+                __hwemueos_print_trace ();
+                repaint = 1;
+                break;
+            case 14:
+                __armulate_lr_dump(32);
+                repaint = 1;
+                break;
+            case 15:
+                engio_dump();
+                repaint = 1;
+                break;
+            case 16:
+                __armulate_gdb_listen();
+                repaint = 1;
+                break;
+            case 17:
+                dry_shell ();
+                repaint = 1;
+                break;
+            default:
+                break;
+        }
+    }
+}
+

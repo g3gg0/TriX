@@ -1,0 +1,125 @@
+/*
+** find_free_space v1.1
+** © 2009 ndt
+*/
+
+// load plugin
+#plugin trix_fmtbabe
+
+// include headers
+#include trix
+#include trix_fmtbabe
+#include "scripts/SE/se_babe_defs.trx"
+
+
+bool check_qword2 ( unsigned int pos )
+{
+   if ( __v_get_w ( ws, pos ) != 0xFFFFFFFF )
+      return false;
+   if ( __v_get_w ( ws, pos + 4 ) != 0xFFFFFFFF  )
+      return false;
+   if ( __v_get_w ( ws, pos + 8 ) != 0xFFFFFFFF  )
+      return false;
+   if ( __v_get_w ( ws, pos + 12 ) != 0xFFFFFFFF  )
+      return false;
+
+   return true;
+}
+
+bool check_qword ( unsigned int pos )
+{
+   if ( __v_get_w ( ws, pos ) )
+      return false;
+   if ( __v_get_w ( ws, pos + 4 ) )
+      return false;
+   if ( __v_get_w ( ws, pos + 8 ) )
+      return false;
+   if ( __v_get_w ( ws, pos + 12 ) )
+      return false;
+
+   return true;
+}
+
+
+int main ()
+{
+   // some variables
+   t_segment *ts = NULL;
+   t_stage   *cs = NULL;
+   unsigned int start = 0;
+   unsigned int end   = 0;
+   unsigned int rc    = 0;
+   unsigned int pos = 0;
+   unsigned int fstart = 0;
+   unsigned int flen = 0;
+   unsigned int total = 0;
+   unsigned int total2 = 0;
+
+   BABE_INIT // init babe workspace
+
+   // get start and end address of FW
+   start = GetStart ();
+   end   = GetEnd ();
+
+   say ( "Searching for 00000000...\n" );
+   for ( pos = start; pos <= end; pos += 16 )
+   {
+      if ( check_qword ( pos ) )
+      {
+         if ( flen == 0 ) // new free area
+            fstart = pos;
+
+         flen += 16;
+      }
+      else
+      {
+         if ( flen >= 256 )
+         {
+            printf ( "0x%08X - 0x%08X: %s\n", fstart, fstart + flen - 1, PrintBytes ( flen ) );
+            total += flen;
+         }
+
+         fstart = 0;
+         flen   = 0;
+      }
+      pos = GetValid ( pos );
+   }
+
+   say ( "\n\nSearching for FFFFFFFF...\n" );
+   for ( pos = start; pos <= end; pos += 16 )
+   {
+      if ( check_qword2 ( pos ) )
+      {
+         if ( flen == 0 ) // new free area
+            fstart = pos;
+
+         flen += 16;
+      }
+      else
+      {
+         if ( flen >= 256 )
+         {
+            printf ( "0x%08X - 0x%08X: %s\n", fstart, fstart + flen - 1, PrintBytes ( flen ) );
+            total2 += flen;
+         }
+
+         fstart = 0;
+         flen   = 0;
+      }
+      pos = GetValid ( pos );
+   }
+
+   printf ( "\n\n\n" );
+   printf ( "Total free space (00000000...): %s\n", PrintBytes ( total ) );
+   printf ( "Total free space (FFFFFFFF...): %s\n", PrintBytes ( total2 ) );
+
+   // why not use the SHA-1 table for our patches ;)
+   cs = __stage_get_current( ws->fileinfo->stages );
+   ts = __segment_find_by_name ( cs->segments, "SHA1T", -1 );
+   if ( ts )
+   {
+      printf ( "Total free space (SHA-1 Table): %s\n", PrintBytes ( ts->length ) );
+   }
+   
+   return E_OK;
+}

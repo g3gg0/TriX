@@ -1,0 +1,35 @@
+// load plugin
+#plugin trix_fmtbada
+
+// include headers
+#include trix
+#include trix_fmtbada
+#include "scripts/bada/bada_defs.trx"
+
+
+unsigned int dump_memmap ( )
+{
+	t_memmap *m = trix_workspace->memmap;
+
+	while ( m )
+	{
+		printf ( "----------------------\n" );
+		printf ( "Name  : %s\n", m->segment->name );
+		printf ( "Start : 0x%08X\n", m->start );
+		printf ( "End   : 0x%08X\n", m->end );
+		printf ( "Length: 0x%08X\n\n", m->length );
+
+		m = m->next;
+	}
+
+	return E_OK;
+}
+
+int main ( )
+{
+	BADA_INIT // init bada workspace
+
+	dump_memmap ( );
+
+	return E_OK;
+}

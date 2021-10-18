@@ -1,0 +1,36 @@
+// load plugin
+#plugin trix_fmtbabe
+
+// include headers
+#include trix
+#include trix_fmtbabe
+#include "scripts/SE/se_babe_defs.trx"
+
+unsigned int rc = 0;
+char *func      = NULL;
+
+int main ()
+{
+   BABE_INIT // init babe workspace
+
+   printf ( "%s\n%s\n\n", GetName (), GetPlatform () );
+
+   while ( 1 )
+	{
+      UiDlgString ( "Enter function name to locate", &func );
+		if ( strlen ( func ) == 0 )
+			return E_OK;
+
+      if ( !strcmp ( "fw_name", func ) || !strcmp ( "FW_NAME", func ) )
+		   printf ( "%s\n", GetName () );
+      else if ( !strcmp ( "fw_platform", func ) || !strcmp ( "FW_PLATFORM", func ) )
+		   printf ( "%s\n", GetPlatform () );
+      else
+      {
+		   rc = locate ( func );
+		   printf ( "%s: 0x%08X\n", func, rc );
+		}
+	}
+	
+   return E_OK;
+}

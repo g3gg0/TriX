@@ -1,0 +1,120 @@
+#title "FATe dumper"
+#author "ndt"
+
+#plugin trix_fmtCNT
+
+#include trix
+#include stdio
+
+int main ( )
+{
+   t_workspace *ws = NULL;
+   t_segment *ts = NULL;
+	t_stage *st = NULL;
+	char *filename = NULL;
+	char *buffer = NULL;
+	int command = 0;
+	unsigned int length = 0;
+	unsigned int pos = 0;
+	unsigned int num = 0;
+	unsigned int size = 0;
+	unsigned int sc = 0;
+	char *menu[] = { "Export FAT image...", "Import FAT image..." };
+
+	st = trix_workspace->memmap->stage;
+	ts = st->segments;
+	sc = __segment_count ( ts );
+	while ( ts )
+	{
+		size = __v_get_h_raw ( ts, ts->start + 0x13 ) * 512;
+		if ( !size )
+         size = __v_get_w_raw ( ts, ts->start + 0x20 ) * 512;
+
+		printf ( "Partition %d: ~%dMB\n", num, size/0x100000 );
+		ts = ts->next;
+		num++;
+	}
+
+	while ( 1 )
+	{
+		command = UiDlgMenu ( "FATe dumper", menu, UI_OPT_QUIT );
+		switch ( command )
+		{
+			case E_FAIL:
+				break;
+			case 0:
+				return E_OK;
+				break;
+
+			case 1:
+				if ( sc > 1 )
+               num = UiDlgInt ( "Enter partition number", 0, sc - 1 );
+				else
+					num = sc - 1;
+
+            ts = st->segments;
+				while ( num-- )
+					ts = ts->next;
+
+            //UiDlgSaveFile ( &filename, str("Export FAT image..."), str("FAT image (*.ima)") );
+				UiDlgString ( "Enter filename", &filename );
+   			if ( strlen ( filename ) )
+   			{
+               printf ( "Exporting...\n" );
+					length = ts->length;
+					buffer = malloc ( length );
+               ws = WorkspaceCreateFileFromBuffer ( buffer, length );
+               __v_memcpy_put ( ws, __v_get_start ( ws ), ts->data, length );
+					__file_write ( filename, ws->fileinfo );
+					__workspace_release ( ws );
+               printf ( "...done\n" );
+   			}
+				else
+					printf ( "error getting filename\n" );
+				break;
+
+			case 2:
+				if ( sc > 1 )
+               num = UiDlgInt ( "Enter partition number", 0, sc - 1 );
+				else
+					num = sc - 1;
+
+            ts = st->segments;
+				while ( num-- )
+					ts = ts->next;
+
+            //UiDlgLoadFile ( &filename, str("Import FAT image..."), str("FAT image (*.ima)") );
+				UiDlgString ( "Enter filename", &filename );
+   			if ( strlen ( filename ) )
+   			{
+               printf ( "Importing...\n" );
+					ws = __workspace_startup ( filename );
+					if ( !ws || __v_get_size ( ws ) == E_FAIL )
+					{
+						printf ( "Error reading file!\n" );
+						return E_FAIL;
+					}
+
+					pos = 0;
+               length = __v_get_size ( ws );
+					while ( pos < length && __v_get_w ( ws, pos ) != 0xF6F6F6F6 )
+						pos += 0x200; // go to the next sector
+
+					length = pos;
+					ts->length = length;
+					ts->data = realloc ( ts->data, length );
+               ts->end = ts->start + length;
+               __v_memcpy_get ( ws, ts->data, __v_get_start ( ws ), length );
+
+               WorkspaceUpdateMemmap ( trix_workspace );
+               __stage_set_modified ( st );
+					printf ( "...done\n" );
+   			}
+				else
+					printf ( "error getting filename\n" );
+				break;
+		}
+	}
+
+	return E_OK;
+}

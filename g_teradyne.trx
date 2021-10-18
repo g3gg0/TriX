@@ -1,0 +1,56 @@
+/* AUTH: 02 0000000113AE945051C5D224D03DFD905D248191E1ACC0CC40B3AC561A6CBB58B81F6BB78007A16F2B064431A8D419E6B5873C5C7F55C0257F1F059EF5714C00A1B6B90F8FF121FF70F9EC5EF6D718372186C919537708597B5754C7948A87E63D5E344EF1AF17ABA4CADA8D8218A414520FC34950155DDAB45C7A4302CD23DBC83CA6AD9B394DB9D3348EE3B5A77D8DBE99834E7AC4A23DA13E6DA246B7DC58F8E44839E6B7FF8E806D0C0DDC97C6B6CCA991C8AE276916285D1813C153AA853594AD0A30D589DE2E774CB1FD141CC395686A0A4CDE13AE7B84AF20D5584B6500796952CBDCEDD72A99961581AA4C150FE617C4EB367AD5BE6A530C6852037CCF8303BB */
+
+#title "test.trx generic"
+#author "some freakx"
+
+#include trix
+#include stdio
+#include stdlib
+
+int main() 
+{ 
+	int block = 0;
+	int blocksize = 600;
+	char *file = NULL;
+
+	printf ( "\n" );
+	printf ( "    Teradyne BlackBoard dumper\n" );
+	printf ( " --------------------------------\n" );
+	printf ( "\n" );
+	printf ( "Just Drag'n'Drop the .B file in this window and press enter\n" );
+
+	// get filename
+	if ( __ui_dlg_string ( "Filename", &file ) != E_OK || !strlen ( file ) )
+	{
+		printf ( "\nbye...\n" );
+		return 0;
+	}
+	printf ( "\n" );
+
+	// open the file
+	trix_workspace = __workspace_startup ( file );
+	if ( !trix_workspace )
+	{
+		printf ( "\nError loading the file... bye...\n" );
+		return 0;
+	}
+
+	// dump the data
+	while ( Valid ( block * blocksize + 1)  )
+	{
+		if ( GetWord ( block * blocksize + 0x04 ) )
+		{
+			printf ( "Joint-ID   %i\n", block );
+			printf ( "-------------------------\n" );
+			printf ( "Pin        %i\n", GetWord ( block * blocksize + 0x00 ) );
+			printf ( "J-Type     %i\n", GetWord ( block * blocksize + 0x04 ) );
+			printf ( "D-Type     %i\n", GetWord ( block * blocksize + 0x08 ) );
+			printf ( "FOV        %i\n", GetWord ( block * blocksize + 0xCC ) );
+			printf ( "X/Y        %i/%i\n\n", GetWord ( block * blocksize + 0xC4 ), GetWord ( block * blocksize + 0xC8 ) );
+		}
+		block++;
+	}
+
+	return 0;
+}
+

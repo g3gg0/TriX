@@ -1,0 +1,146 @@
+#include trix
+
+/*
+ * Search for references to specified addresses
+ *
+ * Output:
+ * [call_source] [destination_symbol] [source_file]
+ *
+ *
+ * g3gg0
+*/
+
+typedef struct s_addr
+{
+	char *name;
+	unsigned int address;	
+} t_address;
+
+t_address callList[] = {
+	{ "fmhwradio", 0x80FF3E63 },
+	{ NULL, 0 }
+};
+
+char *search_path = "D:/cygwin/home/g3gg0/Symbian/S3/N8_14.002/bins/Z";
+char *search_ext = "*.*";
+
+
+/* this shouldn't need be modified */
+int search_path_length = 0;
+
+unsigned char rawData[4] = {
+	0xFF, 0xFF, 0xFF, 0xFF
+};
+
+unsigned char mask[4] = {
+	0xFF, 0xFF, 0xFF, 0xFF
+};
+
+
+int change_endianess ()
+{
+	if ( trix_workspace->flags == FLAGS_ENDIANESS_LE )
+	{
+		trix_workspace->flags = FLAGS_ENDIANESS_BE;
+	}
+	else
+	{
+		trix_workspace->flags = FLAGS_ENDIANESS_LE;
+	}
+	
+	WorkspaceUpdateMemmap ( trix_workspace );
+}
+
+void dump_XIP ( char *file )
+{
+	unsigned int pos = 0;
+	unsigned int symbol = 0;
+	
+	if ( GetWord ( 0x10 ) == 0x434F5045 )
+	{
+		return;
+	}
+	
+	if ( GetWord ( 0x10 ) != GetWord ( 0x14 ) ||  GetWord ( 0x1C ) != GetWord ( 0x20 ) )
+	{
+		return;
+	}
+
+	while(callList[symbol].name)
+	{
+		rawData[0] = callList[symbol].address & 0xFF;
+		rawData[1] = (callList[symbol].address>>8) & 0xFF;
+		rawData[2] = (callList[symbol].address>>16) & 0xFF;
+		rawData[3] = (callList[symbol].address>>24) & 0xFF;
+		
+		pos = MEM_AUTO;
+		do 
+		{
+			pos = QuickFindPattern(rawData, mask, 4, pos, MEM_AUTO, LOC_FORWARD);
+			if ( pos != 0xFFFFFFFF )
+			{
+				printf ( "0x%08X %s %s\r\n", GetWord ( 0x10 ) + pos - 0x78, callList[symbol].name, &file[search_path_length] );
+				pos += 4;
+			}
+		} while ( pos != 0xFFFFFFFF );
+		symbol++;
+	}
+}
+
+
+/* don't use parsed file, just the plain input file */
+void search_file ( char *file )
+{
+	unsigned int pos = 0;
+	unsigned int entry = 0;
+	
+	trix_workspace = WorkspaceStartup ( file );
+
+	if ( !trix_workspace )
+	{
+		printf ( "Failed to open %s\r\n", file );
+		return;
+	}
+	
+	SetWorkStage ( 0, 0 );
+
+	change_endianess ();
+	dump_XIP ( file );
+	
+	__workspace_release ( trix_workspace );
+	trix_workspace = NULL;
+}
+
+int search_dir ( char *dir )
+{
+	int pos = 0;
+	unsigned int entries = 0;
+	char *searchname[256];
+	char *filename[256];
+	t_fileinfo *file_infos = NULL;	
+
+	sprintf ( (char*)searchname, "%s/%s", dir, search_ext );
+	file_infos = __file_io_open_directory ( (char*)searchname, &entries );
+
+	for ( pos=0; pos < entries; pos++ )
+	{
+		if(file_infos[pos].options & FILE_DIRECTORY)
+		{
+			sprintf ( (char*)filename, "%s/%s", dir, file_infos[pos].filename );
+			search_dir ( (char*)filename );
+		}
+		else
+		{
+			sprintf ( (char*)filename, "%s/%s", dir, file_infos[pos].filename );
+			search_file ( (char*)filename );
+		}
+		free ( file_infos[pos].filename );
+	}	
+	free ( file_infos );
+}
+
+int main ( )
+{
+	search_path_length = strlen ( search_path );
+	search_dir ( (char*)search_path );
+}

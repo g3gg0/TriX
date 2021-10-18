@@ -1,0 +1,169 @@
+#title "Apply VKP patches"
+#author "ndt"
+
+// load plugin
+#plugin trix_fmtbabe
+
+// include headers
+#include trix
+#include stdio
+#include trix_fmtbabe
+#include "scripts/SE/se_babe_defs.trx"
+
+
+unsigned int parse_vkp_patch ( char *name )
+{
+   unsigned int pos = 0, tot_len = 0, leno = 0, lenm = 0, base = 0, line = 0, err = E_OK;
+   char *tmp = NULL;
+   char orig[256];
+   char mod[256];
+   char *po = NULL;
+   char *pm = NULL;
+   char *patch = NULL;
+   t_workspace *pws = NULL;
+
+
+   if ( !name )
+      return E_FAIL;
+
+   pws = __workspace_startup ( name );
+
+	if ( !pws || __v_get_size ( pws ) == E_FAIL )
+		return E_FAIL;
+
+	patch = ( char * ) __mem_calloc ( __v_get_size ( pws ) + 2, 1, NULL, 0 );
+	if ( !patch )
+	{
+      __workspace_release ( pws );
+		return E_FAIL;
+	}
+
+   printf ( "Injecting patch (%s)... \n", name );
+
+	__v_memcpy_get ( pws, patch, __v_get_start ( pws ), __v_get_size ( pws ) );
+	patch[__v_get_size ( pws )] = 0;
+	__workspace_release ( pws );
+
+	while ( tmp = __util_get_line ( patch, line ) )
+	{
+      if ( tmp[0] && tmp[0] != '+' && tmp[0] != ';' )
+      {
+         sscanf ( tmp, "%X: %s %s", &pos, orig, mod );
+
+         if ( strcmp ( orig, mod ) )
+         {
+            pos += base;
+
+            po = __util_hexunpack ( orig, &leno );
+            pm  = __util_hexunpack ( mod,  &lenm );
+
+            if ( leno != lenm )
+            {
+               printf ( "  patching failed (%s)\n", name );
+               free ( patch );
+               return E_FAIL;
+            }
+
+            leno = 0;
+            while ( leno < lenm )
+            {
+               if ( po[leno] != GetByte ( pos + leno ) )
+               {
+                  printf ( "  error reading line %d (0x%08X: %02X != %02X)\n", line + 1, pos + leno, po[leno], GetByte ( pos + leno ) );
+                  err = E_FAIL;
+               }
+               leno++;
+            }
+            if ( err == E_FAIL )
+            {
+               free ( patch );
+               return E_FAIL;
+            }
+
+            MemCpyPut ( pos, pm, lenm );
+
+            printf ( "  patched %d bytes @ 0x%08X\n", lenm, pos );
+
+            tot_len += lenm;
+         }
+      }
+      else if ( tmp[0] == '+' )
+         sscanf ( tmp, "+%08X", &base );
+
+      line++;
+   }
+
+   printf ( "Patch succesfully injected (%d bytes)\n\n", tot_len );
+   
+   free ( patch );
+   return E_OK;
+}
+
+unsigned int parse_vkp_list ( char *name )
+{
+   unsigned int line = 0;
+   char *tmp = NULL;
+   char *list = NULL;
+   t_workspace *lws = NULL;
+
+
+   if ( !name )
+      return E_FAIL;
+
+   lws = __workspace_startup ( name );
+
+	if ( !lws || __v_get_size ( lws ) == E_FAIL )
+		fail ( E_FAIL, "error reading file\n" );
+
+	list = ( char * ) __mem_calloc ( __v_get_size ( lws ) + 2, 1, NULL, 0 );
+	if ( !list )
+	{
+      __workspace_release ( lws );
+		return E_FAIL;
+	}
+
+	__v_memcpy_get ( lws, list, __v_get_start ( lws ), __v_get_size ( lws ) );
+	list[__v_get_size ( lws )] = 0;
+	__workspace_release ( lws );
+
+
+	while ( tmp = __util_get_line ( list, line++ ) )
+      parse_vkp_patch ( tmp );
+
+
+   free ( list );
+   return E_OK;
+}
+
+int main ()
+{
+   char *name = NULL;
+   unsigned int pos = 0;
+
+
+   UiDlgLoadFile ( &name, str("Select patch file"), str("VKP Patch (*.vkp);;VKP Patches list (*.txt)") );
+
+
+
+   if ( name )
+   {
+      pos = strlen ( name ) - 4;
+      if ( ( !strcmp ( name + pos, ".txt" ) || !strcmp ( name + pos, ".TXT" ) ) ) // patches list
+      {
+         parse_vkp_list ( name );
+         say ( "Done!" );
+         return E_OK;
+      }
+   }
+
+   // separate patches
+   while ( name )
+   {
+      fail ( parse_vkp_patch ( name ), "error reading patch file\n" )
+
+      UiDlgLoadFile ( &name, str("Select patch file"), str("VKP Patch (*.vkp)") );
+   }
+
+   say ( "Done!" );
+   return E_OK;
+}

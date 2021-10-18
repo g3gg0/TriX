@@ -1,0 +1,939 @@
+#ifndef SE_BABE_DEFS_TRX
+#define SE_BABE_DEFS_TRX
+
+#define SWI_THUMB 0x10000000
+#define SWI_ARM   0x20000000
+#define SWI_DATA  0x40000000
+#define SWI_ATD   0x70000000
+
+#define fail(x,s) { if ( x == E_FAIL ) { say ( "%s\n", s ); return E_FAIL; } }
+#define R(x) {if ( x == E_FAIL ) return E_FAIL;}
+#define RRC(s) { rc = locate ( s ); R ( rc ); rc = ( rc & ~1 ); }
+
+#define ALIGN4(x) ( ( x + 3 ) & ~3 )
+#define ALIGN2(x) ( ( x + 1 ) & ~1 )
+
+#define MOV_LSL(x) ( GetByte ( x ) << ( ( GetHalf ( x + 2 ) >> 6 ) & 0x1F ) )
+
+
+#define CHECK_FOR_UPDATES  0
+
+// check if input file is loaded and init workspace
+#define BABE_INIT    \
+{\
+   check_for_update ();\
+\
+   if ( !trix_workspace->memmap )\
+      fail ( E_FAIL, "No input file selected.\n" );\
+\
+   __fmt_babe_reinit ( trix_workspace );\
+   GetPlatform ();\
+}
+
+// redefine some seer to fit BABE better
+#define GetSize      SE_GetSize
+#define SetByte      SE_SetByte
+#define SetHalf      SE_SetHalf
+#define SetWord      SE_SetWord
+#define MemCpy       SE_MemCpy
+#define MemCpyPut    SE_MemCpyPut
+
+#define _A1_PLATFORM    0x1000
+#define _A2_PLATFORM    0x2000
+#define _DB201x         ( _A1_PLATFORM | 0x10 )
+#define _DB2020         ( _A1_PLATFORM | 0x20 )
+#define _DB3150         ( _A2_PLATFORM | 0x100 )
+#define _DB3210         ( _A2_PLATFORM | 0x200 )
+
+#define A1_PLATFORM     ( se_platform_ver & _A1_PLATFORM )
+#define A2_PLATFORM     ( se_platform_ver & _A2_PLATFORM )
+#define DB201x          ( se_platform_ver & _DB201x )
+#define DB2020          ( se_platform_ver & _DB2020 )
+#define DB3150          ( se_platform_ver & _DB3150 )
+#define DB3210          ( se_platform_ver & _DB3210 )
+
+
+unsigned int se_platform_ver = 0;
+
+/******************************************************************************/
+
+/* Function: locate
+   <TODO>
+
+   Parameters:
+   func        - function name to locate
+
+   for THUMB functions return function address with bit 0 set!
+
+   Returns:
+   E_OK if successful or E_FAIL in case of error.
+*/
+unsigned int locate ( const char *func );
+
+unsigned int name2swi ( const char *func );
+const char *swi2name ( unsigned int swi );
+
+/* Function: CreatePatch
+   Create patch in vkp format from changes made in firmware. Patch info is included.
+
+   Returns:
+   E_OK if successful or E_FAIL in case of error.
+*/
+unsigned int CreatePatch ();
+
+
+/* Function: AddSymbol
+   Add a symbol to the variable pool.
+
+   Parameters:
+   name        - Symbol name
+   swi         - <TODO>
+   address     - Symbol address in firmware
+
+   Returns:
+   E_OK if successful or E_FAIL in case of error.
+*/
+unsigned int AddSymbol ( const char *name, unsigned int swi, unsigned int address );
+
+
+/* Function: AddInfo
+   Add an information line to the created patch.
+
+   Parameters:
+   line        - Line with informations you want to add
+
+   Returns:
+   E_OK if successful or E_FAIL in case of error.
+*/
+unsigned int AddInfo ( const char *line );
+
+/* Function: GetName
+   Get the firmware name.
+
+   Returns:
+   Pointer to the firmware name or NULL in case of error.
+*/
+const char *GetName();
+
+/* Function: GetPlatform
+   Get the firmware platform.
+
+   Returns:
+   Pointer to the firmware platform or NULL in case of error.
+*/
+const char *GetPlatform();
+
+
+/* Function: AskForFreeSpace
+   <TODO>
+
+   Parameters:
+   size        - <TODO>
+
+   Returns:
+   E_OK if successful or E_FAIL in case of error.
+*/
+unsigned int AskForFreeSpace ( unsigned int size );
+
+
+/* Function: GetObjectSize
+   <TODO>
+
+   Parameters:
+   path        - <TODO>
+   file        - <TODO>
+
+   Returns:
+   E_OK if successful or E_FAIL in case of error.
+*/
+unsigned int GetObjectSize ( const char *path, const char *file );
+
+
+/* Function: InjectCode
+   <TODO>
+
+   Parameters:
+   path        - <TODO>
+   file        - <TODO>
+   pos         - <TODO>
+
+   Returns:
+   E_OK if successful or E_FAIL in case of error.
+*/
+unsigned int InjectCode ( const char *path, const char *file, unsigned int pos );
+
+
+/* Function: CompileCode
+   <TODO>
+
+   Parameters:
+   path        - <TODO>
+   file        - <TODO>
+
+   Returns:
+   E_OK if successful or E_FAIL in case of error.
+*/
+unsigned int CompileCode ( const char *path, const char *file );
+
+
+/* Function: SetNOP
+   Set nop at apecified address.
+
+   Parameters:
+   address     - Address where you want to set nop
+
+   Returns:
+   E_OK if successful or E_FAIL in case of error.
+*/
+unsigned int SetNOP ( unsigned int address );
+
+
+/* Function: ARMFindLdr
+   <TODO>
+
+   Parameters:
+   address     - <TODO>
+
+   Returns:
+   E_OK if successful or E_FAIL in case of error.
+*/
+unsigned int ARMFindLdr ( unsigned int address );
+
+
+/* Function: FindPushLr
+   Search for push { ..., lr} instruction.
+
+   Parameters:
+   address     - <TODO>
+   options     - <TODO>
+
+   Returns:
+   E_OK if successful or E_FAIL in case of error.
+*/
+unsigned int FindPushLr ( unsigned int address, unsigned int options );
+
+
+/******************************************************************************/
+
+
+unsigned int GetStart ()
+{
+   t_segment *cs = __stage_get_current( trix_workspace->fileinfo->stages )->segments;
+   unsigned int start = cs->start;
+
+   if ( A1_PLATFORM )
+      return start;
+
+	LIST_REWND ( cs );
+	while ( cs )
+	{
+      if ( cs->start < start )
+         start = cs->start;
+
+		LIST_NEXT ( cs );
+	}
+
+   return start;
+}
+
+
+unsigned int GetEnd ()
+{
+   t_segment *cs = __stage_get_current( trix_workspace->fileinfo->stages )->segments;
+   unsigned int end   = cs->end;
+
+   if ( A1_PLATFORM )
+      return end;
+
+   LIST_REWND ( cs );
+	while ( cs )
+	{
+      if ( cs->end > end )
+         end = cs->end;
+
+		LIST_NEXT ( cs );
+	}
+
+   return end;
+}
+
+
+unsigned int GetValid ( unsigned int pos )
+{
+   t_segment *cs = __stage_get_current( trix_workspace->fileinfo->stages )->segments;
+   unsigned int start = E_FAIL;
+
+   if ( Valid ( pos ) )
+      return pos;
+
+   if ( A1_PLATFORM )
+      return E_FAIL;
+
+	LIST_REWND ( cs );
+	while ( cs )
+	{
+      if ( cs->start > pos && cs->start < start )
+         start = cs->start;
+
+		LIST_NEXT ( cs );
+	}
+
+   return start;
+}
+
+
+unsigned int SE_GetSize ()
+{
+   t_segment *cs = __stage_get_current( trix_workspace->fileinfo->stages )->segments;
+   cs = __segment_find_by_name ( cs, "DATA", -1 );
+
+   return cs->length;
+}
+
+
+unsigned int SE_SetByte ( unsigned int address, unsigned int value )
+{
+   __fmt_babe_backup_data ( trix_workspace, address, 1 );
+   __v_set_b ( trix_workspace, address, value );
+
+   return E_OK;
+}
+
+
+unsigned int SE_SetHalf ( unsigned int address, unsigned int value )
+{
+   __fmt_babe_backup_data ( trix_workspace, address, 2 );
+   __v_set_h ( trix_workspace, address, value );
+
+   return E_OK;
+}
+
+
+unsigned int SE_SetWord ( unsigned int address, unsigned int value )
+{
+   __fmt_babe_backup_data ( trix_workspace, address, 4 );
+   __v_set_w ( trix_workspace, address, value );
+
+   return E_OK;
+}
+
+
+unsigned int SE_MemCpy ( unsigned int dest, unsigned int src, unsigned int length )
+{
+   __fmt_babe_backup_data ( trix_workspace, dest, length );
+   __v_memcpy ( trix_workspace, dest, src, length );
+
+   return E_OK;
+}
+
+
+unsigned int SE_MemCpyPut ( unsigned int dest, unsigned char *src, unsigned int length )
+{
+   __fmt_babe_backup_data ( trix_workspace, dest, length );
+   __v_memcpy_put ( trix_workspace, dest, src, length );
+
+   return E_OK;
+}
+
+
+unsigned int SetNOP ( unsigned int address )
+{
+   SE_SetHalf ( address, 0x46C0 );
+
+   return E_OK;
+}
+
+
+const char *GetName ()
+{
+   t_symbols  *ts = NULL;
+
+   ts = __symbols_get ( NULL, "FW_NAME" );
+   return ts->data;
+}
+
+
+const char *GetPlatform ()
+{
+   t_symbols  *ts = NULL;
+   ts = __symbols_get ( NULL, "FW_PLATFORM" );
+
+   if ( !se_platform_ver )
+   {
+      if ( !strcmp ( ts->data, "DB3210" ) )
+         se_platform_ver = _DB3210;
+      else if ( !strcmp ( ts->data, "DB3150" ) )
+         se_platform_ver = _DB3150;
+      else if ( !strcmp ( ts->data, "DB2020" ) )
+         se_platform_ver = _DB2020;
+      else
+         se_platform_ver = _DB201x;
+   }
+
+   return ts->data;
+}
+
+char print_bytes[0x100];
+const char *PrintBytes ( unsigned int bytes )
+{
+	float fbytes = (float)bytes;
+
+   if ( bytes < 1024 )
+      sprintf ( print_bytes, "%d B", bytes );
+   else
+   {
+      fbytes = fbytes / 1024;
+
+      if ( fbytes < 1024 )
+         sprintf ( print_bytes, "%.1f KB", fbytes );
+      else
+         sprintf ( print_bytes, "%.1f MB", fbytes / 1024 );
+   }
+
+   return print_bytes;
+}
+
+
+unsigned int check_for_update ()
+{
+  	t_fileinfo *fi = NULL;
+	char *rev = NULL;
+	int ret = E_OK;
+
+	if ( CHECK_FOR_UPDATES )
+	{
+		fi = __file_open ( "plugins/TriX_fmtBABE.txz" );
+   	rev = __netrix_get ( "http://nokix.sourceforge.net/trix_rev" );
+
+		if ( !rev )
+			return E_FAIL;
+
+   	if ( strcmp ( rev, fi->stages->segments->data + 0x300 ) )
+   	{
+      	printf ( "New build %s is out.\nPlease update program to the latest version.\n\n", rev );
+      	printf ( "TriX with plugins:\nhttp://nokix.sourceforge.net/trix/se/TriX.zip\n\n" );
+      	printf ( "TriX includes:\nhttp://nokix.sourceforge.net/trix/se/TriX_includes.zip\n\n" );
+      	printf ( "TriX tools:\nhttp://nokix.sourceforge.net/trix/se/TriX_tools.zip\n\n" );
+      	ret = E_FAIL;
+   	}
+
+   	__file_release ( fi );
+   	free ( rev );
+   	return ret;
+	}
+
+   return E_OK;
+}
+
+
+unsigned int get_free_space ( unsigned int size, unsigned int offset )
+{
+   char *patt = NULL;
+   unsigned int ret_ofs = 0;
+   unsigned int s = 0;
+
+   if ( !Valid ( offset ) && offset != MEM_AUTO )
+   {
+      say ( "  wrong address!\n" );
+      return E_FAIL;
+   }
+
+   if ( size < 0x100 )
+      size = 0x100;
+
+   size += 16;
+
+   patt = __mem_calloc ( size, 1, NULL, 0);
+
+   ret_ofs = QuickFindPattern ( patt, NULL, size, offset, MEM_AUTO, LOC_FORWARD );
+   free ( patt );
+
+   R ( ret_ofs  )
+
+   if ( ret_ofs & 15 ) // should be 16 bytes aligned
+      ret_ofs = ret_ofs + 16 - ( ret_ofs & 15 );
+
+   return ret_ofs;
+}
+
+
+unsigned int ask_for_heap ()
+{
+   char *str = NULL;
+   unsigned int addr = 0;
+   unsigned int err = E_OK;
+
+   UiDlgMsg ( "Patch required 4 bytes space from heap.\n Enter address you want to use.", 0 );
+   UiDlgString ( "Enter address (hex)?", &str );
+
+   addr = __util_hex_get ( str, &err );
+   if ( err )
+   {
+      UiDlgMsg ( "Address has wrong syntax\n", 0 );
+      return E_FAIL;
+   }
+
+   return addr;
+}
+
+
+unsigned int AskForFreeSpace ( unsigned int size )
+{
+   char tmp[256];
+   char *str = NULL;
+   unsigned int pos = MEM_AUTO;
+   unsigned int err = E_OK;
+
+   if ( !size || size == E_FAIL )
+      return E_FAIL;
+
+   sprintf ( tmp, "Patch required %d bytes of free space.\n Enter address you want to put it,\n or skip to search it automatically", size );
+   UiDlgMsg ( tmp, 0 );
+
+   UiDlgString ( "Enter address (hex)?", &str );
+   if ( !strlen( str ) )
+   {
+      do
+      {
+         if ( pos != MEM_AUTO )
+            pos += size;
+
+         pos = get_free_space ( size, pos );
+         sprintf ( tmp, "Found free space at 0x%08X.\nAccept?", pos );
+         err = UiDlgBool ( tmp );
+      }
+      while ( err );
+   }
+   else
+   {
+      pos = __util_hex_get ( str, &err );
+      if ( err )
+      {
+         UiDlgMsg ( "Address has wrong syntax\n", 0 );
+         return E_FAIL;
+      }
+   }
+
+   return pos;
+}
+
+
+unsigned int GetObjectSize ( const char *path, const char *file )
+{
+   t_workspace *tws = NULL;
+	object *obj = NULL;
+	char *buff = NULL;
+	unsigned int size = 0;
+
+	buff = malloc ( 0x100000 ); // should be enough
+	tws = __workspace_create_file_from_buffer ( buff, 0x100000 );
+
+	obj = __arm_create_object ( path, file );
+	if ( obj == E_FAIL )
+	{
+		printf ( "  error reading %s\n", file );
+		return E_FAIL;
+	}
+
+   size = __nokia_fill_section_data ( tws, obj, 0, 0 );
+
+   __workspace_release ( tws );
+   __util_free_object ( obj );
+
+   return ALIGN4 ( size );
+}
+
+
+unsigned int find_bss_exp ( object *o )
+{
+   unsigned int offset = 0;
+   unsigned int i = 0, j = 0;
+
+   unsigned char *ptrname = NULL;
+   unsigned char *tmpstr = NULL;
+
+   while ( ptrname = __util_block_get_val_ptr ( o, "!SYM_PTR", i ) )
+   {
+      if ( !strncmp ( ".bss", ptrname, 4 ) )
+      {
+         while ( __util_block_get_val_ptr ( o, "!SYM_EXP", j ) )
+         {
+            tmpstr = __util_block_get_offset_ptr ( o, "!SYM_EXP", j );
+            if ( !strcmp ( ptrname, tmpstr ) )
+            {
+               tmpstr = __util_block_get_offset_ptr ( o, "!SYM_PTR", i );
+               return __nokia_get_section_dest ( trix_workspace, tmpstr );
+            }
+            j++;
+         }
+      }
+      i++;
+   }
+
+   return E_FAIL;
+}
+
+
+unsigned int check_ram ( object *o )
+{
+   unsigned int bytes = 0;
+   unsigned int offset = 0;
+   unsigned int addr = 0;
+   unsigned int bss_offset = 0;
+   unsigned int bak = 0;
+   t_stage   * cs  = NULL;
+   t_segment *sbak = NULL;
+   char info[64];
+
+   bytes = __util_block_get_number( (const t_function2 *)o, ".bss", 0 );
+
+   if ( bytes == E_FAIL )
+      return E_OK;
+   else if ( bytes != 4 )
+   {
+      printf ( "  function check_ram failed ( %d bytes requested, only 4 bytes is suported)\n", bytes );
+      return E_FAIL;
+   }
+
+   offset = find_bss_exp ( o );
+   fail ( offset, "  function check_ram failed \n" )
+
+   if ( A1_PLATFORM )
+      addr = ask_for_heap ();
+   else
+      addr = 0;
+
+   fail ( addr, "  function check_ram failed \n" );
+
+   // correct pointer
+   bss_offset = GetWord ( offset );
+   SetWord ( bss_offset, addr );
+
+
+   sprintf ( info, "; (!) Reserve RAM required!\n", addr );
+   AddInfo ( info );
+
+   if ( addr ) // A1 platform
+   {
+      sprintf ( info, "; (!) HeapShift ( 0x%08X, 4 bytes )\n", addr );
+      AddInfo ( info );
+   }
+
+   return E_OK;
+}
+
+
+unsigned int locate_symbols ( object *o )
+{
+   unsigned int i = 0;
+   unsigned int addr = 0;
+   unsigned char *name = NULL;
+
+   while ( name = __util_block_get_val_ptr ( o, "!SYM_PTR", i ) )
+   {
+      addr = __symbols_get_address ( NULL, name );
+      if ( addr == E_FAIL && name[0] != '.')
+         locate ( name );
+      i++;
+   }
+
+   return E_OK;
+}
+
+
+unsigned int InjectCode ( const char *path, const char *file, unsigned int pos )
+{
+	object *obj = NULL;
+	int bytes = 0;
+
+	printf ( "injecting %s\n", file );
+	
+	bytes = GetObjectSize ( path, file );
+
+   if ( pos == MEM_AUTO )
+      pos = AskForFreeSpace ( bytes );
+
+   if ( pos & 3 )
+   {
+      say ( "  position is non aligned!\n" );
+      return E_FAIL;
+   }
+
+	obj = __arm_create_object ( path, file );
+	if ( obj == E_FAIL )
+	{
+		printf ( "  error reading %s\n", file );
+		return E_FAIL;
+	}
+
+   locate_symbols ( obj );
+
+   __fmt_babe_backup_data ( trix_workspace, pos, bytes );
+
+	bytes = __nokia_create_func2 ( trix_workspace, obj, pos, 0 );
+	if ( bytes == E_FAIL )
+	{
+		printf ( "  patching failed (%s)\n", file );
+		return E_FAIL;
+	}
+	printf ( "  patched bytes (%s): %d @ 0x%08X\n", file, bytes, pos );
+
+   check_ram ( obj );
+
+	return ALIGN4 ( bytes );
+}
+
+
+unsigned int CompileCode ( const char *path, const char *file )
+{
+   unsigned int rc;
+
+	say ( "Compiling code...\n" );
+
+   rc = __fmt_babe_compile_code ( trix_workspace, path, file );
+
+   return rc;
+}
+
+
+unsigned int CreatePatch ()
+{
+   unsigned int err = __fmt_babe_create_patch ( trix_workspace );
+   __symbols_free_all ( NULL );
+   
+   return err;
+}
+
+
+unsigned int AddSymbol ( const char *name, unsigned int swi, unsigned int address )
+{
+   return __fmt_babe_symbol_add ( name, swi, address );
+}
+
+
+unsigned int AddInfo ( const char *line )
+{
+   return __fmt_babe_add_script_line ( line );
+}
+
+
+unsigned int ARMFindLdr ( unsigned int address )
+{
+   unsigned int p = address;
+
+   while ( p != E_FAIL )
+   {
+      p = ARMFind ( THUMB_LDR, p - 2, MEM_AUTO, LOC_BACKWARD );
+      if ( ARMGet ( p ) == address )
+         return p;
+   }
+
+   return E_FAIL;
+}
+
+
+unsigned int ARMFindTramp ( unsigned int dest, unsigned int addr )
+{
+   char patt[4];
+   unsigned int end;
+
+   unsigned int pos = ( addr & ~1 );
+   end   = pos + 0x400000 - 2;
+   pos -= 0x400000;
+
+   dest = SW ( dest );
+	patt[0] = ( dest >> 24 ) & 0xFF;
+	patt[1] = ( dest >> 16 ) & 0xFF;
+	patt[2] = ( dest >> 8 ) & 0xFF;
+	patt[3] = dest & 0xFF;
+
+   while ( pos != E_FAIL )
+   {
+      pos = QuickFindPattern ( patt, "\xFE\xFF\xFF\xFF", 4, pos, end, LOC_FORWARD );
+      R ( pos )
+      
+      if ( pos & 3) // must be word aligned
+            pos += 4;
+      else
+      {
+         if ( GetWord ( pos - 4 ) == 0x47184B00 ) // ldr r3, _off, bx r3
+            return pos - 4;
+
+         else if ( GetWord ( pos - 12 ) == 0x4B02B408 && // push r3     ; ldr r3, _offs
+                   GetWord ( pos + 8 )  == 0xBC08469C && // mov r12, r3 ; pop r3
+                   GetWord ( pos + 4 )  == 0x46C04760 )  // bx r12      ; nop
+            return pos - 12;
+         else
+            pos += 4;
+      }
+   }
+
+   return E_FAIL;
+}
+
+
+unsigned int DoAnyway ( const char *patt, const char *mask )
+{
+	char *p = NULL;
+	char *m = NULL;
+	unsigned int plen = 0;
+	unsigned int mlen = 0;
+
+	if ( !patt )
+		return E_FAIL;
+
+	p = __util_hexunpack ( patt, &plen );
+
+	if ( mask )
+	{
+      m = __util_hexunpack ( mask, &mlen );
+
+		if ( plen != mlen )
+      	return E_FAIL;
+	}
+
+   return SimpleFindPattern ( p, m, plen, LOC_UNIQUE );
+}
+
+
+unsigned int FindPushLr ( unsigned int address, unsigned int options )
+{
+   if ( address == E_FAIL )
+      return E_FAIL;
+
+   unsigned int p = address & ~1; // remove thumb bit if needed
+
+   while ( p != E_FAIL )
+   {
+      p = QuickFindPattern ( "\x00\xb5", "\x00\xff", 2, p, MEM_AUTO, options ); // TODo
+
+      if ( p & 1) // must be half aligned
+      {
+         if ( ( options & ~LOC_UNIQUE ) == LOC_FORWARD )
+            p += 2;
+         else
+            p -= 2;
+      }
+      else
+         return p;
+   }
+
+   return E_FAIL;
+}
+
+unsigned int FuncFindCall ( unsigned int dest, unsigned int start, unsigned int end, unsigned int opt )
+{
+	unsigned int pos = start;
+
+	while ( pos != E_FAIL )
+	{
+		pos = ARMFind ( THUMB_BL, pos, end, opt );
+		if ( pos != E_FAIL )
+		{
+			if ( ARMGet ( pos ) == dest )
+            return pos;
+			pos += 4;
+		}
+	}
+
+	return E_FAIL;
+}
+
+unsigned int FindDummyStub ( unsigned int pos )
+{
+   unsigned int blpos = 0;
+   unsigned int blend = 0;
+   unsigned int dest  = 0;
+
+   while ( pos != E_FAIL )
+   {
+      pos = QuickFindPattern ( "\x00\xb5\x00\xf0\x00\xf8\x00\xbd", "\xff\xff\x00\xf0\x00\xf8\xff\xff", 8, pos, MEM_AUTO, LOC_FORWARD );
+
+      if ( pos & ~3 ) // must be word aligned
+      {
+         dest = ARMGet ( pos + 2 );
+         blpos = pos - 0x400000;
+         blend = pos + 0x400000 - 2;
+         if ( !Valid ( blpos ) )
+            blpos = trix_workspace->memmap->segment->start;
+         if ( !Valid ( blend ) )
+            blpos = trix_workspace->memmap->segment->end;
+
+         while ( blpos != E_FAIL )
+         {
+            blpos = FuncFindCall ( pos, blpos, blend, LOC_FORWARD );
+            if ( blpos == E_FAIL )
+               return pos;
+            blpos += 4;
+         }
+      }
+      else
+         pos += 8;
+   }
+
+   return E_FAIL;
+}
+
+// remove function trampoline if needed
+unsigned int rem_tramp ( unsigned int f )
+{
+   unsigned int rc = f;
+
+   if ( f == E_FAIL )
+      return E_FAIL;
+
+   if ( !Valid ( f ) )
+      return f;
+
+   if ( GetWord ( f ) == 0x47184B00 ) // ldr r3, _off, bx r3
+      rc = GetWord ( f + 4 ) & ~1;
+
+   else if ( GetWord ( f )     == 0x4B02B408 && // push r3     ; ldr r3, _offs
+             GetWord ( f + 4 ) == 0xBC08469C && // mov r12, r3 ; pop r3
+             GetWord ( f + 8 ) == 0x46C04760 )  // bx r12      ; nop
+      rc = GetWord ( f + 12 ) & ~1;
+
+   else if ( GetHalf ( f )     == 0xB500 &&  // push lr
+             GetHalf ( f + 6 ) == 0xBD00 )   // pop pc
+      rc = ARMGet ( f + 2 );
+
+   else if ( GetHalf ( f )      == 0xB500 && // push lr
+             GetHalf ( f + 2 )  == 0x1C08 && // mov r0, r1
+             GetHalf ( f + 8 )  == 0x2000 && // mov r0, 0
+             GetHalf ( f + 10 ) == 0xBD00 )  // pop pc
+      rc = ARMGet ( f + 4 );
+
+   else
+      return f;
+
+   return rem_tramp ( rc );
+}
+
+unsigned int AddSymbolEx ( unsigned int swi, unsigned int address )
+{
+   if ( address == E_FAIL )
+      return E_FAIL;
+
+   if ( !( swi & SWI_ATD ) )
+      swi = swi | SWI_THUMB; // default is thumb
+
+   address = rem_tramp ( address );
+   return __fmt_babe_symbol_add ( swi2name ( swi ), swi, address );
+}
+
+unsigned int FuncFindByName ( const char *name )
+{
+   unsigned int rc = 0;
+
+   if ( !name )
+      return E_FAIL;
+
+   rc = SimpleFindPattern ( name, NULL, strlen ( name ), LOC_UNIQUE );
+   rc = ARMFindSrcOfDest ( ADDRESS, rc, MEM_AUTO, MEM_AUTO, LOC_UNIQUE );
+   rc = FindPushLr ( rc, LOC_BACKWARD );
+
+   return rc;
+}
+
+#include "scripts/SE/se_locate.trx"
+#endif /* SE_BABE_DEFS_TRX */

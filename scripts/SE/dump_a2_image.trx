@@ -1,0 +1,60 @@
+// load plugin
+#plugin trix_fmtbabe
+
+// include headers
+#include trix
+#include trix_fmtbabe
+#include "scripts/SE/se_babe_defs.trx"
+
+int main ()
+{
+	char label[12];
+	t_workspace *ws = NULL;
+	t_segment *ts = NULL;
+	char *filename = NULL;
+	char *buffer = NULL;
+	unsigned int length = 0;
+	unsigned int size = 0;
+	unsigned int pos = 0;
+
+	BABE_INIT // init babe workspace
+
+	ts = trix_workspace->memmap->stage->segments;
+
+    pos = ts->start;
+	if ( __v_get_w_raw ( ts, ts->start ) == 0x41615252 ) // RRaA
+	{
+		pos += 0x200;
+        __v_memcpy_get ( trix_workspace, label, pos + 0x47, 11 );
+	}
+	else
+		__v_memcpy_get ( trix_workspace, label, pos + 0x2B, 11 );
+
+	size = __v_get_h_raw ( ts, pos + 0x13 ) * 512;
+	if ( !size )
+		size = __v_get_w_raw ( ts, pos + 0x20 ) * 512;
+
+	while ( label[length] != 0x20 )
+		length++;
+
+	label[length] = 0;
+
+	printf ( "Partition '%s': ~%dMB\n", label, size/0x100000 );
+
+	UiDlgString ( "Enter filename", &filename );
+	if ( strlen ( filename ) )
+	{
+		printf ( "Exporting...\n" );
+		length = ts->end - pos;
+		buffer = malloc ( length );
+		ws = WorkspaceCreateFileFromBuffer ( buffer, length );
+		__v_memcpy_put ( ws, __v_get_start ( ws ), ts->data + ( pos - ts->start ), length );
+		__file_write ( filename, ws->fileinfo );
+		__workspace_release ( ws );
+		printf ( "...done\n" );
+	}
+	else
+		printf ( "error getting filename\n" );
+
+	return E_OK;
+}

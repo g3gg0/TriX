@@ -1,0 +1,57 @@
+/* AUTH: 02 D6F1B1D33A3412CA6DFE5010804195241854903EB0764D7BF222BB2E78AE3BF0D2A327659755D21650DB6885565465E5AB17D029FE7A250DF8C55235232CAE8252FF66F593C5CC89EAFCBECF404435B6D846D23F8CB51ED3F542FA9BB5219A10578A60D27D76FCF0CD0F1962D4474E40E1C82A2BF1AC7CC4E92A56E99CCB24FEA9EF22278080FA9F965C2FDEFD51794964E1C8710FD9DA4949166A2CC009B55CF6B64EBEAE41493F7D49DE23A8EF3EF483DA5796BFC32242598B993DDE43B84ACA47A05CC7A76A97D3F3FA87C022A5326B931E5C0C7E2DCEC5271E0691A72179A7E46DEB0971776EE81FC3A644F8CE3A5EFDED016E2A37F26B7630F07EF03415 */
+
+#title "NeTriX"
+#author "g3gg0"
+
+#include trix
+#include stdio
+#include stdlib
+
+char *url_template = "http://trix.g3gg0.de/main?type=menu&state=%i";
+char *url_krisha = "http://trix.chrisi.de/scripts/";
+
+int main()
+{
+    int choice = 0;
+    char *url = NULL;
+
+    while ( 1 )
+    {    
+	say ( "\n" );
+	say ( "\n" );
+	say ( " This is the main menu   (GUI will come later ;)\n" );    
+	say ( "------------------------\n" );
+	say ( "\n" );
+	say ( "  1. Help us with development\n" );
+	say ( "  2. Some Development utilities\n" );
+	say ( "  3. Krisha's archive\n" );
+	say ( "\n" );
+	say ( "  4. RSA Key generator\n" );
+	say ( "  5. RSA Script Signer\n" );
+	say ( "\n" );
+	say ( "  6. Duden Keygen\n" );
+	say ( "\n" );
+	say ( "  0. Quit\n" );
+	say ( "\n" );
+
+	choice = UiDlgInt ( "Your choice", 0, 99999 );
+    
+	if ( choice == E_FAIL || choice == 0 )
+	    return 0;
+	else if ( choice == 3 )
+	    NetrixExecute ( url_krisha );
+	else if ( choice == 5 )
+	    NetrixExecute ( "http://trix.g3gg0.de/main?type=signature" );
+	else if ( choice == 4 )
+	    NetrixExecute ( "http://trix.g3gg0.de/main?type=keygen" );
+	else
+	{
+	    url = malloc ( strlen ( url_template ) + 100 );
+	    sprintf ( url, url_template, choice );
+    
+	    NetrixExecute ( url );
+	}
+    }
+    
+    return 0;
+}
