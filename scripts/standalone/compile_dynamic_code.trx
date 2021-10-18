@@ -1,0 +1,138 @@
+#title "C File compilation"
+#author "g3gg0"
+
+#include trix
+#include stdio
+
+
+
+// fit to your paths
+/////////////////////////////////////////////////////////
+unsigned int little_endian = 0;   // also need to change makefile!!!
+char *cfile = "support\\dynamic_code.c";
+char *binfile = "support\\dynamic_code.bin";
+int dump_symbols = 1;
+int dump_buffer = 1;
+int dump_object = 1;
+/////////////////////////////////////////////////////////
+
+
+int do_upload_from_cfile ()
+{
+	int maxsize = 0x80000;
+	int bytes = 0;
+	unsigned int address = 0x0C0B0410;
+	unsigned int offset = 0;
+	unsigned char *arm_code = NULL;
+	unsigned char *buffer = NULL;
+	unsigned char *save_buffer = NULL;
+	t_workspace *arm_file = NULL;
+	t_workspace *save_file = NULL;
+	object *own_funcs = NULL;
+
+	address = UiDlgIntDef ( "Base address? (the address the code gets loaded to)", 0, 0xFFFFFFF0, address );
+	if ( address == E_FAIL )
+	{
+		printf ( "[!] Invalid value\n" );
+		return E_FAIL;
+	}
+
+	printf ( "\n" );
+	printf ( "[x] Compiling C-code\n" );
+	printf ( "    file: '%s'\n", cfile );
+	printf ( "    into: '%s'\n", binfile );
+	printf ( "    base: 0x%08X\n", address );
+	printf ( "    Type: %s (make sure you use the correct makefile!)\n", (little_endian)?"little-endian":"big-endian" );
+	printf ( "\n" );
+
+	// run the makefile to create .o files
+	__arm_run_makefile ( "support" );
+
+	// read the wanted .o file and create an object struct from it
+	own_funcs = __arm_create_object ( "support", "dynamic_code.o" );
+	if ( own_funcs )
+	{
+		if ( dump_object )
+			__util_dump_object ( own_funcs );
+		buffer = malloc ( maxsize );
+		arm_file = WorkspaceCreateFileFromBuffer ( buffer, maxsize );
+		if ( !arm_file )
+		{
+			printf ( "Failed creating buffer!\n" );
+			return -1;
+		}
+		
+		arm_file->flags = arm_file->flags & ~FLAGS_ENDIANESS;
+		if ( little_endian )
+			arm_file->flags = arm_file->flags | FLAGS_ENDIANESS_LE;
+		else
+			arm_file->flags = arm_file->flags | FLAGS_ENDIANESS_BE;
+
+		bytes = __nokia_create_func2 ( arm_file, own_funcs, 0, address );
+		if ( bytes == E_FAIL )
+		{
+			printf ( "[!] patching failed...\n" );
+			getchar();
+			return -1;
+		}
+		__util_free_object ( own_funcs );
+	}
+	else
+	{
+		printf ( "[!] Failed opening C code. See err.log\n" );
+		return E_FAIL;
+	}
+	
+
+	printf ( "\n" );
+	printf ( "[x] Details\n" );
+	printf ( "    Base Address   : 0x%08X\n", address );	
+
+	offset = __symbols_get_address ( NULL, "main" );	
+	if ( offset == E_FAIL )
+		printf ( "    Address 'main ': n/a  \n" );
+	else
+		printf ( "    Address 'main ': 0x%08X  <- jump to this address\n", offset );	
+	printf ( "    Size           : 0x%08X\n", bytes );
+
+	printf ( "\n" );
+	if ( dump_buffer )
+	{
+		printf ( "Buffer dump:\n" );
+		printf ( "\n" );
+		__util_dump_bytes ( buffer, 0x08, bytes );
+	}
+
+	// dump global symbol table
+	if ( dump_symbols )
+	{
+		printf ( "\n" );
+		__symbols_dump ( NULL );
+	}
+
+	// save that buffer
+	save_buffer = malloc ( bytes );
+	if ( !save_buffer )
+	{
+		printf ( "Failed creating save_buffer!\n" );
+		return -1;
+	}
+	
+	memcpy ( save_buffer, buffer, bytes );
+	save_file = WorkspaceCreateFileFromBuffer ( save_buffer, bytes );
+	if ( !save_file )
+	{
+		printf ( "Failed creating save_file!\n" );
+		return -1;
+	}
+	
+	__file_write ( binfile, save_file->fileinfo );
+	__workspace_release ( arm_file );
+	__workspace_release ( save_file );
+
+}
+
+int main ( )
+{
+	do_upload_from_cfile ();
+}

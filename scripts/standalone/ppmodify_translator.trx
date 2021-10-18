@@ -1,0 +1,185 @@
+#include trix
+
+#plugin trix_ppmodify
+#plugin trix_xml
+#include trix_ppmodify
+#include trix_xml
+
+int strncmp ( unsigned char *s1, unsigned char *s2, int length )
+{
+	int pos = 0;
+
+	if ( !s1 || !s2 )
+		return 1;
+
+	while ( pos < length )
+	{
+		if ( s1[pos] != s2[pos] )
+			return 1;
+		if ( !s1[pos] || !s2[pos] )
+			return 0;
+		pos++;
+	}
+	return 0;
+}
+
+int dump_lang_strings ( t_treenode *lang, t_treenode *node )
+{
+	t_treenode *child = NULL;
+	t_treenode *newnode = NULL;
+	t_treenode *infonode = NULL;
+	unsigned char *workbuffer = NULL;
+	int worklength = 0;
+
+	lang = __treenode_get_byname ( __treenode_children ( lang ), "STRINGS" );
+	child = __treenode_get_byname ( __treenode_children ( lang ), "STRING" );
+	while ( child )
+	{
+		infonode = __treenode_get_byname ( __treenode_children ( child ), "UTF8" );
+		workbuffer = __treenode_get_content_data ( infonode );
+
+		if ( !workbuffer )
+			return E_OK;
+
+//		printf ( "Found STRING: '%s'\n", workbuffer );
+
+		newnode = __treenode_new ( node );
+		__treenode_set_name ( newnode, "STRING" );
+		__treenode_set_content_data ( newnode, workbuffer );
+
+		child = __treenode_get_byname ( __treenode_next ( child ), "STRING" );
+	}
+
+	return E_OK;
+}
+
+int dump_lang_chunk ( t_treenode *lang, t_treenode *node, char *name )
+{
+	t_treenode *child = NULL;
+	t_treenode *newnode = NULL;
+	t_treenode *infonode = NULL;
+	unsigned char *workbuffer = NULL;
+	int worklength = 0;
+
+	child = __treenode_get_byname ( __treenode_children ( lang ), "SUBCHUNK" );
+	while ( child )
+	{
+		infonode = __treenode_get_byname ( __treenode_children ( child ), "INFORMATION" );
+			infonode = __treenode_get_byname ( __treenode_children ( infonode ), "NAME" );
+			workbuffer = __treenode_get_content_data ( infonode );
+
+		if ( !workbuffer )
+			return E_OK;
+
+		printf ( "Found SUBCHUNK: '%s'\n", workbuffer );
+
+		if ( strlen ( workbuffer ) > 2 && !strncmp ( workbuffer, name, strlen ( name ) ) )
+		{
+			newnode = __treenode_new ( node );
+			__treenode_set_name ( newnode, workbuffer );
+			dump_lang_strings ( child, newnode );
+		}
+		child = __treenode_get_byname ( __treenode_next ( child ), "SUBCHUNK" );
+	}
+
+	return E_OK;
+}
+
+t_treenode *create_lang_node ( t_treenode *node )
+{
+	t_treenode *child = NULL;
+	t_treenode *infonode = NULL;
+	t_treenode *newnode = NULL;
+	unsigned char *workbuffer = NULL;
+	int worklength = 0;
+
+	child = __treenode_get_byname ( __treenode_children ( node ), "PPM" );
+	child = __treenode_get_byname ( __treenode_children ( child ), "CHUNK" );
+	while ( child )
+	{
+		infonode = __treenode_get_byname ( __treenode_children ( child ), "INFORMATION" );
+			infonode = __treenode_get_byname ( __treenode_children ( infonode ), "NAME" );
+			workbuffer = __treenode_get_content_data ( infonode );
+
+		if ( !workbuffer )
+			return newnode;
+
+		printf ( "Found CHUNK: '%s'\n", workbuffer );
+		if ( !strcmp ( workbuffer, "TEXT" ) )
+		{
+			newnode = __treenode_create ();
+			__treenode_set_name ( newnode, "LANG" );
+			dump_lang_chunk ( child, newnode, "EN" );
+		}
+
+		child = __treenode_get_byname ( __treenode_next ( child ), "CHUNK" );
+	}
+
+	return newnode;
+}
+
+int dump_langs ( )
+{
+	unsigned char *xml_data;
+	t_treenode * mainnode = NULL;
+	t_treenode * langnode = NULL;
+
+
+	// ---------------------
+
+
+	mainnode = __xml_connector_parse_file ( "RM74.xml" );
+
+	if ( !mainnode )
+	{
+		printf ( "Failed loading XML file 1\n" );
+		return E_FAIL;
+	}
+
+	langnode = create_lang_node ( mainnode );
+	__xml_connector_create_file ( langnode, "language-RM74.xml", NULL );
+	
+	__treenode_release ( mainnode );
+	__treenode_release ( langnode );
+
+
+	// ---------------------
+
+
+	mainnode = __xml_connector_parse_file ( "RM75.xml" );
+	if ( !mainnode )
+	{
+		printf ( "Failed loading XML file 2\n" );
+		return E_FAIL;
+	}
+
+	langnode = create_lang_node ( mainnode );
+	__xml_connector_create_file ( langnode, "language-RM75.xml", NULL );
+
+	__treenode_release ( mainnode );
+	__treenode_release ( langnode );
+	
+
+	// ---------------------
+
+
+	mainnode = __xml_connector_parse_file ( "RM225.xml" );
+	if ( !mainnode )
+	{
+		printf ( "Failed loading XML file 3\n" );
+		return E_FAIL;
+	}
+
+	langnode = create_lang_node ( mainnode );
+	__xml_connector_create_file ( langnode, "language-RM225.xml", NULL );
+	
+	__treenode_release ( mainnode );
+	__treenode_release ( langnode );
+
+
+	return E_OK;
+}
+
+int main ( )
+{
+}

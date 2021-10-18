@@ -1,0 +1,24 @@
+
+#title "TriX Script signature"
+#author "some freakx"
+
+#include trix
+#include stdio
+#include stdlib
+#include fmt_parsers
+
+int main ()
+{
+	unsigned char *signature = NULL;
+	printf ( "[NeTriX] Generating AUTH Signature\n" );
+	signature = netrix_generate_cert ( data, strlen ( data ), "g3gg0.de", &priv_key );
+	if ( signature )
+	{
+		printf ( "/* AUTH: %s */\n", signature );
+		free ( signature );
+	}
+	else
+		printf ( "[NeTriX] Error creating signature\n" );
+
+}
+

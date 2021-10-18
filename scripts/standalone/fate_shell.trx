@@ -1,0 +1,234 @@
+#include trix
+
+#plugin trix_fate
+#include trix_fate
+
+int list_files ( t_fat_info *info )
+{
+	__fate_dir ( info );
+	return E_OK;
+}
+
+int file_delete ( t_fat_info *info, char *filename_1 )
+{
+	__fate_unlink ( info, filename_1 );
+}
+
+int file_cd ( t_fat_info *info, char *filename_1 )
+{
+	__fate_cd ( info, filename_1 );
+}
+
+int file_rename ( t_fat_info *info, char *filename_1, char *filename_2 )
+{
+	__fate_rename ( info, filename_1, filename_2 );
+}
+
+
+int file_load ( t_fat_info *info, char *filename_1, char *filename_2 )
+{
+	unsigned char *buffer = NULL;
+	t_workspace *ws = NULL;
+	TFILE *file = NULL;
+
+	ws = WorkspaceStartup ( filename_1 );
+	if ( !ws || !ws->fileinfo || !ws->fileinfo->stages )
+	{
+		printf ("file open error\n" );
+		return E_FAIL;
+	}
+	
+	__stage_set_workspace ( __stage_find_by_num ( ws->fileinfo->stages, 0 ) );
+
+	buffer = malloc ( __v_get_size ( ws ) );
+	if ( !buffer )
+	{
+		printf ( "malloc error\n" );
+		return E_FAIL;
+	}
+	__v_memcpy_get ( ws, buffer, 0, __v_get_size ( ws ) );
+
+	file = __fate_fopen ( info, filename_2 );
+	if ( !file )
+	{
+		printf ("FAT file open error\n" );
+		return E_FAIL;
+	}
+
+	if ( __fate_fwrite ( buffer, __v_get_size ( ws ), 1, file ) != 1 )
+	{
+		printf ("FAT fwrite error\n" );
+		return E_FAIL;
+	}
+
+	__fate_fclose ( file );
+	__workspace_release ( ws );
+	free ( buffer );
+
+
+	return E_OK;
+}
+
+int file_save ( t_fat_info *info, char *filename_1, char *filename_2 )
+{
+	unsigned int blocksize = 1024*1024;
+	unsigned char *buffer = NULL;
+	unsigned int allocated = 0;
+	unsigned int pos = 0;
+	unsigned int read = 0;
+	int done = 0;
+	TFILE *file = NULL;
+	t_workspace *ws = NULL;
+
+	file = __fate_fopen (info, filename_1 );
+	if ( !file )
+	{
+		printf ("file open error\n" );
+		return E_FAIL;
+	}
+
+	allocated = blocksize;
+	buffer = malloc ( allocated );
+	if ( !buffer )
+	{
+		printf ( "malloc error\n" );
+		return E_FAIL;
+	}
+
+	while ( !done )
+	{
+		read = __fate_fread ( &buffer[pos], 1, allocated-pos, file );
+		if ( read )
+		{
+			pos += read;
+			allocated += read;
+			buffer = realloc ( buffer, allocated );
+			if ( !buffer )
+			{
+				printf ( "malloc error\n" );
+				return E_FAIL;
+			}
+		}
+		else
+			done = 1;
+	}
+
+	printf ( "read %i bytes, saving to '%s'\n", pos, filename_2 );
+
+	ws = WorkspaceCreateFileFromBuffer ( buffer, pos );
+
+	__file_write ( filename_2, ws->fileinfo );
+	__fate_fclose ( file );
+	__workspace_release ( ws );
+
+	return E_OK;
+}
+
+int main ( )
+{
+	char *filename_1 = NULL;
+	char *filename_2 = NULL;
+	int command = 0;
+	char *menu[] = { "List Files", "Change dir", "Get File", "Put File", "Delete File", "Rename File" };
+	t_fat_info *info = NULL;
+
+
+	GetWorkspace ()->flags = FLAGS_ENDIANESS_LE;
+	info = __fate_open ( GetWorkspace (), PART_TYPE_FAT16 );
+	if ( !info )
+	{
+		printf ( "No FAT image\n" );
+		return E_FAIL;
+	}
+
+
+	while ( 1 )
+	{
+	command = UiDlgMenu ( "FATe Test", menu, UI_OPT_QUIT );
+	switch ( command )
+	{
+		case E_FAIL:
+			break;
+		case 0:
+			return E_OK;
+			break;
+		case 1:
+			list_files ( info );
+			break;
+		case 2:
+			UiDlgString ( "Enter directory name", &filename_1 );
+			if ( filename_1 == NULL )
+			{
+				say ( "error getting directory name\n" );
+				return -1;
+			}
+			printf ( "CD %s\n", filename_1 );
+			file_cd ( info, filename_1 );
+			break;
+		case 3:
+			UiDlgString ( "Enter FAT16 filename", &filename_1 );
+			if ( filename_1 == NULL )
+			{
+				say ( "error getting filename\n" );
+				return -1;
+			}
+			UiDlgString ( "Enter target filename", &filename_2 );
+			if ( filename_2 == NULL )
+			{
+				say ( "error getting filename\n" );
+				return -1;
+			}
+			printf ( "Dumping...\n" );
+			file_save ( info, filename_1, filename_2 );
+			break;
+
+		case 4:
+			UiDlgString ( "Enter local filename", &filename_1 );
+			if ( filename_1 == NULL )
+			{
+				say ( "error getting filename\n" );
+				return -1;
+			}
+			UiDlgString ( "Enter FAT16 filename", &filename_2 );
+			if ( filename_2 == NULL )
+			{
+				say ( "error getting filename\n" );
+				return -1;
+			}
+			printf ( "Importing...\n" );
+			file_load ( info, filename_1, filename_2 );
+			break;
+
+
+		case 5:
+			UiDlgString ( "Enter FAT16 filename", &filename_1 );
+			if ( filename_1 == NULL )
+			{
+				say ( "error getting filename\n" );
+				return -1;
+			}
+			printf ( "Deleting...\n" );
+			file_delete ( info, filename_1 );
+			break;
+			
+		case 6:
+			UiDlgString ( "Enter current filename", &filename_1 );
+			if ( filename_1 == NULL )
+			{
+				say ( "error getting filename\n" );
+				return -1;
+			}
+			UiDlgString ( "Enter new filename", &filename_2 );
+			if ( filename_2 == NULL )
+			{
+				say ( "error getting filename\n" );
+				return -1;
+			}
+			printf ( "rename %s %s\n", filename_1, filename_2 );
+			file_rename ( info, filename_1, filename_2 );
+			break;
+	}
+	}
+
+	return E_OK;
+}

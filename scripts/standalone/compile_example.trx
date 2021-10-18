@@ -1,0 +1,107 @@
+#include trix
+
+int remap ( unsigned int start )
+{
+	t_segment *seg = trix_workspace->fileinfo->stages->segments;
+	
+	seg->start = start;
+	seg->end = seg->start + seg->length;
+
+	WorkspaceUpdateMemmap ( trix_workspace );
+	return E_OK;
+}
+
+int main ()
+{
+	object *compiled_data = NULL;
+	int bytes_used = 0;
+	unsigned int base_address = 0;
+	unsigned int patch_addr = 0;
+	unsigned char *buffer = NULL;
+	t_workspace *arm_code = NULL;
+
+	char *val = NULL;
+	unsigned int value = 0;
+	unsigned int err = 0;
+	
+	val = NULL;
+	UiDlgString ( "At which address is the loaded file?", &val );
+	if ( !val )
+		return E_FAIL;
+	err = 0;
+	value = __util_hex_get ( val, &err );
+	if ( err )
+	{
+		printf ( "Invalid value <%s>\n", val );
+		return E_FAIL;
+	}
+
+	base_address = value;
+	
+	remap ( base_address );
+
+
+	trix_workspace->flags = FLAGS_ENDIANESS_LE;
+
+
+	// max 8192 bytes of compiled ARM code
+	// creating a workspace, since all system functions need one to work on
+	buffer = malloc ( 8192 );
+	arm_code = WorkspaceCreateFileFromBuffer ( buffer, 8192 );
+
+	//
+	// now we have a workspace "arm_code" that is 8192 bytes big and has its data in "buffer"
+	//	
+
+	//
+	// execute the makefile in "scripts/standalone/compile_example" and get code from example.o
+	//
+	compiled_data = __arm_create_object_from_makefile ( "scripts/standalone/compile_example", "example.o" );
+	__util_dump_object ( compiled_data );
+
+	if ( compiled_data )
+	{
+		//
+		// patch that function into our workspace
+		//
+		val = NULL;
+		UiDlgString ( "Insert the compiled code to which address?", &val );
+		if ( !val )
+			return E_FAIL;
+		err = 0;
+		value = __util_hex_get ( val, &err );
+		if ( err )
+		{
+			printf ( "Invalid value <%s>\n", val );
+			return E_FAIL;
+		}
+
+		patch_addr = value;
+
+		
+		bytes_used = __nokia_create_func2 ( GetWorkspace(), compiled_data, patch_addr - base_address, base_address  );
+		__util_free_object ( compiled_data );
+		if ( bytes_used == E_FAIL )
+		{
+			say ( "Could NOT create function!\n" );
+			return E_FAIL;
+		}
+		printf ( "\n" );
+		printf ( "patched 0x%04X bytes into 0x%08X\n", bytes_used, patch_addr);
+		printf ( "\n" );
+		printf ( "\n" );
+
+		DrawBytes ( patch_addr, 0x10, bytes_used );
+		
+		__symbols_dump ( trix_workspace->fileinfo->stages );
+
+		// test: set a 32-bit BLX to main routine at 0xA0000988
+		ARMSet ( ARM_BLX, 0xA0000988, SymbolGetInt ( "main" ) );
+
+
+	}
+	else
+		printf ( "Compilation failed. see logfile\n" );
+	
+	return E_OK;
+}

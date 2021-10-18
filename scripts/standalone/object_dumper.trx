@@ -1,0 +1,202 @@
+#include trix
+
+
+
+int k_dump_class ( unsigned int object )
+{
+	int fnr = 0;
+	int pos = 0;
+	int thumb = 0;
+	unsigned short id = 0;
+	unsigned char *type = "";
+	unsigned int address = 0;
+	unsigned char buffer[128];
+	unsigned int function = 0;
+	char *name = GetStr(GetWord(object + 16));
+
+	
+	if ( !strcmp ( "no name available", name ) || strlen ( name ) < 2 )
+		sprintf ( buffer, "obj_%08X", object );
+	else
+		sprintf ( buffer, "obj_%s_%08X", name, object );
+
+	for ( pos = 0; pos < strlen ( buffer ); pos++ )
+	{
+		if ( ! (
+			     ( buffer[pos] >= 0x30 && buffer[pos] <= 0x39 ) ||
+				 ( buffer[pos] >= 0x41 && buffer[pos] <= 0x5A ) ||
+				 ( buffer[pos] >= 0x61 && buffer[pos] <= 0x7A ) ||
+				 ( buffer[pos] == '_' )
+				)
+			)
+			buffer[pos] = '_';
+	}
+	printf ( "    MakeName ( 0x%08X, \"%s\" );\n", object, buffer );
+	printf ( "    MakeDword ( 0x%08X );\n", object );
+	printf ( "    SetType ( 0x%08X, \"char *self;\" );\n", object );
+	printf ( "    MakeRptCmt ( 0x%08X, \"char *self;\" );\n", object );
+
+	printf ( "    MakeDword ( 0x%08X );\n", object + 4 );
+	printf ( "    SetType ( 0x%08X, \"char *parent;\" );\n", object + 4 );
+	printf ( "    MakeRptCmt ( 0x%08X, \"char *parent;\" );\n", object + 4);
+
+	if ( !strcmp ( "no name available", name ) || strlen ( name ) < 2 )
+		sprintf ( buffer, "obj_%08X_mth", object );
+	else
+		sprintf ( buffer, "obj_%s_%08X_mth", name, object );
+	for ( pos = 0; pos < strlen ( buffer ); pos++ )
+	{
+		if ( ! (
+			     ( buffer[pos] >= 0x30 && buffer[pos] <= 0x39 ) ||
+				 ( buffer[pos] >= 0x41 && buffer[pos] <= 0x5A ) ||
+				 ( buffer[pos] >= 0x61 && buffer[pos] <= 0x7A ) ||
+				 ( buffer[pos] == '_' )
+				)
+			)
+			buffer[pos] = '_';
+	}
+
+	printf ( "    MakeName ( 0x%08X, \"%s\" );\n", GetWord(object + 8), buffer );
+
+	printf ( "    MakeDword ( 0x%08X );\n", object + 8 );
+	printf ( "    SetType ( 0x%08X, \"char *methods;\" );\n", object + 8 );
+	printf ( "    MakeRptCmt ( 0x%08X, \"char *methods;\" );\n", object + 8 );
+
+	printf ( "    MakeWord ( 0x%08X );\n", object + 12 );
+	printf ( "    MakeWord ( 0x%08X );\n", object + 14 );
+
+	printf ( "    MakeDword ( 0x%08X );\n", object + 16 );
+	printf ( "    SetType ( 0x%08X, \"char *name;\" );\n", object + 16 );
+	printf ( "    MakeRptCmt ( 0x%08X, \"char *name;\" );\n", object + 16 );
+
+	address = GetWord ( object + 8 );
+	fnr = 0;
+	while ( Valid( address) && GetWord ( address + 4 ) )
+	{
+		function = GetWord ( address + 4 ) & ~0x0000001;
+		thumb = GetWord ( address + 4 ) & 0x0000001;
+		id = GetHalf ( address );
+
+		if ( !strcmp ( "no name available", name ) || strlen ( name ) < 2 )
+			sprintf ( buffer, "obj_%08X_%02X", object, fnr );
+		else
+			sprintf ( buffer, "obj_%s_%02X", name, fnr );
+
+		for ( pos = 0; pos < strlen ( buffer ); pos++ )
+		{
+			if ( ! (
+				     ( buffer[pos] >= 0x30 && buffer[pos] <= 0x39 ) ||
+					 ( buffer[pos] >= 0x41 && buffer[pos] <= 0x5A ) ||
+					 ( buffer[pos] >= 0x61 && buffer[pos] <= 0x7A ) ||
+					 ( buffer[pos] == '_' )
+					)
+				)
+				buffer[pos] = '_';
+		}
+		switch ( id )
+		{
+        case 0xC000:
+            type = str ("M_IS_OF_CLASS");
+            break;
+        case 0xC001:
+            type = str ("M_GET_METHOD_HANDLER");
+            break;
+        case 0xC002:
+            type = str ("M_GET_CLASS");
+            break;
+        case 0xC003:
+            type = str ("M_NEW");
+            break;
+        case 0xC004:
+            type = str ("M_CONSTRUCTOR");
+            break;
+        case 0xC005:
+            type = str ("M_DELETE");
+            break;
+        case 0xC006:
+            type = str ("M_DESTRUCTOR");
+            break;
+        default:
+            type = str ( "M_ANY");
+		}
+
+		printf ( "    SetReg ( 0X%08X, \"T\", 0X%02X );\n", function, thumb );
+		printf ( "    MakeFunction ( 0x%08X, BADADDR );\n", function );
+		printf ( "    MakeName ( 0x%08X, \"%s\" );\n", function, buffer );
+		printf ( "    MakeWord ( 0x%08X );\n", address );
+		printf ( "    MakeWord ( 0x%08X );\n", address + 2 );
+		printf ( "    MakeDword ( 0x%08X );\n", address + 4 );
+		printf ( "    SetType ( 0x%08X, \"char *handler;\" );\n", address + 4 );
+
+		printf ( "    MakeRptCmt ( 0x%08X, \"Type: %s\" );\n", address, type );
+		printf ( "    MakeRptCmt ( 0x%08X, \"Unk :\" );\n", address+2 );
+		printf ( "    MakeRptCmt ( 0x%08X, \"Handler\\n\" );\n", address+4 );
+
+		address += 8;
+		fnr++;
+	}
+	printf ( "\n" );
+}
+
+int k_find_objects ( )
+{
+
+   unsigned int address = 0;
+	unsigned int i;
+	t_stage *s = NULL;
+	t_segment *segment = NULL;
+	int pos = 0;
+	int segments = 0;
+	t_fileinfo *fi = NULL;
+
+
+	fi = GetWorkspace()->fileinfo;
+	s = __stage_get_last (fi->stages);
+	if ( !s )
+		return 0;
+		
+	printf ( "\n" );
+	printf ( "\n\n" );
+	printf ( "IDA Script output:\n" );
+	printf ( "-------------------------------------\n" );
+	printf ( "#include <idc.idc>\n" );
+ 	printf ( "static main()\n" );
+ 	printf ( "{\n" );
+
+	segments = __segment_count ( s->segments );
+	while ( pos < segments )
+	{
+
+		segment = __segment_find_by_num ( s->segments, pos );
+		if ( !segment )
+			return 0;
+
+		
+		address = 0x780000;
+		while ( address + 4 <= segment->end )
+		{
+			i = GetWord ( address );
+			if ( i != 0x00 && i == address )
+					k_dump_class ( address );
+
+			address+=4;
+		} 
+		pos++;
+	}	
+	printf ( "}\n" );
+	printf ( "-------------------------------------\n" );
+	printf ( "\n\n" );
+	
+
+    printf ("\nend...\n" );
+
+    return 0;
+}
+
+
+int main ( )
+{
+	trix_workspace->flags = FLAGS_ENDIANESS_LE;
+//	g_task_dump ();
+k_find_objects();
+}

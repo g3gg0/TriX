@@ -1,0 +1,25 @@
+#include trix
+//#include stdio
+
+#plugin trix_ppmodify
+#plugin trix_xml
+#include trix_ppmodify
+#include trix_xml
+
+
+int main ( )
+{
+	unsigned char *xml_data;
+	t_treenode * mainnode = NULL;
+	
+//	mainnode = __ppmodify_dump_xml ( GetWorkspace(), __v_get_start ( GetWorkspace () ) );
+//	__xml_connector_create_file ( mainnode, "nhl4u.xml", NULL ) );
+
+	mainnode = __xml_connector_parse_file ( "nhl4u.xml" );
+	printf ( "%i", __ppmodify_build_ppm  ( GetWorkspace(), __v_get_start ( GetWorkspace () ), __v_get_size ( GetWorkspace () ), mainnode ) );
+
+
+	__treenode_release ( mainnode );
+	
+	return E_OK;
+}

@@ -1,0 +1,21 @@
+#include trix
+
+int
+get_addresses ( )
+{
+    printf ( "CS:%08X\n", GetWord ( 0x01000078 ) );
+    printf ( "CC:%08X\n", GetWord ( 0x01000074 ) );
+    printf ( "CV:%08X%08X\n", GetWord ( 0x0100006C ), GetWord ( 0x01000070 ) );
+	 printf ( "\n" );
+
+    printf ( "Protected area: 0x%08X - 0x%08X\n", GetWord ( 0x01000078 ), GetWord ( 0x01000078 ) + GetWord ( 0x01000074 )*8 ); 
+    return 1;
+}
+
+
+
+int main ( )
+{
+
+    get_addresses ();
+}

@@ -1,0 +1,77 @@
+#include trix
+
+unsigned int g_find_test_table ( )
+{
+	unsigned int pos = 0;
+	unsigned int offset = SimpleFindPattern ( "_TEST\x00ST_", "\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF", 9, 0 );
+
+	if ( offset != E_FAIL )
+	{
+		offset += 6;
+		printf ( "[Test Table] \"_TASK\" Pattern found at 0x%08X\n", offset - 6 );
+
+		pos = __v_get_start ( trix_workspace );
+		// quick hack for speedup
+		pos = 0x008ABD38;
+
+		while ( Valid ( pos ) )
+		{
+			if ( GetWord ( pos ) == offset )
+			{
+				printf ( "[Test Table] Test table found at 0x%08X\n", pos - 0x14 );
+				return pos - 0x14;
+			}
+			pos++;
+
+			while ( pos & 0x03 && pos != E_FAIL )
+				pos = __v_get_next_offset ( trix_workspace, pos );
+		}
+		printf ( "[Test Table] No Ref to \"*_TEST\" Pattern found\n" );
+
+	}
+	printf ( "[Test Table] Table not found\n" );
+	return E_FAIL;
+}
+
+int g_test_dump ( )
+{
+	unsigned int test = 0;
+	unsigned int name = 0;
+	unsigned int handler = 1;
+	int num = 0;
+
+	test = g_find_test_table ( );
+	if ( test == E_FAIL )
+		return E_FAIL;
+
+	while ( handler != 0x0000000 )
+	{
+		handler = GetWord ( test );
+		name = GetWord ( test + 0x04 );
+		if ( handler )
+		{
+			printf ( "    MakeDword ( 0x%08X );\n", test  );
+			printf ( "    MakeDword ( 0x%08X );\n", test + 4 );
+			printf ( "    SetType ( 0x%08X, \"char *handler;\" );\n", test );
+			printf ( "    SetType ( 0x%08X, \"char *name;\" );\n", test + 4 );
+			printf ( "    MakeDword ( 0x%08X );\n", test + 8 );
+			printf ( "    MakeDword ( 0x%08X );\n", test + 0x0c );
+			printf ( "    MakeFunction ( 0x%08X, BADADDR );\n", handler & ~0x0000001 );
+			printf ( "    MakeName ( 0x%08X, \"%s\" );\n", handler & ~0x0000001, GetStr ( name ) );
+			num++;
+		}
+		test += 0x10;
+	}
+	return 1;
+}
+
+
+int main ( )
+{
+	// if you have a little endian file, like TUKU devices have, uncomment this
+	//trix_workspace->flags = FLAGS_ENDIANESS_LE;
+	
+	g_test_dump ();
+
+	return E_OK;
+}

@@ -1,0 +1,13 @@
+#title "Dump MemMaps"
+#author "g3gg0"
+
+#include trix
+int main ()
+{
+
+	char *menu[] = { "one", "two", NULL };
+
+	__ui_dlg_menu ( "test", menu, 0 );
+	return E_OK;
+
+}

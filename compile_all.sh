@@ -212,7 +212,7 @@ for file in $CPP_FILES; do
     echo "$pct";
     echo "\n  Compiling  <$file.cpp> ($mode)";
     echo "XXX";
-    msg="`g++-3.4 -g  $O  -c $file.cpp -o $file.o  $DEFINES  2>&1`";
+    msg="`g++ -g  $O  -c $file.cpp -o $file.o  $DEFINES  2>&1`";
     RC=$?;
 
     for object in $O_FILES_ALL; do

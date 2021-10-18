@@ -1,0 +1,66 @@
+#title "Dump ASSERT strings"
+#author "g3gg0"
+
+
+#include trix
+
+
+
+int build_cmd_struct (  );
+
+int main ()
+{
+	trix_workspace->fileinfo->stages->segments->start = 0x1FFFF65C;
+	trix_workspace->fileinfo->stages->segments->end = trix_workspace->fileinfo->stages->segments->start + trix_workspace->fileinfo->stages->segments->length;
+	WorkspaceUpdateMemmap ( trix_workspace );
+	
+	trix_workspace->flags = FLAGS_ENDIANESS_LE;
+	dump_assert_strings ( 1, 0 );
+}
+
+int build_cmd_struct (  )
+{
+	int pos[16];
+	int i = 0;
+	int offset = 0;
+	int correction_offset = 0x80000000;
+	buffer = malloc ( 8192 );
+
+
+	printf ( "\n\n" );
+	printf ( "IDA Script output:\n" );
+	printf ( "-------------------------------------\n" );
+	printf ( "#include <idc.idc>\n" );
+	printf ( "static main()\n" );
+	printf ( "{\n" );
+
+	offset = 0x202E6F54;
+	while ( offset < 0x202E75D8 )
+	{
+		if ( GetWord ( offset ) == 0x02 )
+		{
+			printf ( "    MakeFunction ( 0x%08X, BADADDR );\n", GetWord ( offset + 4 ) );
+		}
+		else if ( GetWord ( offset ) == 0x00 )
+		{
+			offset += 4;
+			printf ( "    MakeStr ( 0x%08X,  BADADDR );\n", offset + correction_offset );
+			offset += 4;
+		}
+		else
+		{
+			printf ( "FAIL\n" );
+			return E_FAIL;
+		}
+			
+	}
+
+	if ( ida_out )
+		printf ( "}\n" );
+
+	free ( buffer );
+
+	return 0;
+
+}
+

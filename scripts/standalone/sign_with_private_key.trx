@@ -1,0 +1,49 @@
+﻿#title  "TriX Script sign utility"
+#author "some freakx"
+
+#include trix
+#include stdio
+#include stdlib
+
+int main ()
+{
+	char *buffer = NULL;
+	char *auth = NULL;
+	char *data = NULL;
+    char *signature = NULL;
+	int new_len = 0;
+	t_workspace *ws = NULL;
+    t_crypt_key key;
+
+    key.primefac = NULL;
+    key.key = NULL;
+    key.id = 2;
+    key.primefac = str("00000001A9118BE1CBC2132B63DF26FA074EF9E353A36631B9C0902FDE6A9A555B6B4517BB1C90ADD41AAECBE9D2466997FCBA97ACBBFEC4152233E150881056117B9750B258DABE40F8EE002340D1CA27AF6BD1D12CC274981BD8B6791B86B62002B8CE80AE72EAC89011BF6B22C5B69E6894A0EA987060B67DB4C7464A347B1BF19FBEAFD4EBAC01FBC840BE8D99779C8E58F36E83E07299B0760C39D021C626081125AB86C1C0132E7FDFF001A284485030A3EC30C6012AD91699F24A5A61BA5105F6B02DC51B12741D5158BDBC91909214478BB3AD7F247D9B5EF646FCECFF554DF342D9EDD0DFD4DAD0324A23B6526146FCCFD2653F6D5E208744FC16935B5B6E81");
+    key.key = str("D86FB1D103D65565ECD9034AE998F1D41868638B895D237745E47B0A1E8817F1828BB8CCF1DE7437F5500A724913BBEC73F37B5A7947C5BE5392CF1532E22D348B4A21CF91C9D337E8830D713BF3437B1A03202D88EF6BBF0AB5F5DA00F980E12E065D8FF08960773331C55CA959DAD6CFEB52AA38B1C3B97AA344CF743A8A42B63321712E82E24E126B6B9D76DB4436F80BD070E38904B43A0578144B38E01990F1C6739536A5346598C72E0931B60FE949E26BA5DFBBA3AFF34924CF5D2EA0EC631DC2F82B990DDC3EB1C5E2849484077E58E02602B2DD5AEABC7B93FEEE20FDBDD7A7C7F6EA34DB86F2562EA094BDFF228AC2B364E0C59AA241F3C5246645");
+    signature = str("g3gg0.de|g3gg0.de");
+        
+	data = __v_get_ptr ( trix_workspace, 0 );
+	say ( "[NeTriX] Generating AUTH Signature\n" );
+	auth = CryptoGenerateCert ( data, __v_get_size ( trix_workspace ), signature, &key );
+	if ( auth )
+	{
+		new_len = __v_get_size ( trix_workspace ) + strlen(auth) + 16;
+		buffer = malloc ( new_len );
+		sprintf ( buffer, "/* AUTH: %02X %s */\n", key.id, auth );
+		say ( "/* AUTH: %02X %s */\n", key.id, auth );
+		free ( auth );
+		__v_memcpy_get ( trix_workspace, &buffer[strlen(buffer)], 0, __v_get_size ( trix_workspace ) );
+
+		free ( trix_workspace->fileinfo->stages->segments->data );
+		trix_workspace->fileinfo->stages->segments->data = buffer;
+		trix_workspace->fileinfo->stages->segments->length = new_len;
+		trix_workspace->fileinfo->stages->segments->end = new_len;
+		
+		__workspace_update_memmap ( trix_workspace );
+		__workspace_set_modified ( trix_workspace );
+	}
+	else
+		say ( "[NeTriX] Error creating signature\n" );
+		
+    return E_OK;
+}
